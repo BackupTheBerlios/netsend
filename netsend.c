@@ -117,6 +117,12 @@
 #define	EXIT_FAILMISC 3
 #define	EXIT_FAILNET  4
 
+/* Verbose levels */
+#define	VL_QUITSCENT(x)  (x)
+#define	VL_GENTLE(x)     (x >= 1)
+#define	VL_LOUDISH(x)    (x >= 2)
+#define	VL_STRESSFUL(x)  (x >= 3)
+
 #define	PROGRAMNAME   "netsend"
 #define	VERSIONSTRING "0.01"
 
@@ -195,8 +201,9 @@ struct opts {
 	int           family;
 	int           socktype;
 	int           reuse;
+	int           change_congestion;
 	int           congestion;
-	uint16_t      verbose;
+	int           verbose;
 	uint16_t      port;
 	char          *me;
 	char          *hostname;
@@ -318,7 +325,6 @@ parse_opts(int argc, char *argv[])
 	opts.protocol    = IPPROTO_TCP;
 	opts.socktype    = SOCK_STREAM;
 	opts.family      = AF_INET;
-	opts.congestion  = CA_DEFAULT;
 	opts.buffer_size = DEFAULT_BUFSIZE;
 
 	/* Do the dirty commandline parsing */
@@ -365,7 +371,7 @@ parse_opts(int argc, char *argv[])
 									strlen(optarg))))
 					{
 						opts.congestion = congestion_map[i].conf_code;
-						fprintf(stderr, "C: %s\n", optarg);
+						opts.change_congestion++;
 						break;
 					}
 				}
@@ -375,7 +381,7 @@ parse_opts(int argc, char *argv[])
 			case 'b':
 				opts.buffer_size = strtol(optarg, (char **)NULL, 10);
 				if (opts.buffer_size <= 0) {
-					fprintf(stderr, "Buffersize to small (%d byte)\n",
+					fprintf(stderr, "Buffer size to small (%d byte)!\n",
 							opts.buffer_size);
 				}
 				break;
@@ -686,11 +692,10 @@ instigate_ss(void)
 		exit(EXIT_FAILNET);
 	}
 
+	if (opts.change_congestion) {
 
-	if (opts.congestion) {
-
-		if (opts.verbose) {
-			fprintf(stdout, "congestion avoidance: %s\n",
+		if (VL_LOUDISH(opts.verbose)) {
+			fprintf(stderr, "Congestion Avoidance: %s\n",
 					congestion_map[opts.congestion].conf_string);
 		}
 
