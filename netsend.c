@@ -186,7 +186,7 @@ struct conf_map_t io_call_map[] = {
 /* Centralize our statistic data */
 
 struct net_stat {
-	int mtu;
+	int mss;
 	int read_call_cnt;
 };
 
@@ -479,15 +479,22 @@ parse_opts(int argc, char *argv[])
 }
 
 static int
-get_mtu(int fd)
+get_mss(int fd)
 {
-	int ret, mss, len_mss;
+	int ret, len_mss;
+	unsigned int mss;
 
+	/* NOTE:
+	** ipv4/tcp.c:tcp_getsockopt() returns
+	** tp->mss_cache_std;
+	** if (!val && ((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_LISTEN)))
+	**     val = tp->rx_opt.user_mss;
+	*/
 	len_mss = sizeof(mss);
 	ret = getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, &mss, &len_mss);
 	if ((ret == -1) || (mss <= 0)) {
-		fprintf(stderr, "Can't determine mss for socket: %s "
-				"(fall back to 1500bytes)\n", strerror(errno));
+		fprintf(stderr, "Can't determine mss for socket (mss: %d): %s "
+				"(fall back to 1500 bytes)\n", mss, strerror(errno));
 		return 1500;
 	}
 
@@ -669,8 +676,8 @@ instigate_ss(void)
 		exit(EXIT_FAILNET);
 	}
 
-	/* fetch mtu for socket */
-	net_stat.mtu = get_mtu(fd);
+	/* fetch mss for socket */
+	net_stat.mss = get_mss(fd);
 
 
 	if (opts.reuse) {
@@ -756,8 +763,8 @@ server_mode(void)
 {
 	int connected_fd, file_fd;
 
-	if (opts.verbose)
-		fprintf(stdout, " + Server Mode (Filename: %s)\n", opts.filename);
+	if (VL_GENTLE(opts.verbose))
+		fprintf(stdout, "Server Mode (Filename: %s)\n", opts.filename);
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_file();
@@ -804,8 +811,8 @@ client_mode(void)
 {
 	int cfd;
 
-	if (opts.verbose)
-		fprintf(stdout, " + Client Mode (Hostname: %s)\n", opts.hostname);
+	if (VL_GENTLE(opts.verbose))
+		fprintf(stdout, "Client Mode (Hostname: %s)\n", opts.hostname);
 
 	cfd = instigate_cs();
 }
@@ -821,7 +828,7 @@ print_analyse(void)
 			"MTU: %d\n"
 			"IO Operations:\n"
 			"Read Calls: %d\n",
-			opts.me, net_stat.mtu, net_stat.read_call_cnt);
+			opts.me, net_stat.mss, net_stat.read_call_cnt);
 }
 
 
@@ -834,6 +841,9 @@ main(int argc, char *argv[])
 		usage();
 		exit(EXIT_FAILOPT);
 	}
+
+	if (VL_GENTLE(opts.verbose))
+		fputs(PROGRAMNAME " - " VERSIONSTRING "\n", stderr);
 
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
