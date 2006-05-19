@@ -187,6 +187,7 @@ struct conf_map_t io_call_map[] = {
 
 struct net_stat {
 	int mss;
+	int keep_alive;
 	int read_call_cnt;
 };
 
@@ -478,11 +479,18 @@ parse_opts(int argc, char *argv[])
 	return ret;
 }
 
+/* get_sock_opts() appoint some socket specific
+** values for further use ... (hopefully ;-)
+** Values are determined by hand for the possibility
+** to change something
+** We should call this function after socket creation
+** and at the and off our transmit/receive phase
+**   --HGN
+*/
 static int
-get_mss(int fd)
+get_sock_opts(int fd, struct net_stat *ns)
 {
-	int ret, len_mss;
-	unsigned int mss;
+	int ret, len;
 
 	/* NOTE:
 	** ipv4/tcp.c:tcp_getsockopt() returns
@@ -490,15 +498,59 @@ get_mss(int fd)
 	** if (!val && ((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_LISTEN)))
 	**     val = tp->rx_opt.user_mss;
 	*/
-	len_mss = sizeof(mss);
-	ret = getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, &mss, &len_mss);
-	if ((ret == -1) || (mss <= 0)) {
+	len = sizeof(ns->mss);
+	ret = getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, &ns->mss, &len);
+	if ((ret == -1) || (ns->mss <= 0)) {
 		fprintf(stderr, "Can't determine mss for socket (mss: %d): %s "
-				"(fall back to 1500 bytes)\n", mss, strerror(errno));
-		return 1500;
+				"(fall back to 1500 bytes)\n", ns->mss, strerror(errno));
+		ns->mss = 1500;
 	}
 
-	return mss;
+	/* TODO:
+	**
+	** IP:
+	** 
+	** SO_DEBUG
+	** SO_DONTROUTE
+	** SO_BROADCAST
+	** SO_SNDBUF
+	** SO_RCVBUF
+	** SO_REUSEADDR
+	** SO_KEEPALIVE
+	** SO_TYPE
+	** SO_ERROR
+	** SO_OOBINLINE
+	** SO_NO_CHECK
+	** SO_PRIORITY
+	** SO_LINGER
+	** SO_BSDCOMPAT ;-)
+	** SO_TIMESTAMP
+	** SO_RCVTIMEO
+	** SO_SNDTIMEO
+	** SO_RCVLOWAT
+	** SO_SNDLOWAT
+	** SO_PASSCRED
+	** SO_PEERCRED
+	** SO_PEERNAME
+	** SO_ACCEPTCONN
+	** SO_PEERSEC
+	**
+	** TCP:
+	** 
+	** TCP_NODELAY
+	** TCP_CORK
+	** TCP_KEEPIDLE
+	** TCP_KEEPINTVL
+	** TCP_KEEPCNT
+	** TCP_SYNCNT
+	** TCP_LINGER2
+	** TCP_DEFER_ACCEPT
+	** TCP_WINDOW_CLAMP
+	** TCP_QUICKACK
+	** TCP_INFO
+	*/
+	
+	return 0;
 }
 
 
@@ -676,10 +728,6 @@ instigate_ss(void)
 		exit(EXIT_FAILNET);
 	}
 
-	/* fetch mss for socket */
-	net_stat.mss = get_mss(fd);
-
-
 	if (opts.reuse) {
 		int on = 1;
 		ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
@@ -774,6 +822,8 @@ server_mode(void)
 		/* block and wait for client */
 		connected_fd = instigate_ss();
 
+		/* fetch sockopt before the first byte  */
+		get_sock_opts(connected_fd, &net_stat);
 
 		/* depend on the io_call we must handle our input
 		 ** file a little bit different
