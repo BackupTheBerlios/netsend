@@ -24,10 +24,9 @@
 /* TODO:
 **
 ** o A proper Largefile support
-** o Broadcast/Multicast support to find server whitout knowing
+** o Broadcast/Multicast support to find server without knowing
 **   the server address
 ** o Option to autotune recv buffer (like in web100 ftp suite)
-** o Option to display statistic
 */
 
 #include <stdio.h>
@@ -138,7 +137,7 @@ struct conf_map_t {
 };
 
 /* Supported congestion algorithms by netsend */
-enum {
+enum {
 	CA_BIC = 0,
 	CA_WESTWOOD,
 	CA_VEGAS,
@@ -252,7 +251,9 @@ usage(void)
 			"SEE MAN-PAGE FOR FURTHER INFORMATION\n", opts.me);
 }
 
-/* Simple malloc wrapper */
+/* FIXME english - deutsch */
+
+/* Simple malloc wrapper - VERMEIDET error checking */
 static void *
 alloc(size_t size) {
 
@@ -467,6 +468,20 @@ parse_opts(int argc, char *argv[])
 				opts.io_call = IO_SENDFILE;
 				break;
 		}
+
+		/* If we are read our input from stdin ("-") we
+		** can't effective mmap() or sendfile() the input.
+		** We handle this case by set the io_call mode to
+		** read/write calls and print an warning message.
+		*/
+		if ((opts.io_call != IO_RW) && (!strncmp(opts.filename, "-", 1))) {
+			opts.io_call = IO_RW;
+
+			if (VL_STRESSFUL(opts.verbose)) {
+				fprintf(stderr, "WARNING: Set IO call to read(2)/write(2) mode");
+			}
+		}
+
 	} else { /* MODE_CLIENT */
 		switch (opts.io_call) { /* read() allowed */
 			case IO_READ:
@@ -549,7 +564,7 @@ get_sock_opts(int fd, struct net_stat *ns)
 	** TCP_QUICKACK
 	** TCP_INFO
 	*/
-	
+
 	return 0;
 }
 
@@ -559,9 +574,14 @@ open_file(void)
 {
 	int fd;
 
+	if (!strncmp(opts.filename, "-", 1)) {
+		return STDIN_FILENO;
+	}
+
 	fd = open(opts.filename, O_RDONLY);
 	if (fd == -1) {
-		fprintf(stderr, "Can't open input file: %s!\n", strerror(errno));
+		fprintf(stderr, "ERROR: Can't open input file: %s!\n",
+				strerror(errno));
 		exit(EXIT_FAILMISC);
 	}
 
@@ -577,18 +597,23 @@ xgetaddrinfo(const char *node, const char *service,
 
 	ret = getaddrinfo(node, service, hints, res);
 	if (ret != 0) {
-		fprintf(stderr, "Call to getaddrinfo() failed: %s!\n",
+		fprintf(stderr, "ERROR: Call to getaddrinfo() failed: %s!\n",
 				(ret == EAI_SYSTEM) ?  strerror(errno) : gai_strerror(ret));
 		exit(EXIT_FAILNET);
 	}
 }
 
+/*
+**
+**  ** SERVER ROUTINES **
+**
+*/
 
-static int
+static ssize_t
 ss_rw(int file_fd, int connected_fd)
 {
-	int ret = 0, buflen;
-	ssize_t cnt;
+	int buflen;
+	ssize_t cnt, cnt_coll = 0;
 	unsigned char *buf;
 
 	/* user option or default */
@@ -597,24 +622,32 @@ ss_rw(int file_fd, int connected_fd)
 	/* allocate buffer */
 	buf = malloc(buflen);
 	if (!buf) {
-		fprintf(stderr, "Can't allocate %d bytes: %s!\n",
+		fprintf(stderr, "ERROR: Can't allocate %d bytes: %s!\n",
 				buflen, strerror(errno));
 		exit(EXIT_FAILMEM);
 	}
 
+	/* XXX: proof this code for this case that we read from
+	** STDIN. Exact: the default buflen and the interaction
+	** between glibc buffersize for STDIN.
+	** Do we want to change the default buffer behavior for
+	** STDIN?  --HGN
+	*/
+
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
 		net_stat.read_call_cnt++;
+		cnt_coll += cnt;
 		if (write(connected_fd, buf, cnt) != cnt) {
 			/* FIXME */
 			break;
 		}
 	}
 
-	return ret;
+	return cnt_coll;
 }
 
 
-static int
+static ssize_t
 ss_mmap(int file_fd, int connected_fd)
 {
 	int ret = 0;
@@ -624,33 +657,33 @@ ss_mmap(int file_fd, int connected_fd)
 
 	ret = fstat(file_fd, &stat_buf);
 	if (ret == -1) {
-		fprintf(stderr, "Can't fstat file %s: %s\n", opts.filename,
+		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.filename,
 				strerror(errno));
 		exit(EXIT_FAILMISC);
 	}
 
 	mmap_buf = mmap(NULL, stat_buf.st_size, PROT_READ, MAP_SHARED, file_fd, 0);
 	if (mmap_buf == MAP_FAILED) {
-		fprintf(stderr, "Can't mmap file %s: %s\n",
+		fprintf(stderr, "ERROR: Can't mmap file %s: %s\n",
 				opts.filename, strerror(errno));
 	}
 
 	rc = write(connected_fd, mmap_buf, stat_buf.st_size);
 	if (rc != stat_buf.st_size) {
-		fprintf(stderr, "Can't flush buffer within write call: %s!\n",
+		fprintf(stderr, "ERROR: Can't flush buffer within write call: %s!\n",
 				strerror(errno));
 	}
 
 	ret = munmap(mmap_buf, stat_buf.st_size);
 	if (ret == -1) {
-		fprintf(stderr, "Can't munmap buffer: %s\n", strerror(errno));
+		fprintf(stderr, "ERROR: Can't munmap buffer: %s\n", strerror(errno));
 	}
 
-	return 0;
+	return rc;
 }
 
 
-static int
+static ssize_t
 ss_sendfile(int file_fd, int connected_fd)
 {
 	int ret = 0;
@@ -660,22 +693,23 @@ ss_sendfile(int file_fd, int connected_fd)
 
 	ret = fstat(file_fd, &stat_buf);
 	if (ret == -1) {
-		fprintf(stderr, "Can't fstat file %s: %s\n", opts.filename,
+		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.filename,
 				strerror(errno));
 		exit(EXIT_FAILMISC);
 	}
 
 	rc = sendfile(connected_fd, file_fd, &offset, stat_buf.st_size);
 	if (rc == -1) {
-		fprintf(stderr, "Failure in sendfile routine: %s\n", strerror(errno));
+		fprintf(stderr, "ERROR: Failure in sendfile routine: %s\n", strerror(errno));
 		exit(EXIT_FAILNET);
 	}
 	if (rc != stat_buf.st_size) {
-		fprintf(stderr, "Incomplete transfer from sendfile: %d of %ld bytes",
+		fprintf(stderr, "ERROR: Incomplete transfer from sendfile: %d of %ld bytes",
 				rc, stat_buf.st_size);
+		exit(EXIT_FAILNET);
 	}
 
-	return ret;
+	return rc;
 }
 
 
@@ -723,7 +757,7 @@ instigate_ss(void)
 	fd = socket(hostres->ai_family, hostres->ai_socktype,
 			hostres->ai_protocol);
 	if (fd < 0) {
-		fprintf(stderr, "Can't create server socket: %s\n",
+		fprintf(stderr, "ERROR: Can't create server socket: %s\n",
 				strerror(errno));
 		exit(EXIT_FAILNET);
 	}
@@ -732,20 +766,21 @@ instigate_ss(void)
 		int on = 1;
 		ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 		if (ret < 0) {
-			fprintf(stderr, "Can't set socket option SO_REUSEADDR: %s",
+			fprintf(stderr, "ERROR: Can't set socket option SO_REUSEADDR: %s",
 					strerror(errno));
 			exit(EXIT_FAILNET);
 		}
 	}
 
-	/* XXX: setsockopt: IP_TOS, TCP_NODELAY, TCP_CORK */
+	/* XXX: setsockopt: IP_TOS, TCP_NODELAY  */
 
 
 	ret = bind(fd, hostres->ai_addr, hostres->ai_addrlen);
 	if (ret < 0) {
-		fprintf(stderr, "Can't bind() myself: %s\n", strerror(errno));
+		fprintf(stderr, "ERROR: Can't bind() myself: %s\n", strerror(errno));
 		exit(EXIT_FAILNET);
 	}
+
 
 	if (opts.change_congestion) {
 
@@ -763,7 +798,7 @@ instigate_ss(void)
 		ret = setsockopt(fd, pptr->p_proto, TCP_CONGESTION,
 				congestion_map[opts.congestion].conf_string,
 				strlen(congestion_map[opts.congestion].conf_string) + 1);
-		if (ret < 0) {
+		if (ret < 0 && VL_GENTLE(opts.verbose)) {
 			fprintf(stderr, "Can't set congestion avoidance algorithm(%s): %s!\n"
 					"Did you build a kernel with proper ca support?\n",
 					congestion_map[opts.congestion].conf_string,
@@ -783,6 +818,43 @@ instigate_ss(void)
 	freeaddrinfo(hostres);
 
 	return fd;
+}
+
+/*
+**
+**  ** CLIENT ROUTINES **
+**
+*/
+
+static ssize_t
+cs_read(int file_fd, int connected_fd)
+{
+	int buflen;
+	ssize_t rc;
+	char *buf;
+
+	/* FIXME */
+	(void) file_fd;
+	(void) connected_fd;
+
+	/* user option or default(DEFAULT_BUFSIZE) */
+	buflen = opts.buffer_size;
+
+	/* allocate read buffer */
+	buf = malloc(buflen);
+	if (!buf) {
+		fprintf(stderr, "ERROR: Can't allocate %d bytes: %s!\n",
+				buflen, strerror(errno));
+		exit(EXIT_FAILMEM);
+	}
+
+	/* main client loop */
+	do {
+
+	} while (1);
+
+
+	return rc;
 }
 
 /* Creates our client socket and initialize
@@ -812,7 +884,7 @@ server_mode(void)
 	int connected_fd, file_fd;
 
 	if (VL_GENTLE(opts.verbose))
-		fprintf(stdout, "Server Mode (Filename: %s)\n", opts.filename);
+		fprintf(stdout, "Server Mode (send file: %s)\n", opts.filename);
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_file();
@@ -826,8 +898,8 @@ server_mode(void)
 		get_sock_opts(connected_fd, &net_stat);
 
 		/* depend on the io_call we must handle our input
-		 ** file a little bit different
-		 **/
+		** file a little bit different
+		*/
 		switch (opts.io_call) {
 			case IO_SENDFILE:
 				ss_sendfile(file_fd, connected_fd);
@@ -844,7 +916,7 @@ server_mode(void)
 				break;
 		}
 
-	} while (0); /* XXX: Further improvement is to allow user to use endless loops */
+	} while (0); /* XXX: Further improvement: iterating server ;-) */
 
 }
 
@@ -859,12 +931,14 @@ server_mode(void)
 static void
 client_mode(void)
 {
-	int cfd;
+	int file_fd, connected_fd = 0;
 
 	if (VL_GENTLE(opts.verbose))
 		fprintf(stdout, "Client Mode (Hostname: %s)\n", opts.hostname);
 
-	cfd = instigate_cs();
+	file_fd = instigate_cs();
+
+	cs_read(file_fd, connected_fd);
 }
 
 /* TODO: s/fprintf/snprintf/ and separate output
@@ -887,13 +961,13 @@ main(int argc, char *argv[])
 {
 	int ret = EXIT_OK;
 
+	if (VL_GENTLE(opts.verbose))
+		fputs(PROGRAMNAME " - " VERSIONSTRING "\n", stderr);
+
 	if (parse_opts(argc, argv)) {
 		usage();
 		exit(EXIT_FAILOPT);
 	}
-
-	if (VL_GENTLE(opts.verbose))
-		fputs(PROGRAMNAME " - " VERSIONSTRING "\n", stderr);
 
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
@@ -908,7 +982,7 @@ main(int argc, char *argv[])
 			exit(EXIT_FAILMISC);
 	}
 
-	if (opts.verbose)
+	if (VL_LOUDISH(opts.verbose))
 		print_analyse();
 
 	return ret;
