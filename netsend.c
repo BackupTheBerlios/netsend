@@ -329,7 +329,7 @@ parse_opts(int argc, char *argv[])
 	opts.port        = DEFAULT_PORT;
 	opts.protocol    = IPPROTO_TCP;
 	opts.socktype    = SOCK_STREAM;
-	opts.family      = AF_INET;
+	opts.family      = PF_INET;
 	opts.buffer_size = DEFAULT_BUFSIZE;
 
 	/* Do the dirty commandline parsing */
@@ -412,7 +412,7 @@ parse_opts(int argc, char *argv[])
 				break;
 
 			case '6':
-				opts.family = AF_INET6;
+				opts.family = PF_INET6;
 				break;
 
 			case 'e':
@@ -871,8 +871,80 @@ cs_read(int file_fd, int connected_fd)
 static int
 instigate_cs(void)
 {
-	int fd = 0;
+	int fd = 0, ret;
+	char port_str[6]; /* strlen(UINT16_MAX) + 1  ;-) */
+	struct addrinfo  hosthints, *hostres, *addrtmp;
 
+
+	memset(&hosthints, 0, sizeof(struct addrinfo));
+
+	/* probe our values */
+	hosthints.ai_family   = opts.family;
+	hosthints.ai_socktype = opts.socktype;
+	hosthints.ai_protocol = opts.protocol;
+
+
+	/* convert int port value to string */
+	snprintf(port_str, sizeof(port_str) , "%d", opts.port);
+
+	xgetaddrinfo(opts.hostname, port_str, &hosthints, &hostres);
+
+	addrtmp = hostres;
+
+	do {
+		/* We do not wan't unix domain socket's */
+		if (addrtmp->ai_family == PF_LOCAL) {
+			continue;
+		}
+
+		/* TODO: add some sanity checks here ... */
+
+		/* We have found for what we are looking for */
+		if (addrtmp->ai_family == opts.family) {
+			break;
+		}
+
+	} while ((addrtmp = addrtmp->ai_next));
+
+	fd = socket(hostres->ai_family, hostres->ai_socktype,
+			hostres->ai_protocol);
+	if (fd < 0) {
+		fprintf(stderr, "ERROR: Can't create server socket: %s\n",
+				strerror(errno));
+		exit(EXIT_FAILNET);
+	}
+
+
+	if (opts.change_congestion) {
+
+		if (VL_LOUDISH(opts.verbose)) {
+			fprintf(stderr, "Congestion Avoidance: %s\n",
+					congestion_map[opts.congestion].conf_string);
+		}
+
+		struct protoent *pptr = getprotobyname("tcp");
+		if (!pptr) {
+			fprintf(stderr, "getprotobyname() return uncleanly!\n");
+			exit(EXIT_FAILNET);
+		}
+
+		ret = setsockopt(fd, pptr->p_proto, TCP_CONGESTION,
+				congestion_map[opts.congestion].conf_string,
+				strlen(congestion_map[opts.congestion].conf_string) + 1);
+		if (ret < 0 && VL_GENTLE(opts.verbose)) {
+			fprintf(stderr, "Can't set congestion avoidance algorithm(%s): %s!\n"
+					"Did you build a kernel with proper ca support?\n",
+					congestion_map[opts.congestion].conf_string,
+					strerror(errno));
+		}
+	}
+
+	ret = connect(fd, hostres->ai_addr, hostres->ai_addrlen);
+	if (ret == -1) {
+		fprintf(stderr,"ERROR: Can't connect to %s: %s!\n",
+				opts.hostname, strerror(errno));
+		exit(EXIT_FAILNET);
+	}
 
 	return fd;
 }
