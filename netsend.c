@@ -2,6 +2,7 @@
 ** $Id$
 **
 ** netsend - a high performance filetransfer and diagnostic tool
+** http://netsend.berlios.de
 **
 **
 ** Copyright (C) 2006 - Hagen Paul Pfeifer <hagen@jauu.net>
@@ -209,6 +210,7 @@ struct opts {
 	char          *hostname;
 	char          *infile;
 	char		  *outfile;
+	char          *execstring;
 	enum workmode workmode;
 	enum io_call  io_call;
 	int           protocol;
@@ -245,6 +247,8 @@ usage(void)
 			"       reno\n"
 			"-e                       reuse port\n"
 			"-6                       prefer ipv6\n"
+			"-E <command>             execute command in server-mode and bind STDIN\n"
+			"                         and STDOUT to programm\n"
 			"-v                       display statistic information\n"
 			"-V                       print version\n"
 			"-h                       print this help screen\n"
@@ -253,9 +257,7 @@ usage(void)
 			"SEE MAN-PAGE FOR FURTHER INFORMATION\n", opts.me);
 }
 
-/* FIXME english - deutsch */
-
-/* Simple malloc wrapper - VERMEIDET error checking */
+/* Simple malloc wrapper - prevent error checking */
 static void *
 alloc(size_t size) {
 
@@ -293,10 +295,11 @@ static int
 parse_opts(int argc, char *argv[])
 {
 	int ret = 0, c, i, option_index = 0;
-	static const char *options = "u:c:p:o:vehVtrm:6b:", *tmp;
+	static const char *options = "u:c:p:vo:ehVtrm:6b:E:", *tmp;
 	static const struct option long_options[] = {
 		{"outfile",    1, 0, 'o'},
 		{"buffer",     1, 0, 'b'},
+		{"exec",       1, 0, 'E'},
 		{"utilize",    1, 0, 'u'},
 		{"congestion", 1, 0, 'c'},
 		{"reuse",      0, 0, 'e'},
@@ -400,6 +403,10 @@ parse_opts(int argc, char *argv[])
 				strcpy(opts.outfile, optarg);
 				break;
 
+			case 'E':
+				opts.execstring = alloc(strlen(optarg) + 1);
+				strcpy(opts.execstring, optarg);
+				break;
 
 			case 'r':
 				opts.workmode = MODE_CLIENT;
@@ -481,7 +488,7 @@ parse_opts(int argc, char *argv[])
 		/* If we are read our input from stdin ("-") we
 		** can't effective mmap() or sendfile() the input.
 		** We handle this case by set the io_call mode to
-		** read/write calls and print an warning message.
+		** read/write and print an warning message.
 		*/
 		if ((opts.io_call != IO_RW) && (!strncmp(opts.infile, "-", 1))) {
 			opts.io_call = IO_RW;
@@ -498,6 +505,15 @@ parse_opts(int argc, char *argv[])
 			default:
 				opts.io_call = IO_READ;
 		}
+	}
+
+	/* exec <command> is only allowed if we are en route
+	** as an server. We exit if there are any misunderstandings.
+	*/
+	if ((opts.execstring) && (opts.workmode != MODE_SERVER)) {
+		fprintf(stderr, "ERROR: Can't execute programm %s if we are running "
+				        "as an client - exiting ...\n", opts.execstring);
+		exit(EXIT_FAILOPT);
 	}
 
 	return ret;
