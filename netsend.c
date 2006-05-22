@@ -175,10 +175,10 @@ enum io_call {
 #define	IO_MAX IO_READ
 
 struct conf_map_t io_call_map[] = {
-	{ IO_MMAP,     "mmap"     },
-	{ IO_SENDFILE, "sendfile" },
-	{ IO_RW,       "rw"    },
-	{ IO_READ,     "read"     },
+	{ IO_MMAP,		"mmap"		},
+	{ IO_SENDFILE,	"sendfile"  },
+	{ IO_RW,		"rw"		},
+	{ IO_READ,		"read"		},
 };
 
 
@@ -207,7 +207,7 @@ struct opts {
 	uint16_t      port;
 	char          *me;
 	char          *hostname;
-	char          *filename;
+	char          *infile;
 	enum workmode workmode;
 	enum io_call  io_call;
 	int           protocol;
@@ -224,7 +224,7 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-			"USAGE: %s [options] ( -t filename  |  -r hostname )\n\n"
+			"USAGE: %s [options] ( -t infile  |  -r hostname )\n\n"
 			"-m <tcp | udp | dccp>    specify default transfer protocol (default: tcp)\n"
 			"-p <port>                set portnumber (default: 6666)\n"
 			"-u <sendfile | mmap | rw | read >\n"
@@ -442,10 +442,10 @@ parse_opts(int argc, char *argv[])
 		fprintf(stderr, "%s missing\n",
 				opts.workmode == MODE_SERVER ? "Filename" : "Hostname");
 		return -1;
-	} else { /* host OR filename OR trash(failure) found */
+	} else { /* host OR infile OR trash(failure) found */
 		if (opts.workmode == MODE_SERVER) {
-			opts.filename = alloc(strlen(argv[optind] + 1));
-			strcpy(opts.filename, argv[optind]);
+			opts.infile = alloc(strlen(argv[optind] + 1));
+			strcpy(opts.infile, argv[optind]);
 		} else if (opts.workmode == MODE_CLIENT) {
 			opts.hostname = alloc(strlen(argv[optind] + 1));
 			strcpy(opts.hostname, argv[optind]);
@@ -474,7 +474,7 @@ parse_opts(int argc, char *argv[])
 		** We handle this case by set the io_call mode to
 		** read/write calls and print an warning message.
 		*/
-		if ((opts.io_call != IO_RW) && (!strncmp(opts.filename, "-", 1))) {
+		if ((opts.io_call != IO_RW) && (!strncmp(opts.infile, "-", 1))) {
 			opts.io_call = IO_RW;
 
 			if (VL_STRESSFUL(opts.verbose)) {
@@ -574,11 +574,11 @@ open_file(void)
 {
 	int fd;
 
-	if (!strncmp(opts.filename, "-", 1)) {
+	if (!strncmp(opts.infile, "-", 1)) {
 		return STDIN_FILENO;
 	}
 
-	fd = open(opts.filename, O_RDONLY);
+	fd = open(opts.infile, O_RDONLY);
 	if (fd == -1) {
 		fprintf(stderr, "ERROR: Can't open input file: %s!\n",
 				strerror(errno));
@@ -631,7 +631,7 @@ ss_rw(int file_fd, int connected_fd)
 	** STDIN. Exact: the default buflen and the interaction
 	** between glibc buffersize for STDIN.
 	** Do we want to change the default buffer behavior for
-	** STDIN?  --HGN
+	** STDIN(linebuffer, fullbuffer, ...)?  --HGN
 	*/
 
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
@@ -657,7 +657,7 @@ ss_mmap(int file_fd, int connected_fd)
 
 	ret = fstat(file_fd, &stat_buf);
 	if (ret == -1) {
-		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.filename,
+		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.infile,
 				strerror(errno));
 		exit(EXIT_FAILMISC);
 	}
@@ -665,7 +665,7 @@ ss_mmap(int file_fd, int connected_fd)
 	mmap_buf = mmap(NULL, stat_buf.st_size, PROT_READ, MAP_SHARED, file_fd, 0);
 	if (mmap_buf == MAP_FAILED) {
 		fprintf(stderr, "ERROR: Can't mmap file %s: %s\n",
-				opts.filename, strerror(errno));
+				opts.infile, strerror(errno));
 	}
 
 	rc = write(connected_fd, mmap_buf, stat_buf.st_size);
@@ -693,7 +693,7 @@ ss_sendfile(int file_fd, int connected_fd)
 
 	ret = fstat(file_fd, &stat_buf);
 	if (ret == -1) {
-		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.filename,
+		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.infile,
 				strerror(errno));
 		exit(EXIT_FAILMISC);
 	}
@@ -884,7 +884,7 @@ server_mode(void)
 	int connected_fd, file_fd;
 
 	if (VL_GENTLE(opts.verbose))
-		fprintf(stdout, "Server Mode (send file: %s)\n", opts.filename);
+		fprintf(stdout, "Server Mode (send file: %s)\n", opts.infile);
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_file();
