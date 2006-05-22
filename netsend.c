@@ -24,7 +24,7 @@
 /* TODO:
 **
 ** o A proper Largefile support
-** o Broadcast/Multicast support to find server without knowing
+** o Broadcast/Multicast support to find local server without knowing
 **   the server address
 ** o Option to autotune recv buffer (like in web100 ftp suite)
 */
@@ -208,6 +208,7 @@ struct opts {
 	char          *me;
 	char          *hostname;
 	char          *infile;
+	char		  *outfile;
 	enum workmode workmode;
 	enum io_call  io_call;
 	int           protocol;
@@ -226,6 +227,7 @@ usage(void)
 	fprintf(stderr,
 			"USAGE: %s [options] ( -t infile  |  -r hostname )\n\n"
 			"-m <tcp | udp | dccp>    specify default transfer protocol (default: tcp)\n"
+			"-o <outfile>             save file to outfile (standard: STDOUT)\n"
 			"-p <port>                set portnumber (default: 6666)\n"
 			"-u <sendfile | mmap | rw | read >\n"
 			"                         utilize specific functioncall for IO operation\n"
@@ -291,8 +293,9 @@ static int
 parse_opts(int argc, char *argv[])
 {
 	int ret = 0, c, i, option_index = 0;
-	static const char *options = "u:c:p:vehVtrm:6b:", *tmp;
+	static const char *options = "u:c:p:o:vehVtrm:6b:", *tmp;
 	static const struct option long_options[] = {
+		{"outfile",    1, 0, 'o'},
 		{"buffer",     1, 0, 'b'},
 		{"utilize",    1, 0, 'u'},
 		{"congestion", 1, 0, 'c'},
@@ -391,6 +394,12 @@ parse_opts(int argc, char *argv[])
 			case 'p':
 				opts.port = strtol(optarg, (char **)NULL, 10);
 				break;
+
+			case 'o':
+				opts.outfile = alloc(strlen(optarg) + 1);
+				strcpy(opts.outfile, optarg);
+				break;
+
 
 			case 'r':
 				opts.workmode = MODE_CLIENT;
@@ -524,7 +533,7 @@ get_sock_opts(int fd, struct net_stat *ns)
 	/* TODO:
 	**
 	** IP:
-	** 
+	**
 	** SO_DEBUG
 	** SO_DONTROUTE
 	** SO_BROADCAST
@@ -551,7 +560,7 @@ get_sock_opts(int fd, struct net_stat *ns)
 	** SO_PEERSEC
 	**
 	** TCP:
-	** 
+	**
 	** TCP_NODELAY
 	** TCP_CORK
 	** TCP_KEEPIDLE
@@ -570,7 +579,7 @@ get_sock_opts(int fd, struct net_stat *ns)
 
 
 static int
-open_file(void)
+open_input_file(void)
 {
 	int fd;
 
@@ -849,10 +858,9 @@ cs_read(int file_fd, int connected_fd)
 	}
 
 	/* main client loop */
-	do {
-
-	} while (1);
-
+	while ((rc = read(connected_fd, buf, buflen)) > 0) {
+		write(file_fd, buf, rc); /* FIXME: to late and to drunken ... */
+	}
 
 	return rc;
 }
@@ -868,6 +876,21 @@ instigate_cs(void)
 
 	return fd;
 }
+
+/* open our outfile */
+static int
+open_output_file(void)
+{
+	int fd = 0;
+
+	if (!opts.outfile) {
+		return STDOUT_FILENO;
+	}
+
+
+	return fd;
+}
+
 
 
 /* *** Main Server Routine ***
@@ -887,7 +910,7 @@ server_mode(void)
 		fprintf(stdout, "Server Mode (send file: %s)\n", opts.infile);
 
 	/* check if the transmitted file is present and readable */
-	file_fd = open_file();
+	file_fd = open_input_file();
 
 	do {
 
@@ -936,7 +959,9 @@ client_mode(void)
 	if (VL_GENTLE(opts.verbose))
 		fprintf(stdout, "Client Mode (Hostname: %s)\n", opts.hostname);
 
-	file_fd = instigate_cs();
+	file_fd = open_output_file();
+
+	connected_fd = instigate_cs();
 
 	cs_read(file_fd, connected_fd);
 }
@@ -961,13 +986,14 @@ main(int argc, char *argv[])
 {
 	int ret = EXIT_OK;
 
-	if (VL_GENTLE(opts.verbose))
-		fputs(PROGRAMNAME " - " VERSIONSTRING "\n", stderr);
-
 	if (parse_opts(argc, argv)) {
 		usage();
 		exit(EXIT_FAILOPT);
 	}
+
+	if (VL_GENTLE(opts.verbose))
+		fputs(PROGRAMNAME " - " VERSIONSTRING "\n", stderr);
+
 
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
