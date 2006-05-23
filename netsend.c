@@ -598,9 +598,52 @@ static int
 open_input_file(void)
 {
 	int fd;
+	struct stat stat_buf;
 
 	if (!strncmp(opts.infile, "-", 1)) {
 		return STDIN_FILENO;
+	}
+
+	/* We don't want to read from a regular file
+	** rather we want to execute a programm and take
+	** this output as our data source.
+	*/
+	if (opts.execstring) {
+
+		pid_t pid;
+		int ret, pipefd[2];
+
+		ret = pipe(pipefd);
+		if (ret == -1) {
+			fprintf(stderr, "ERROR: Can't create pipe: %s!\n",
+					strerror(errno));
+			exit(EXIT_FAILMISC);
+		}
+
+		switch (pid = fork()) {
+			case -1:
+				break;
+			case 0:
+				break;
+			default:
+				break;
+		}
+
+
+	}
+
+	/* Thats the normal case: we open a regular file and take
+	** the content as our source.
+	*/
+	ret = stat(opts.infile, &stat_buf);
+	if (ret == -1) {
+		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.infile,
+				strerror(errno));
+		exit(EXIT_FAILMISC);
+	}
+	if (!S_IFREG(stat_buf.st_mode)) {
+		fprintf(stderr, "ERROR: Not an regular file %s\n", opts.infile);
+		exit(EXIT_FAILOPT);
 	}
 
 	fd = open(opts.infile, O_RDONLY);
