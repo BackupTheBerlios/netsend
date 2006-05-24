@@ -45,6 +45,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/mman.h>
 
 #include <netinet/in.h>
@@ -455,9 +456,17 @@ parse_opts(int argc, char *argv[])
 	** In subject to our workmode -- Server: Filename, Client: Hostname
 	*/
 	if (optind >= argc) { /* final argument missing */
-		fprintf(stderr, "%s missing\n",
-				opts.workmode == MODE_SERVER ? "Filename" : "Hostname");
-		return -1;
+
+		/* If we are run as server and doesn't serve an infile, but rather
+		** take the output of our exec() we don't need a final filename
+		*/
+		if (!opts.execstring && !(opts.workmode == MODE_SERVER)) {
+			fprintf(stderr, "%s missing\n",
+					opts.workmode == MODE_SERVER ? "Filename" : "Hostname");
+			return -1;
+		}
+		/* TODO: not a very clever workaround ... */
+		opts.infile = strdup("");
 	} else { /* host OR infile OR trash(failure) found */
 		if (opts.workmode == MODE_SERVER) {
 			opts.infile = alloc(strlen(argv[optind] + 1));
@@ -466,6 +475,8 @@ parse_opts(int argc, char *argv[])
 			opts.hostname = alloc(strlen(argv[optind] + 1));
 			strcpy(opts.hostname, argv[optind]);
 		} else {
+			fprintf(stderr, "Programmed Failure(%s:%d)!\n",
+					__FILE__, __LINE__);
 			return -1;
 		}
 
@@ -513,9 +524,10 @@ parse_opts(int argc, char *argv[])
 	if (opts.execstring) {
 
 		if (opts.workmode != MODE_SERVER) {
-		fprintf(stderr, "ERROR: Can't execute programm %s if we are running "
-				        "as an client - exiting ...\n", opts.execstring);
-		exit(EXIT_FAILOPT);
+			fprintf(stderr, "ERROR: Can't execute programm %s if we are "
+					        "running as an client - exiting ...\n",
+							opts.execstring);
+			exit(EXIT_FAILOPT);
 		}
 
 		opts.io_call = IO_RW; /* nothing other allowed here */
@@ -637,13 +649,13 @@ open_input_file(void)
 				dup(pipefd[1]);
 				dup(pipefd[1]);
 				system(opts.execstring);
+				exit(0);
 				break;
 			default:
 				close(pipefd[1]);
 				return pipefd[0];
 				break;
 		}
-
 
 	}
 
@@ -817,8 +829,6 @@ instigate_ss(void)
 	/* convert int port value to string */
 	snprintf(port_str, sizeof(port_str) , "%d", opts.port);
 
-	fprintf(stderr, "SERVER\n");
-
 	xgetaddrinfo(opts.hostname, port_str, &hosthints, &hostres);
 
 	addrtmp = hostres;
@@ -917,10 +927,6 @@ cs_read(int file_fd, int connected_fd)
 	int buflen;
 	ssize_t rc;
 	char *buf;
-
-	/* FIXME */
-	(void) file_fd;
-	(void) connected_fd;
 
 	/* user option or default(DEFAULT_BUFSIZE) */
 	buflen = opts.buffer_size;
@@ -1035,6 +1041,15 @@ open_output_file(void)
 		return STDOUT_FILENO;
 	}
 
+	umask(0);
+
+	fd = open(opts.outfile, O_WRONLY | O_CREAT | O_EXCL,
+			  S_IRUSR | S_IWUSR | S_IRGRP);
+	if (fd == -1) {
+		fprintf(stderr, "ERROR: Can't create outputfile: %s!\n",
+				strerror(errno));
+		exit(EXIT_FAILOPT);
+	}
 
 	return fd;
 }
@@ -1052,10 +1067,12 @@ open_output_file(void)
 static void
 server_mode(void)
 {
-	int connected_fd, file_fd;
+	int connected_fd, file_fd, child_status;
 
-	if (VL_GENTLE(opts.verbose))
-		fprintf(stderr, "Server Mode (send file: %s)\n", opts.infile);
+	if (VL_GENTLE(opts.verbose)) {
+		fprintf(stderr, "Server Mode (send file: %s)\n",
+				opts.execstring ? "" : opts.infile);
+	}
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
@@ -1086,6 +1103,9 @@ server_mode(void)
 				exit(EXIT_FAILMISC);
 				break;
 		}
+
+		/* if we spawn a child - reaping it here */
+		waitpid(-1, &child_status, 0);
 
 	} while (0); /* XXX: Further improvement: iterating server ;-) */
 

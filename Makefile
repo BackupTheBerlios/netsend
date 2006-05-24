@@ -2,7 +2,7 @@
 
 TARGET = netsend
 OBJECTS = netsend.o
-CFLAGS += -g 
+CFLAGS += -g -Os
 WARNINGS = -Wall -W -Wwrite-strings -Wsign-compare       \
            -Wpointer-arith -Wcast-qual -Wcast-align      \
            -Wstrict-prototypes -Wmissing-prototypes      \
