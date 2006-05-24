@@ -203,6 +203,7 @@ struct opts {
 	int           family;
 	int           socktype;
 	int           reuse;
+	int           nodelay;
 	int           change_congestion;
 	int           congestion;
 	int           verbose;
@@ -246,6 +247,7 @@ usage(void)
 			"       vegas\n"
 			"       westwood\n"
 			"       reno\n"
+			"-D                       no delay socket option (disable Nagle Algorithm)\n"
 			"-e                       reuse port\n"
 			"-6                       prefer ipv6\n"
 			"-E <command>             execute command in server-mode and bind STDIN\n"
@@ -296,16 +298,17 @@ static int
 parse_opts(int argc, char *argv[])
 {
 	int ret = 0, c, i, option_index = 0;
-	static const char *options = "u:c:p:vo:ehVtrm:6b:E:", *tmp;
+	static const char *options = "u:c:p:vo:ehVtrm:6b:E:D", *tmp;
 	static const struct option long_options[] = {
 		{"outfile",    1, 0, 'o'},
 		{"buffer",     1, 0, 'b'},
 		{"exec",       1, 0, 'E'},
 		{"utilize",    1, 0, 'u'},
 		{"congestion", 1, 0, 'c'},
-		{"reuse",      0, 0, 'e'},
 		{"mode",       1, 0, 'm'},
 		{"port",       1, 0, 'p'},
+		{"reuse",      0, 0, 'e'},
+		{"nodelay",    0, 0, 'D'},
 		{"inet6",      0, 0, '6'},
 		{"transmit",   0, 0, 't'},
 		{"receive",    0, 0, 'r'},
@@ -421,6 +424,10 @@ parse_opts(int argc, char *argv[])
 
 			case '6':
 				opts.family = PF_INET6;
+				break;
+
+			case 'D':
+				opts.nodelay ++;
 				break;
 
 			case 'e':
@@ -816,6 +823,7 @@ static int
 instigate_ss(void)
 {
 	int ret, fd;
+	int on = 1;
 	char port_str[6]; /* strlen(UINT16_MAX) + 1  ;-) */
 	struct addrinfo  hosthints, *hostres, *addrtmp;
 
@@ -858,7 +866,6 @@ instigate_ss(void)
 	}
 
 	if (opts.reuse) {
-		int on = 1;
 		ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 		if (ret < 0) {
 			fprintf(stderr, "ERROR: Can't set socket option SO_REUSEADDR: %s",
@@ -867,15 +874,22 @@ instigate_ss(void)
 		}
 	}
 
-	/* XXX: setsockopt: IP_TOS, TCP_NODELAY  */
+	if (opts.nodelay) {
+		ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on));
+		if (ret < 0) {
+			fprintf(stderr, "ERROR: Can't set socket option TCP_NODELAY: %s",
+					strerror(errno));
+			exit(EXIT_FAILNET);
+		}
+	}
 
+	/* XXX: setsockopt: IP_TOS, */
 
 	ret = bind(fd, hostres->ai_addr, hostres->ai_addrlen);
 	if (ret < 0) {
 		fprintf(stderr, "ERROR: Can't bind() myself: %s\n", strerror(errno));
 		exit(EXIT_FAILNET);
 	}
-
 
 	if (opts.change_congestion) {
 
