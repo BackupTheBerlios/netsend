@@ -510,10 +510,15 @@ parse_opts(int argc, char *argv[])
 	/* exec <command> is only allowed if we are en route
 	** as an server. We exit if there are any misunderstandings.
 	*/
-	if ((opts.execstring) && (opts.workmode != MODE_SERVER)) {
+	if (opts.execstring) {
+
+		if (opts.workmode != MODE_SERVER) {
 		fprintf(stderr, "ERROR: Can't execute programm %s if we are running "
 				        "as an client - exiting ...\n", opts.execstring);
 		exit(EXIT_FAILOPT);
+		}
+
+		opts.io_call = IO_RW; /* nothing other allowed here */
 	}
 
 	return ret;
@@ -597,7 +602,7 @@ get_sock_opts(int fd, struct net_stat *ns)
 static int
 open_input_file(void)
 {
-	int fd;
+	int fd, ret;
 	struct stat stat_buf;
 
 	if (!strncmp(opts.infile, "-", 1)) {
@@ -611,7 +616,7 @@ open_input_file(void)
 	if (opts.execstring) {
 
 		pid_t pid;
-		int ret, pipefd[2];
+		int pipefd[2];
 
 		ret = pipe(pipefd);
 		if (ret == -1) {
@@ -622,10 +627,20 @@ open_input_file(void)
 
 		switch (pid = fork()) {
 			case -1:
+				fprintf(stderr, "ERROR: fork: %s\n", strerror(errno));
+				exit(EXIT_FAILMISC);
 				break;
 			case 0:
+				close(STDOUT_FILENO);
+				close(STDERR_FILENO);
+				close(pipefd[0]);
+				dup(pipefd[1]);
+				dup(pipefd[1]);
+				system(opts.execstring);
 				break;
 			default:
+				close(pipefd[1]);
+				return pipefd[0];
 				break;
 		}
 
@@ -641,7 +656,8 @@ open_input_file(void)
 				strerror(errno));
 		exit(EXIT_FAILMISC);
 	}
-	if (!S_IFREG(stat_buf.st_mode)) {
+
+	if (!(stat_buf.st_mode & S_IFREG)) {
 		fprintf(stderr, "ERROR: Not an regular file %s\n", opts.infile);
 		exit(EXIT_FAILOPT);
 	}
@@ -801,6 +817,7 @@ instigate_ss(void)
 	/* convert int port value to string */
 	snprintf(port_str, sizeof(port_str) , "%d", opts.port);
 
+	fprintf(stderr, "SERVER\n");
 
 	xgetaddrinfo(opts.hostname, port_str, &hosthints, &hostres);
 
@@ -1038,7 +1055,7 @@ server_mode(void)
 	int connected_fd, file_fd;
 
 	if (VL_GENTLE(opts.verbose))
-		fprintf(stdout, "Server Mode (send file: %s)\n", opts.infile);
+		fprintf(stderr, "Server Mode (send file: %s)\n", opts.infile);
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
