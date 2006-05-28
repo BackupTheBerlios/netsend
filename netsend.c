@@ -47,6 +47,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
+#include <sys/time.h>
 
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -200,23 +201,25 @@ struct net_stat net_stat;
 enum workmode { MODE_SERVER = 0, MODE_CLIENT };
 
 struct opts {
-	int           family;
-	int           socktype;
-	int           reuse;
-	int           nodelay;
-	int           change_congestion;
-	int           congestion;
-	int           verbose;
-	uint16_t      port;
-	char          *me;
-	char          *hostname;
-	char          *infile;
-	char		  *outfile;
-	char          *execstring;
-	enum workmode workmode;
-	enum io_call  io_call;
-	int           protocol;
-	int           buffer_size;
+	int            family;
+	int            socktype;
+	int            reuse;
+	int            nodelay;
+	int            change_congestion;
+	int            congestion;
+	int            verbose;
+	uint16_t       port;
+	char           *me;
+	char           *hostname;
+	char           *infile;
+	char		   *outfile;
+	char           *execstring;
+	enum workmode  workmode;
+	enum io_call   io_call;
+	int            protocol;
+	int            buffer_size;
+	struct timeval starttime;
+	struct timeval endtime;
 };
 
 struct opts opts;
@@ -1099,6 +1102,9 @@ server_mode(void)
 		/* fetch sockopt before the first byte  */
 		get_sock_opts(connected_fd, &net_stat);
 
+		/* take the transmit start time for diff */
+		gettimeofday(&opts.starttime, NULL);
+
 		/* depend on the io_call we must handle our input
 		** file a little bit different
 		*/
@@ -1118,11 +1124,12 @@ server_mode(void)
 				break;
 		}
 
+		gettimeofday(&opts.endtime, NULL);
+
 		/* if we spawn a child - reaping it here */
 		waitpid(-1, &child_status, 0);
 
 	} while (0); /* XXX: Further improvement: iterating server ;-) */
-
 }
 
 
@@ -1145,7 +1152,12 @@ client_mode(void)
 
 	connected_fd = instigate_cs();
 
+	/* take the transmit start time for diff */
+	gettimeofday(&opts.starttime, NULL);
+
 	cs_read(file_fd, connected_fd);
+
+	gettimeofday(&opts.endtime, NULL);
 }
 
 /* TODO: s/fprintf/snprintf/ and separate output
@@ -1154,12 +1166,12 @@ client_mode(void)
 static void
 print_analyse(void)
 {
-	fprintf(stdout, "%s statistic:\n"
+	fprintf(stdout, "Netsend Statistic:\n\n"
 			"Network Data:\n"
 			"MTU: %d\n"
 			"IO Operations:\n"
 			"Read Calls: %d\n",
-			opts.me, net_stat.mss, net_stat.read_call_cnt);
+			net_stat.mss, net_stat.read_call_cnt);
 }
 
 
