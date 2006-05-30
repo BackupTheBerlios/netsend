@@ -1,0 +1,25 @@
+#!/bin/bash
+# $Id$
+
+INCLUDE=${1:-"$PWD/include"}
+
+echo "/* Generated config.h */" >config.h
+
+echo "checking for alloca..."
+cat >/tmp/allocatest.c <<EOF
+#include <alloca.h>
+int main(int argc, char **argv){
+    alloca(23);
+    return 0;
+}
+EOF
+gcc -I$INCLUDE -o /tmp/allocatest /tmp/allocatest.c >/dev/null 2>&1
+if [ $? -eq 0 ]
+then
+    echo "#define HAVE_ALLOCA 1" >>config.h
+else
+    echo "#undef HAVE_ALLOCA" >>config.h
+
+fi
+rm -f /tmp/allocatest /tmp/allocatest.c
+

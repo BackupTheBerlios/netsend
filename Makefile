@@ -1,5 +1,8 @@
 # $Id$
 
+DESTDIR=
+BINDIR=/usr/bin
+
 TARGET = netsend
 OBJECTS = netsend.o
 CFLAGS += -g -Os
@@ -11,7 +14,10 @@ WARNINGS = -Wall -W -Wwrite-strings -Wsign-compare       \
 XFLAGS = -DDEBUG
 
 
-all: $(TARGET)
+all: config.h $(TARGET)
+
+config.h: 
+	@bash configure $(KERNEL_INCLUDE)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(WARNINGS) -o $(TARGET) $(OBJECTS)
@@ -19,5 +25,14 @@ $(TARGET): $(OBJECTS)
 %.o: %.c
 	$(CC) $(XFLAGS) $(WARNINGS) $(CFLAGS) -c  $< -o $@
 
+install: all
+	install -m 0644 $(TARGET) $(DESTDIR)$(BINDIR)
+
+uninstall:
+	rm $(DESTDIR)$(BINDIR)/$(TARGET)
+
 clean :
-	-rm -rf $(TARGET) $(OBJECTS) core *~
+	@rm -rf $(TARGET) $(OBJECTS) core *~
+
+distclean: clean
+	@rm -f config.h

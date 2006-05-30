@@ -1,0 +1,10 @@
+# $Id$
+
+o extend the configure script to figure out
+  the host operating system (exit != linux)
+  and save major, minor and patchlevel to
+  config.h. This offers the ability to substitute
+  sendfile with splice and to exclude dccp header
+  values
+
+o Many more - your ideas here! ;-)
