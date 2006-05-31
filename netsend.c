@@ -197,7 +197,7 @@ struct conf_map_t congestion_map[] = {
 /* Supported io operations */
 
 enum io_call {
-	IO_MMAP = 0,
+	IO_NMAP = 0,
 	IO_SENDFILE,
 	IO_RW,
 	IO_READ,
@@ -205,7 +205,7 @@ enum io_call {
 #define	IO_MAX IO_READ
 
 struct conf_map_t io_call_map[] = {
-	{ IO_MMAP,		"mmap"		},
+	{ IO_NMAP,		"nmap"		},
 	{ IO_SENDFILE,	"sendfile"  },
 	{ IO_RW,		"rw"		},
 	{ IO_READ,		"read"		},
@@ -299,9 +299,8 @@ alloc(size_t size) {
 	return ptr;
 }
 
-#if 0 /* shut up gcc warnings - at time no utilization for func */
 static void *
-salloc(int c, size_t size) {
+salloc(int c, size_t size){
 
 	void *ptr;
 
@@ -316,8 +315,221 @@ salloc(int c, size_t size) {
 
 #define	zalloc(x) salloc(0, x)
 
-#endif
 
+/* parse_short_opt is a helper function who
+** parse the particular options
+*/
+static int
+parse_short_opt(char **opt_str, int *argc, char **argv[])
+{
+	int i;
+
+	switch((*opt_str)[1]) {
+		case 'r':
+			opts.workmode = MODE_CLIENT;
+			break;
+		case 't':
+			opts.workmode = MODE_SERVER;
+			break;
+		case '6':
+			opts.family = PF_INET6;
+			break;
+		case '4':
+			opts.family = PF_INET;
+			break;
+		case 'v':
+			opts.verbose++;
+			break;
+		case 'm':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(1);
+			}
+			if (!strcasecmp((*argv)[2], "tcp")) {
+				opts.protocol    = IPPROTO_TCP;
+				opts.socktype    = SOCK_STREAM;
+			} else if (!strcasecmp((*argv)[2], "udp")) {
+				opts.protocol    = IPPROTO_UDP;
+				opts.socktype    = SOCK_DGRAM;
+			} else if (!strcasecmp((*argv)[2], "dccp")) {
+				opts.protocol    = IPPROTO_DCCP;
+				opts.socktype    = SOCK_DCCP;
+			} else {
+				fprintf(stderr, "Unsupported protocol: %s\n",
+						(*argv)[2]);
+				exit(EXIT_FAILOPT);
+			}
+			(*argc)--;
+			(*argv)++;
+			break;
+		case 'c':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(1);
+			}
+			for (i = 0; i <= CA_MAX; i++ ) {
+				if (!strncasecmp((*argv)[2],
+							congestion_map[i].conf_string,
+							max(strlen(congestion_map[i].conf_string),
+								strlen((*argv)[2]))))
+				{
+					opts.congestion = congestion_map[i].conf_code;
+					opts.change_congestion++;
+					(*argc)--;
+					(*argv)++;
+					return 0;
+				}
+			}
+			fprintf(stderr, "ERROR: Congestion algorithm %s not supported!\n",
+					(*argv)[2]);
+			exit(EXIT_FAILOPT);
+			break;
+		case 'p':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(1);
+			}
+			opts.port = strtol((*argv)[1], (char **)NULL, 10);
+			(*argc)--;
+			(*argv)++;
+			break;
+		case 'D':
+			opts.nodelay++;
+			break;
+		case 'e':
+			opts.reuse++;
+			break;
+		case 'h':
+			usage();
+			exit(0);
+			break;
+		case 'V':
+			printf("%s -- %s\n", PROGRAMNAME, VERSIONSTRING);
+			exit(EXIT_OK);
+			break;
+		case 'E':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(1);
+			}
+			opts.execstring = alloc(strlen((*argv)[1]) + 1);
+			strcpy(opts.outfile, (*argv)[1]);
+			(*argc)--;
+			(*argv)++;
+			break;
+		case 'b':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(1);
+			}
+			opts.buffer_size = strtol((*argv)[1], (char **)NULL, 10);
+			if (opts.buffer_size <= 0) {
+				fprintf(stderr, "Buffer size to small (%d byte)!\n",
+						opts.buffer_size);
+			}
+			(*argc)--;
+			(*argv)++;
+			break;
+		case 'u':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(1);
+			}
+			for (i = 0; i <= IO_MAX; i++ ) {
+				if (!strncasecmp((*argv)[2],
+							io_call_map[i].conf_string,
+							max(strlen(io_call_map[i].conf_string),
+								strlen((*argv)[2]))))
+				{
+					opts.io_call = io_call_map[i].conf_code;
+					(*argc)--;
+					(*argv)++;
+					return 0;
+				}
+			}
+			fprintf(stderr, "ERROR: IO Function %s not supported!\n",
+					(*argv)[2]);
+			exit(EXIT_FAILOPT);
+			break;
+			/* Two exception for this socketoption switch:
+			 ** o Common used options like SO_REUSEADDR or SO_KEEPALIVE
+			 **   can also be selected via a single short option
+			 **   (like option "-e" for SO_REUSEADDR)
+			 ** o Some socket options like TCP_INFO or TCP_CORK can't be
+			 **   useful utilized - we don't support these options via
+			 **   this interface.   --HGN
+			 */
+		case 'o':
+			if (((*opt_str)[2])  || ((*argc) <= 3)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(1);
+			}
+			/* parse socket option argument */
+			for (i = 0; socket_options[i].sockopt_name; i++) {
+				/* found option */
+				if (!strcasecmp((*argv)[2], socket_options[i].sockopt_name)) {
+					switch (socket_options[i].sockopt_type) {
+						case SVT_BOOL:
+						case SVT_ON:
+							if (!strcasecmp((*argv)[3], "on")) {
+								socket_options[i].value = 1;
+							} else if (!strcasecmp((*argv)[3], "1")) {
+								socket_options[i].value = 1;
+							} else if (!strcasecmp((*argv)[3], "off")) {
+								socket_options[i].value = 0;
+							} else if (!strcasecmp((*argv)[3], "0")) {
+								socket_options[i].value = 0;
+							} else {
+								fprintf(stderr, "ERROR: socketoption %s value %s "
+										" not supported!\n", (*argv)[2], (*argv)[3]);
+								exit(EXIT_FAILOPT);
+							}
+							socket_options[i].user_issue++;
+							break;
+						case SVT_INT:
+							/* TODO: add some input checkings here */
+							socket_options[i].value =
+								strtol((*argv)[2], (char **)NULL, 10);
+							socket_options[i].user_issue++;
+							break;
+						default:
+							fprintf(stderr, "ERROR: Programmed Error (%s:%d)\n",
+									__FILE__, __LINE__);
+							exit(EXIT_FAILMISC);
+							break;
+					}
+					/* Fine, we are done ... */
+					break;
+				}
+			}
+			/* If we reach the end of our socket_options struct.
+			** We found no matching socketoption because we didn't
+			** support this particular option or the user smoke more
+			** pot then the programmer - just kidding ... ;-)
+			*/
+			if (!socket_options[i].sockopt_name) {
+				fprintf(stderr, "ERROR: socketoption %s not supported!\n",
+						(*argv)[2]);
+				exit(EXIT_FAILOPT);
+			}
+			(*argc) -= 2;
+			(*argv) += 2;
+			break;
+		default:
+			fprintf(stderr, "Programmed Error (%s:%d)\n", __FILE__, __LINE__);
+			return 0;
+
+	}
+
+	return 0;
+}
 
 /* Parse our command-line options and set some default options
 ** Honorable tests adduced that command-lines like e.g.:
@@ -329,7 +541,7 @@ salloc(int c, size_t size) {
 static int
 parse_opts(int argc, char *argv[])
 {
-	int ret = 0, i;
+	int ret = 0;
 	char *opt_str, *tmp;
 
 	/* Zero out opts struct and set program name */
@@ -364,187 +576,7 @@ parse_opts(int argc, char *argv[])
 		** correspondent arguments (e.g. -s SOCKETOPTION VALUE)
 		*/
 		while (isalnum(opt_str[1])) {
-
-			switch(opt_str[1]) {
-				case 'r':
-					opts.workmode = MODE_CLIENT;
-					break;
-				case 't':
-					opts.workmode = MODE_SERVER;
-					break;
-				case '6':
-					opts.family = PF_INET6;
-					break;
-				case '4':
-					opts.family = PF_INET;
-					break;
-				case 'v':
-					opts.verbose++;
-					break;
-				case 'm':
-					if ((opt_str[2])  || (argc <= 2)) {
-						fprintf(stderr, "option error (%c : %d)\n", opt_str[2], argc);
-						exit(1);
-					}
-					if (!strcasecmp(argv[2], "tcp")) {
-						opts.protocol    = IPPROTO_TCP;
-						opts.socktype    = SOCK_STREAM;
-					} else if (!strcasecmp(argv[2], "udp")) {
-						opts.protocol    = IPPROTO_UDP;
-						opts.socktype    = SOCK_DGRAM;
-					} else if (!strcasecmp(argv[2], "dccp")) {
-						opts.protocol    = IPPROTO_DCCP;
-						opts.socktype    = SOCK_DCCP;
-					} else {
-						fprintf(stderr, "Unsupported protocol: %s\n",
-								argv[2]);
-						exit(EXIT_FAILOPT);
-					}
-					argc--;
-					argv++;
-					break;
-				case 'c':
-					if ((opt_str[2])  || (argc <= 2)) {
-						fprintf(stderr, "option error (%c : %d)\n", opt_str[2], argc);
-						exit(1);
-					}
-					for (i = 0; i <= CA_MAX; i++ ) {
-						if (!strncasecmp(argv[2],
-									congestion_map[i].conf_string,
-									max(strlen(congestion_map[i].conf_string),
-										strlen(argv[2]))))
-						{
-							opts.congestion = congestion_map[i].conf_code;
-							opts.change_congestion++;
-							break;
-						}
-					}
-					argc--;
-					argv++;
-					break;
-				case 'p':
-					if ((opt_str[2])  || (argc <= 2)) {
-						fprintf(stderr, "option error (%c : %d)\n", opt_str[2], argc);
-						exit(1);
-					}
-					opts.port = strtol(argv[1], (char **)NULL, 10);
-					argc--;
-					argv++;
-					break;
-				case 'D':
-					opts.nodelay++;
-					break;
-				case 'e':
-					opts.reuse++;
-					break;
-				case 'h':
-					usage();
-					exit(0);
-					break;
-				case 'V':
-					printf("%s -- %s\n", PROGRAMNAME, VERSIONSTRING);
-					exit(EXIT_OK);
-					break;
-				case 'E':
-					if ((opt_str[2])  || (argc <= 2)) {
-						fprintf(stderr, "option error (%c : %d)\n", opt_str[2], argc);
-						exit(1);
-					}
-					opts.execstring = alloc(strlen(argv[1]) + 1);
-					strcpy(opts.outfile, argv[1]);
-					argc--;
-					argv++;
-					break;
-				case 'b':
-					if ((opt_str[2])  || (argc <= 2)) {
-						fprintf(stderr, "option error (%c : %d)\n", opt_str[2], argc);
-						exit(1);
-					}
-					opts.buffer_size = strtol(argv[1], (char **)NULL, 10);
-					if (opts.buffer_size <= 0) {
-						fprintf(stderr, "Buffer size to small (%d byte)!\n",
-								opts.buffer_size);
-					}
-					argc--;
-					argv++;
-					break;
-				case 'u':
-					if ((opt_str[2])  || (argc <= 2)) {
-						fprintf(stderr, "option error (%c : %d)\n", opt_str[2], argc);
-						exit(1);
-					}
-					for (i = 0; i <= IO_MAX; i++ ) {
-						if (!strncasecmp(argv[2],
-									io_call_map[i].conf_string,
-									max(strlen(io_call_map[i].conf_string),
-									strlen(argv[2]))))
-						{
-							opts.io_call = io_call_map[i].conf_code;
-							fprintf(stderr, "IO: %d\n", opts.io_call);
-							break;
-						}
-					}
-					argc--;
-					argv++;
-					break;
-				case 'o':
-					if ((opt_str[2])  || (argc <= 3)) {
-						fprintf(stderr, "option error (%c : %d)\n", opt_str[2], argc);
-						exit(1);
-					}
-					/* parse socket option argument */
-					for (i = 0; socket_options[i].sockopt_name; i++) {
-						if (!strcasecmp(argv[2], socket_options[i].sockopt_name)) { /* found option */
-							switch (socket_options[i].sockopt_type) {
-								case SVT_BOOL:
-								case SVT_ON:
-									if (!strcasecmp(argv[3], "on")) {
-										socket_options[i].value = 1;
-									} else if (!strcasecmp(argv[3], "1")) {
-										socket_options[i].value = 1;
-									} else if (!strcasecmp(argv[3], "off")) {
-										socket_options[i].value = 0;
-									} else if (!strcasecmp(argv[3], "0")) {
-										socket_options[i].value = 0;
-									} else {
-										fprintf(stderr, "ERROR: socketoption %s value %s "
-												" not supported!\n", argv[2], argv[3]);
-										exit(EXIT_FAILOPT);
-									}
-									socket_options[i].user_issue++;
-									break;
-								case SVT_INT:
-									/* TODO: add some input checkings here */
-									socket_options[i].value = strtol(argv[2], (char **)NULL, 10);
-									socket_options[i].user_issue++;
-									break;
-								default:
-									fprintf(stderr, "ERROR: Programmed Error (%s:%d)\n",
-											__FILE__, __LINE__);
-									exit(EXIT_FAILMISC);
-									break;
-							}
-							/* Fine, we are done ... */
-							break;
-						}
-					}
-					/* If we reach the end of our socket_options struct.
-					** We found no matching socketoption because we didn't
-					** support this particular option or the user smoke more
-					** pot then the programmer - just kidding ... ;-) */
-					if (!socket_options[i].sockopt_name) {
-						fprintf(stderr, "ERROR: socketoption %s not supported!\n",
-								argv[2]);
-						exit(EXIT_FAILOPT);
-					}
-					argc -= 2;
-					argv += 2;
-					break;
-				default:
-					fprintf(stderr, "Programmed Error (%s:%d)\n", __FILE__, __LINE__);
-					break;
-
-			}
+			parse_short_opt(&opt_str, &argc, &argv);
 			opt_str++;
 		}
 
@@ -552,9 +584,11 @@ parse_opts(int argc, char *argv[])
 		argv++;
 	}
 
-	if (argc > 1) {
-		fprintf(stderr, "word: %s\n", argv[1]);
-		exit(1);
+	if (argc <= 1) {
+		fprintf(stderr, "ERROR: %s missing!\n",
+				(opts.workmode == MODE_SERVER) ? "Filename" : "Hostname");
+		usage();
+		exit(EXIT_FAILOPT);
 	}
 
 	exit(1);
@@ -567,7 +601,7 @@ parse_opts(int argc, char *argv[])
 	if (opts.workmode == MODE_SERVER) {
 		switch (opts.io_call) { /* only sendfile(), mmap(), ... allowed */
 			case IO_SENDFILE:
-			case IO_MMAP:
+			case IO_NMAP:
 			case IO_RW:
 				break;
 			default:
@@ -1154,7 +1188,7 @@ server_mode(void)
 			case IO_SENDFILE:
 				ss_sendfile(file_fd, connected_fd);
 				break;
-			case IO_MMAP:
+			case IO_NMAP:
 				ss_mmap(file_fd, connected_fd);
 				break;
 			case IO_RW:
@@ -1221,6 +1255,9 @@ int
 main(int argc, char *argv[])
 {
 	int ret = EXIT_OK;
+
+	/* shut up gcc: salloc() temporally not used */
+	(void) salloc(0, 0);
 
 	if (parse_opts(argc, argv)) {
 		usage();
