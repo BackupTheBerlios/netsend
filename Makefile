@@ -13,6 +13,11 @@ WARNINGS = -Wall -W -Wwrite-strings -Wsign-compare       \
 
 XFLAGS = -DDEBUG
 
+# Inline workaround:
+# max-inline-insns-single specified the maximum size
+# of a function (counted in internal gcc instructions).
+# Default: 300
+CFLAGS += --param max-inline-insns-single=400
 
 all: config.h $(TARGET)
 

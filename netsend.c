@@ -598,7 +598,8 @@ parse_opts(int argc, char *argv[])
 static int
 get_sock_opts(int fd, struct net_stat *ns)
 {
-	int ret, len;
+	int ret;
+	socklen_t len;
 
 	/* NOTE:
 	** ipv4/tcp.c:tcp_getsockopt() returns
