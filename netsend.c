@@ -118,6 +118,7 @@
 #define	EXIT_FAILOPT  2
 #define	EXIT_FAILMISC 3
 #define	EXIT_FAILNET  4
+#define	EXIT_FAILINT  5 /* INTernal error */
 
 /* Verbose levels */
 #define	VL_QUITSCENT(x)  (x)
@@ -148,15 +149,25 @@ struct {
 	int   value;
 } socket_options[] = {
   {"SO_KEEPALIVE", SOL_SOCKET,  SO_KEEPALIVE, SVT_BOOL, 0, 0},
+#define	CNT_SO_KEEPALIVE 0
   {"SO_REUSEADDR", SOL_SOCKET,  SO_REUSEADDR, SVT_BOOL, 0, 0},
+#define	CNT_SO_REUSEADDR 1
   {"SO_BROADCAST", SOL_SOCKET,  SO_BROADCAST, SVT_BOOL, 0, 0},
+#define	CNT_SO_BROADCAST 2
   {"TCP_NODELAY",  IPPROTO_TCP, TCP_NODELAY,  SVT_BOOL, 0, 0},
+#define	CNT_TCP_NODELAY  3
   {"SO_SNDBUF",    SOL_SOCKET,  SO_SNDBUF,    SVT_INT,  0, 0},
+#define	CNT_SO_SNDBUF    4
   {"SO_RCVBUF",    SOL_SOCKET,  SO_RCVBUF,    SVT_INT,  0, 0},
+#define	CNT_SO_RCVBUF    5
   {"SO_SNDLOWAT",  SOL_SOCKET,  SO_SNDLOWAT,  SVT_INT,  0, 0},
+#define	CNT_SO_SNDLOWAT  6
   {"SO_RCVLOWAT",  SOL_SOCKET,  SO_RCVLOWAT,  SVT_INT,  0, 0},
+#define	CNT_SO_RCVLOWAT  7
   {"SO_SNDTIMEO",  SOL_SOCKET,  SO_SNDTIMEO,  SVT_INT,  0, 0},
+#define	CNT_SO_SNDTIMEO  8
   {"SO_RCVTIMEO",  SOL_SOCKET,  SO_RCVTIMEO,  SVT_INT,  0, 0},
+#define	CNTSO_RCVTIMEO   9
   {NULL, 0, 0, 0, 0, 0}
 };
 
@@ -355,6 +366,8 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			} else if (!strcasecmp((*argv)[2], "dccp")) {
 				opts.protocol    = IPPROTO_DCCP;
 				opts.socktype    = SOCK_DCCP;
+				fprintf(stderr, "DCCP not supported yet ... exiting\n");
+				exit(EXIT_FAILINT);
 			} else {
 				fprintf(stderr, "Unsupported protocol: %s\n",
 						(*argv)[2]);
@@ -397,10 +410,12 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			(*argv)++;
 			break;
 		case 'D':
-			opts.nodelay++;
+			socket_options[CNT_TCP_NODELAY].value = 1;
+			socket_options[CNT_TCP_NODELAY].user_issue = 1;
 			break;
 		case 'e':
-			opts.reuse++;
+			socket_options[CNT_SO_REUSEADDR].value = 1;
+			socket_options[CNT_SO_REUSEADDR].user_issue = 1;
 			break;
 		case 'h':
 			usage();
@@ -461,9 +476,9 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			 ** o Common used options like SO_REUSEADDR or SO_KEEPALIVE
 			 **   can also be selected via a single short option
 			 **   (like option "-e" for SO_REUSEADDR)
-			 ** o Some socket options like TCP_INFO or TCP_CORK can't be
-			 **   useful utilized - we don't support these options via
-			 **   this interface.   --HGN
+			 ** o Some socket options like TCP_INFO, TCP_MAXSEG or TCP_CORK
+			 **   can't be useful utilized - we don't support these options
+			 **   via this interface.
 			 */
 		case 'o':
 			if (((*opt_str)[2])  || ((*argc) <= 3)) {
@@ -523,9 +538,8 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			(*argv) += 2;
 			break;
 		default:
-			fprintf(stderr, "Programmed Error (%s:%d)\n", __FILE__, __LINE__);
-			return 0;
-
+			fprintf(stderr, "Short option %c not supported!\n", (*opt_str)[1]);
+			exit(EXIT_FAILINT);
 	}
 
 	return 0;
@@ -591,10 +605,6 @@ parse_opts(int argc, char *argv[])
 		exit(EXIT_FAILOPT);
 	}
 
-	exit(1);
-	usage();
-
-
 	/* OK - parsing the command-line seems fine!
 	** Last but not least we drive some consistency checks
 	*/
@@ -609,6 +619,10 @@ parse_opts(int argc, char *argv[])
 				break;
 		}
 
+		opts.infile = malloc(strlen(argv[1]) + 1);
+		strcpy(opts.infile, argv[1]);
+
+
 	} else { /* MODE_CLIENT */
 		switch (opts.io_call) { /* read() allowed */
 			case IO_READ:
@@ -616,6 +630,9 @@ parse_opts(int argc, char *argv[])
 			default:
 				opts.io_call = IO_READ;
 		}
+
+		opts.hostname = malloc(strlen(argv[1]) + 1);
+		strcpy(opts.hostname, argv[1]);
 	}
 
 	return ret;
@@ -901,8 +918,7 @@ ss_sendfile(int file_fd, int connected_fd)
 static int
 instigate_ss(void)
 {
-	int ret, fd;
-	int on = 1;
+	int ret, fd, i;
 	char port_str[6]; /* strlen(UINT16_MAX) + 1  ;-) */
 	struct addrinfo  hosthints, *hostres, *addrtmp;
 
@@ -944,25 +960,32 @@ instigate_ss(void)
 		exit(EXIT_FAILNET);
 	}
 
-	if (opts.reuse) {
-		ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-		if (ret < 0) {
-			fprintf(stderr, "ERROR: Can't set socket option SO_REUSEADDR: %s",
-					strerror(errno));
-			exit(EXIT_FAILNET);
+	/* loop over all selectable socket options */
+	for (i = 0; socket_options[i].sockopt_name; i++) {
+
+		if (socket_options[i].user_issue) { /* ... jaap */
+
+			switch (socket_options[i].sockopt_type) {
+				case SVT_BOOL:
+				case SVT_ON:
+					ret = setsockopt(fd, socket_options[i].level,
+							         socket_options[i].option,
+									 &socket_options[i].value,
+									 sizeof(socket_options[i].value));
+					break;
+				default:
+					fprintf(stderr, "Not Implemented (%s:%d)\n",
+							__FILE__, __LINE__);
+					exit(EXIT_FAILMISC);
+			}
+			if (ret < 0) {
+				fprintf(stderr, "ERROR: Can't set socket option %s: %s",
+					socket_options[i].sockopt_name, strerror(errno));
+				exit(EXIT_FAILMISC);
+			}
+
 		}
 	}
-
-	if (opts.nodelay) {
-		ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on));
-		if (ret < 0) {
-			fprintf(stderr, "ERROR: Can't set socket option TCP_NODELAY: %s",
-					strerror(errno));
-			exit(EXIT_FAILNET);
-		}
-	}
-
-	/* XXX: setsockopt: IP_TOS */
 
 	ret = bind(fd, hostres->ai_addr, hostres->ai_addrlen);
 	if (ret < 0) {
