@@ -834,14 +834,23 @@ ss_rw(int file_fd, int connected_fd)
 	*/
 
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
+		char *bufptr;
 		net_stat.read_call_cnt++;
+		bufptr = buf;
+		do {
+			ssize_t written = write(connected_fd, bufptr, cnt);
+			if (written < 0) {
+				if (errno != EINTR)
+					goto out;
+				continue;
+			}
+			cnt -= written;
+			bufptr += written;
+		} while (cnt > 0);
 		cnt_coll += cnt;
-		if (write(connected_fd, buf, cnt) != cnt) {
-			/* FIXME */
-			break;
-		}
 	}
-
+out:	
+	free(buf);
 	return cnt_coll;
 }
 
