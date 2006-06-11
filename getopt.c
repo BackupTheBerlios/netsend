@@ -26,6 +26,7 @@
 
 extern struct opts opts;
 extern struct conf_map_t congestion_map[];
+extern struct conf_map_t memadvice_map[];
 extern struct conf_map_t io_call_map[];
 extern struct socket_options socket_options[];
 
@@ -40,6 +41,13 @@ usage(void)
 			"-u <sendfile | mmap | rw | read >\n"
 			"                         utilize specific function-call for IO operation\n"
 			"                         (this depends on operation mode (-t, -r)\n"
+			"-a <advice>              set memory advisory information\n"
+			"       normal\n"
+			"       sequential\n"
+			"       random\n"
+			"       willneed\n"
+			"       dontneed\n"
+			"       noreuse (equal to willneed for -u mmap)\n" /* 2.6.16 treats them the same */
 			"-c <congestion>          set the congestion algorithm\n"
 			"       available algorithms (kernelversion >= 2.6.16)\n"
 			"       bic\n"
@@ -113,6 +121,23 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			}
 			(*argc)--;
 			(*argv)++;
+			break;
+		case 'a':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(1);
+			}
+			for (i = 0; i <= MEMADV_MAX; i++ ) {
+				if (!strcasecmp((*argv)[2], memadvice_map[i].conf_string)) {
+					opts.mem_advice = memadvice_map[i].conf_code;
+					(*argc)--;
+					(*argv)++;
+					return 0;
+				}
+			}
+			fprintf(stderr, "ERROR: Mem Advice %s not supported!\n", (*argv)[2]);
+			exit(EXIT_FAILOPT);
 			break;
 		case 'c':
 			if (((*opt_str)[2])  || ((*argc) <= 2)) {

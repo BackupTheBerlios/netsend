@@ -35,6 +35,17 @@ struct conf_map_t congestion_map[] = {
 	{ CA_RENO,     "reno"     },
 };
 
+
+struct conf_map_t memadvice_map[] = {
+	{ MEMADV_NORMAL,	"normal" }, 
+	{ MEMADV_RANDOM,	"random" }, 
+	{ MEMADV_SEQUENTIAL,	"sequential" }, 
+	{ MEMADV_WILLNEED,	"willneed" }, 
+	{ MEMADV_DONTNEED,	"dontneed" },
+	{ MEMADV_NOREUSE,	"noreuse" },
+};	
+
+
 struct conf_map_t io_call_map[] = {
 	{ IO_NMAP,		"nmap"		},
 	{ IO_SENDFILE,	"sendfile"  },

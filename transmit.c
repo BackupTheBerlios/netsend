@@ -22,12 +22,49 @@
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
+#define _XOPEN_SOURCE 600	/* needed for posix_madvise/fadvise */
+#include <sys/mman.h>
+
 #include "global.h"
 
 extern struct opts opts;
 extern struct conf_map_t congestion_map[];
 extern struct conf_map_t io_call_map[];
 extern struct socket_options socket_options[];
+
+static int
+get_mem_adv_m(int adv)
+{
+	switch (adv) {
+		case MEMADV_SEQUENTIAL: return POSIX_MADV_SEQUENTIAL;
+		case MEMADV_DONTNEED: return POSIX_MADV_DONTNEED;
+		case MEMADV_RANDOM: return POSIX_MADV_RANDOM;
+		case MEMADV_NORMAL: return POSIX_MADV_NORMAL;
+		case MEMADV_NOREUSE: /* there is only POSIX_FADV_NOREUSE */
+		case MEMADV_WILLNEED: return POSIX_MADV_WILLNEED;
+		default: break;
+	}
+	fprintf(stderr, "Not Implemented (%s:%d)\n", __FILE__, __LINE__);
+	exit(EXIT_FAILMISC);
+}
+
+	
+static int
+get_mem_adv_f(int adv)
+{
+	switch (adv) {
+		case MEMADV_SEQUENTIAL: return POSIX_FADV_SEQUENTIAL;
+		case MEMADV_DONTNEED: return POSIX_FADV_DONTNEED;
+		case MEMADV_RANDOM: return POSIX_FADV_RANDOM;
+		case MEMADV_NORMAL: return POSIX_FADV_NORMAL;
+		case MEMADV_NOREUSE: return POSIX_FADV_NOREUSE;
+		case MEMADV_WILLNEED: return POSIX_FADV_WILLNEED;
+		default: break;
+	}
+	fprintf(stderr, "Not Implemented (%s:%d)\n", __FILE__, __LINE__);
+	exit(EXIT_FAILMISC);
+}
+
 
 static ssize_t
 ss_rw(int file_fd, int connected_fd)
@@ -54,6 +91,9 @@ ss_rw(int file_fd, int connected_fd)
 	** STDIN(linebuffer, fullbuffer, ...)?  --HGN
 	*/
 
+	if (opts.mem_advice && posix_fadvise(file_fd, 0, 0, get_mem_adv_f(opts.mem_advice)))
+		perror("posix_fadvise");	/* do not exit */
+	
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
 		char *bufptr;
 		net_stat.read_call_cnt++;
@@ -96,6 +136,9 @@ ss_mmap(int file_fd, int connected_fd)
 		fprintf(stderr, "ERROR: Can't mmap file %s: %s\n",
 				opts.infile, strerror(errno));
 	}
+
+	if (opts.mem_advice && posix_madvise(mmap_buf, stat_buf.st_size, get_mem_adv_m(opts.mem_advice)))
+		perror("posix_madvise");	/* do not exit */
 
 	rc = write(connected_fd, mmap_buf, stat_buf.st_size);
 	if (rc != stat_buf.st_size) {

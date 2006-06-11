@@ -38,7 +38,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/mman.h>
 #include <sys/time.h>
 
 #include <netinet/in.h>
@@ -175,6 +174,19 @@ enum {
 #define	CA_DEFAULT CA_BIC
 
 
+
+/* supported posix_madvise / posix_fadvice hints */
+enum memaccess_advice {
+	MEMADV_NONE = 0,
+	MEMADV_NORMAL,
+	MEMADV_RANDOM,
+	MEMADV_SEQUENTIAL,
+	MEMADV_WILLNEED,
+	MEMADV_DONTNEED,
+	MEMADV_NOREUSE,/* POSIX_FADV_NOREUSE */
+};
+#define MEMADV_MAX	MEMADV_NOREUSE
+
 /* Supported io operations */
 
 enum io_call {
@@ -207,6 +219,7 @@ struct opts {
 	int            nodelay;
 	int            change_congestion;
 	int            congestion;
+	int            mem_advice;
 	int            verbose;
 	uint16_t       port;
 	char           *me;
@@ -238,7 +251,7 @@ void usage(void);
 int parse_opts(int, char **);
 
 /* net.c */
-inline void xgetaddrinfo(const char *, const char *,
+void xgetaddrinfo(const char *, const char *,
 		struct addrinfo *, struct addrinfo **);
 int get_sock_opts(int, struct net_stat *);
 
