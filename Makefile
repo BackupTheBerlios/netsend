@@ -4,7 +4,15 @@ DESTDIR=
 BINDIR=/usr/bin
 
 TARGET = netsend
-OBJECTS = netsend.o
+OBJECTS =    error.o    \
+						 file.o     \
+						 getopt.o   \
+						 main.o     \
+						 net.o      \
+						 receive.o  \
+						 transmit.o \
+						 xfuncs.o
+
 CFLAGS += -g -Os
 WARNINGS = -Wall -W -Wwrite-strings -Wsign-compare       \
            -Wpointer-arith -Wcast-qual -Wcast-align      \
