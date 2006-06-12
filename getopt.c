@@ -168,7 +168,12 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 						(*opt_str)[2], (*argc));
 				exit(1);
 			}
-			opts.port = strtol((*argv)[1], (char **)NULL, 10);
+			/* we allocate room for DEFAULT_PORT at initialize phase
+			** now free it and reallocate a proper size
+			*/
+			free(opts.port);
+			opts.port = alloc(strlen((*argv)[2]) + 1);
+			sprintf(opts.port, "%s", (*argv)[2]);
 			(*argc)--;
 			(*argv)++;
 			break;
@@ -335,11 +340,13 @@ parse_opts(int argc, char *argv[])
 	/* Initialize some default values */
 	opts.workmode    = MODE_SERVER;
 	opts.io_call     = IO_SENDFILE;
-	opts.port        = DEFAULT_PORT;
 	opts.protocol    = IPPROTO_TCP;
 	opts.socktype    = SOCK_STREAM;
 	opts.family      = PF_INET;
 	opts.buffer_size = DEFAULT_BUFSIZE;
+
+	opts.port = alloc(strlen(DEFAULT_PORT) + 1);
+	sprintf(opts.port, "%s", DEFAULT_PORT);
 
 	/* outer loop runs over argv's ... */
 	while (argc > 1) {

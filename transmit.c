@@ -192,7 +192,6 @@ static int
 instigate_ss(void)
 {
 	int ret, fd, i;
-	char port_str[6]; /* strlen(UINT16_MAX) + 1  ;-) */
 	struct addrinfo  hosthints, *hostres, *addrtmp;
 
 
@@ -202,10 +201,8 @@ instigate_ss(void)
 	hosthints.ai_protocol = opts.protocol;
 	hosthints.ai_flags    = AI_PASSIVE;
 
-	/* convert int port value to string */
-	snprintf(port_str, sizeof(port_str) , "%d", opts.port);
 
-	xgetaddrinfo(opts.hostname, port_str, &hosthints, &hostres);
+	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
 
 	addrtmp = hostres;
 

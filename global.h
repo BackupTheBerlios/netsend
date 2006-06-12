@@ -121,7 +121,7 @@
 #define	VERSIONSTRING "0.01"
 
 /* Default values */
-#define	DEFAULT_PORT    6666
+#define	DEFAULT_PORT    "6666"
 #define	BACKLOG         0
 #define	DEFAULT_BUFSIZE (8 * 1024)
 
@@ -221,7 +221,7 @@ struct opts {
 	int            congestion;
 	int            mem_advice;
 	int            verbose;
-	uint16_t       port;
+	char           *port;
 	char           *me;
 	char           *hostname;
 	char           *infile;
