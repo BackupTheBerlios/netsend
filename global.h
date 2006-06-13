@@ -235,12 +235,28 @@ struct opts {
 	struct timeval endtime;
 };
 
+/* error handling macros */
+#define err_msg(format, args...) \
+	do { \
+		x_err_msg(__FILE__, __LINE__,  format , ## args); \
+	} while (0)
+
+#define err_sys(format, args...) \
+	do { \
+		x_err_sys(__FILE__, __LINE__,  format , ## args); \
+	} while (0)
+
 /*** Interface ***/
 
 /* xfunc.c definitions */
 void * alloc(size_t);
 void * salloc(int, size_t);
 #define	zalloc(x) salloc(0, x)
+
+/* error.c */
+void x_err_ret(const char *file, int line_no, const char *, ...);
+void x_err_sys(const char *file, int line_no, const char *, ...);
+void print_bt(void);
 
 /* file.c */
 int open_input_file(void);

@@ -48,7 +48,7 @@ get_mem_adv_m(int adv)
 	exit(EXIT_FAILMISC);
 }
 
-	
+
 static int
 get_mem_adv_f(int adv)
 {
@@ -93,7 +93,7 @@ ss_rw(int file_fd, int connected_fd)
 
 	if (opts.mem_advice && posix_fadvise(file_fd, 0, 0, get_mem_adv_f(opts.mem_advice)))
 		perror("posix_fadvise");	/* do not exit */
-	
+
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
 		char *bufptr;
 		net_stat.read_call_cnt++;
@@ -110,7 +110,7 @@ ss_rw(int file_fd, int connected_fd)
 		} while (cnt > 0);
 		cnt_coll += cnt;
 	}
-out:	
+out:
 	free(buf);
 	return cnt_coll;
 }
@@ -259,7 +259,7 @@ instigate_ss(void)
 
 	ret = bind(fd, hostres->ai_addr, hostres->ai_addrlen);
 	if (ret < 0) {
-		fprintf(stderr, "ERROR: Can't bind() myself: %s\n", strerror(errno));
+		err_sys("Can't bind() myself");
 		exit(EXIT_FAILNET);
 	}
 
