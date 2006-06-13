@@ -42,22 +42,17 @@ err_doit(int sys_error, const char *file, const int line_no,
 
 	errno_save = errno;
 
-#ifdef DEBUG
-	snprintf(buf, sizeof(buf), "ERROR [%s:%d]: ", file, line_no);
-#else
-	snprintf(buf, sizeof(buf), "ERROR: ");
-#endif
-
-	vsnprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), fmt, ap);
-
+	vsnprintf(buf, sizeof buf -1, fmt, ap);
 	if (sys_error) {
-		snprintf(buf + strlen(buf),  sizeof(buf) - strlen(buf), " (%s)",
-				strerror(errno_save));
+		size_t len = strlen(buf);
+		snprintf(buf + len,  sizeof buf - len, " (%s)", strerror(errno_save));
 	}
 
-	strcat(buf, "\n");
-	fflush(stdout);
-	fputs(buf, stderr);
+#ifdef DEBUG
+	fprintf(stderr, "ERROR [%s:%d]: %s\n", file, line_no, buf);
+#else
+	fprintf(stderr, "ERROR: %s\n", buf);
+#endif
 	fflush(NULL);
 }
 

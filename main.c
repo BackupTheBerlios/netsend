@@ -42,7 +42,7 @@ struct conf_map_t memadvice_map[] = {
 	{ MEMADV_SEQUENTIAL,	"sequential" }, 
 	{ MEMADV_WILLNEED,	"willneed" }, 
 	{ MEMADV_DONTNEED,	"dontneed" },
-	{ MEMADV_NOREUSE,	"noreuse" },
+	{ MEMADV_NOREUSE,	"noreuse" }
 };	
 
 
