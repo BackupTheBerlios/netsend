@@ -24,8 +24,21 @@
 
 #define _XOPEN_SOURCE 600	/* needed for posix_madvise/fadvise */
 #include <sys/mman.h>
+#include <fcntl.h>
+#undef _XOPEN_SOURCE
 
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <sys/sendfile.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#include "debug.h"
 #include "global.h"
+
 
 extern struct opts opts;
 extern struct conf_map_t congestion_map[];

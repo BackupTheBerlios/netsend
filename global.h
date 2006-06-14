@@ -22,29 +22,8 @@
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <inttypes.h>
-#include <netdb.h>
-#include <ctype.h>
-
-#include <sys/sendfile.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/time.h>
-
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-
-#include <linux/types.h>
-
+#include <netdb.h>
 
 #ifndef SOCK_DCCP
 # define SOCK_DCCP 6
@@ -95,12 +74,6 @@
 #if !defined likely && !defined unlikely
 # define likely(x)   __builtin_expect(!!(x), 1)
 # define unlikely(x) __builtin_expect(!!(x), 0)
-#endif
-
-#ifdef DEBUG
-# define XDEBUG(format, args...) fprintf(stderr, format, ## args)
-#else
-# define XDEBUG(format, args...)
 #endif
 
 /* Netsend return codes */

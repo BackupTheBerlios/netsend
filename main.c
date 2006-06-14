@@ -22,6 +22,9 @@
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <netinet/tcp.h>
 #include "global.h"
 
 struct conf_map_t congestion_map[] = {

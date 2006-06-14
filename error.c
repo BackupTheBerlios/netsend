@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <string.h>
 /* TODO: extend our configure script to loop for declaration */
 #include <execinfo.h>
 
