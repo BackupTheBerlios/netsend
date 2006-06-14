@@ -91,11 +91,13 @@ ss_rw(int file_fd, int connected_fd)
 	** STDIN(linebuffer, fullbuffer, ...)?  --HGN
 	*/
 
-	if (opts.mem_advice && posix_fadvise(file_fd, 0, 0, get_mem_adv_f(opts.mem_advice)))
-		perror("posix_fadvise");	/* do not exit */
+	if (opts.mem_advice &&
+		posix_fadvise(file_fd, 0, 0, get_mem_adv_f(opts.mem_advice))) {
+		err_sys("posix_fadvise");	/* do not exit */
+	}
 
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
-		char *bufptr;
+		unsigned char *bufptr;
 		net_stat.read_call_cnt++;
 		bufptr = buf;
 		do {

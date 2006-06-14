@@ -39,7 +39,7 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(XFLAGS) $(WARNINGS) $(CFLAGS) -c  $< -o $@
 
 install: all
-	install -m 0644 $(TARGET) $(DESTDIR)$(BINDIR)
+	install $(TARGET) $(DESTDIR)$(BINDIR)
 
 uninstall:
 	rm $(DESTDIR)$(BINDIR)/$(TARGET)
