@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #undef _XOPEN_SOURCE
 
+#include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>

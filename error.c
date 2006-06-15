@@ -53,6 +53,9 @@ err_doit(int sys_error, const char *file, const int line_no,
 	fprintf(stderr, "ERROR [%s:%d]: %s\n", file, line_no, buf);
 #else
 	fprintf(stderr, "ERROR: %s\n", buf);
+	/* shut-up gcc warnings ... */
+	(void) file;
+	(void) line_no;
 #endif
 	fflush(NULL);
 }

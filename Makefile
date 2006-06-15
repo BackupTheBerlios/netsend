@@ -1,7 +1,10 @@
 # $Id$
 
+ifeq ($(shell test \! -f Make.Rules || echo yes),yes)
+		include Make.Rules
+endif
+
 DESTDIR=
-BINDIR=/usr/bin
 
 TARGET = netsend
 OBJECTS =    error.o    \
@@ -13,14 +16,6 @@ OBJECTS =    error.o    \
 						 transmit.o \
 						 xfuncs.o
 
-CFLAGS += -g -Os
-WARNINGS = -Wall -W -Wwrite-strings -Wsign-compare       \
-           -Wpointer-arith -Wcast-qual -Wcast-align      \
-           -Wstrict-prototypes -Wmissing-prototypes      \
-           -Wnested-externs -Winline -Wshadow -Wformat=2
-
-XFLAGS = -DDEBUG
-
 # Inline workaround:
 # max-inline-insns-single specified the maximum size
 # of a function (counted in internal gcc instructions).
@@ -29,14 +24,23 @@ CFLAGS += --param max-inline-insns-single=400
 
 all: config.h $(TARGET)
 
+config.h: Make.Rules
+
+Make.Rules: configure
+	@if [ ! -f Make.Rules ] ; then                   \
+	echo "No Make.Rules file present" ;              \
+	echo "Hint: call ./configure script" ;           \
+	echo "./configure --help for more information" ; \
+  exit 1 ; fi
+
 config.h: 
-	@bash configure $(KERNEL_INCLUDE)
+	@bash configure
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(WARNINGS) -o $(TARGET) $(OBJECTS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJECTS)
 
 %.o: %.c
-	$(CC) $(XFLAGS) $(WARNINGS) $(CFLAGS) -c  $< -o $@
+	$(CC) $(CFLAGS) -c  $< -o $@
 
 install: all
 	install $(TARGET) $(DESTDIR)$(BINDIR)
@@ -48,4 +52,4 @@ clean :
 	@rm -rf $(TARGET) $(OBJECTS) core *~
 
 distclean: clean
-	@rm -f config.h
+	@rm -f config.h Make.Rules
