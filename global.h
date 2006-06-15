@@ -211,7 +211,7 @@ struct opts {
 /* error handling macros */
 #define err_msg(format, args...) \
 	do { \
-		x_err_msg(__FILE__, __LINE__,  format , ## args); \
+		x_err_ret(__FILE__, __LINE__,  format , ## args); \
 	} while (0)
 
 #define err_sys(format, args...) \

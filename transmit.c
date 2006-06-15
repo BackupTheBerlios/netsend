@@ -58,7 +58,7 @@ get_mem_adv_m(int adv)
 		case MEMADV_WILLNEED: return POSIX_MADV_WILLNEED;
 		default: break;
 	}
-	fprintf(stderr, "Not Implemented (%s:%d)\n", __FILE__, __LINE__);
+	DEBUGPRINTF("adv number %d unknown\n");
 	exit(EXIT_FAILMISC);
 }
 
@@ -75,7 +75,7 @@ get_mem_adv_f(int adv)
 		case MEMADV_WILLNEED: return POSIX_FADV_WILLNEED;
 		default: break;
 	}
-	fprintf(stderr, "Not Implemented (%s:%d)\n", __FILE__, __LINE__);
+	DEBUGPRINTF("adv number %d unknown\n");
 	exit(EXIT_FAILMISC);
 }
 
@@ -154,7 +154,7 @@ ss_mmap(int file_fd, int connected_fd)
 	}
 
 	if (opts.mem_advice && posix_madvise(mmap_buf, stat_buf.st_size, get_mem_adv_m(opts.mem_advice)))
-		perror("posix_madvise");	/* do not exit */
+		err_sys("posix_madvise");	/* do not exit */
 
 	rc = write(connected_fd, mmap_buf, stat_buf.st_size);
 	if (rc != stat_buf.st_size) {
@@ -201,13 +201,46 @@ ss_sendfile(int file_fd, int connected_fd)
 }
 
 
+
+static void
+set_socketopts(int fd)
+{
+	int i;
+	/* loop over all selectable socket options */
+	for (i = 0; socket_options[i].sockopt_name; i++) {
+		int ret;
+
+		if (!socket_options[i].user_issue)
+			continue;
+
+		switch (socket_options[i].sockopt_type) {
+			case SVT_BOOL:
+			case SVT_ON:
+				ret = setsockopt(fd, socket_options[i].level,
+						         socket_options[i].option,
+								 &socket_options[i].value,
+								 sizeof(socket_options[i].value));
+				break;
+			default:
+				DEBUGPRINTF("Unknown sockopt_type %d\n",
+						socket_options[i].sockopt_type);
+				exit(EXIT_FAILMISC);
+		}
+		if (ret < 0) {
+			err_sys("ERROR: Can't set socket option %s: ",
+				socket_options[i].sockopt_name);
+		}
+	}
+}
+
+
 /* Creates our server socket and initialize
 ** options
 */
 static int
 instigate_ss(void)
 {
-	int ret, fd, i;
+	int ret, fd;
 	struct addrinfo  hosthints, *hostres, *addrtmp;
 
 
@@ -222,65 +255,34 @@ instigate_ss(void)
 
 	addrtmp = hostres;
 
-	do {
-		/* We do not wan't unix domain socket's */
-		if (addrtmp->ai_family == PF_LOCAL) {
+	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
+
+		if (addrtmp->ai_family != opts.family)
+			continue;
+
+                fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
+						addrtmp->ai_protocol);
+		if (fd < 0) {
+			err_sys("socket");
 			continue;
 		}
 
-		/* TODO: add some sanity checks here ... */
+		set_socketopts(fd);
 
-		/* We have found for what we are looking for */
-		if (addrtmp->ai_family == opts.family) {
-			break;
-		}
+		if (bind(fd, addrtmp->ai_addr, addrtmp->ai_addrlen) == 0)
+			break; /* success */
 
-	} while ((addrtmp = addrtmp->ai_next));
-
-
-	fd = socket(hostres->ai_family, hostres->ai_socktype,
-			hostres->ai_protocol);
-	if (fd < 0) {
-		fprintf(stderr, "ERROR: Can't create server socket: %s\n",
-				strerror(errno));
-		exit(EXIT_FAILNET);
-	}
-
-	/* loop over all selectable socket options */
-	for (i = 0; socket_options[i].sockopt_name; i++) {
-
-		if (socket_options[i].user_issue) { /* ... jaap */
-
-			switch (socket_options[i].sockopt_type) {
-				case SVT_BOOL:
-				case SVT_ON:
-					ret = setsockopt(fd, socket_options[i].level,
-							         socket_options[i].option,
-									 &socket_options[i].value,
-									 sizeof(socket_options[i].value));
-					break;
-				default:
-					fprintf(stderr, "Not Implemented (%s:%d)\n",
-							__FILE__, __LINE__);
-					exit(EXIT_FAILMISC);
-			}
-			if (ret < 0) {
-				fprintf(stderr, "ERROR: Can't set socket option %s: %s",
-					socket_options[i].sockopt_name, strerror(errno));
-				exit(EXIT_FAILMISC);
-			}
-
-		}
-	}
-
-	ret = bind(fd, hostres->ai_addr, hostres->ai_addrlen);
-	if (ret < 0) {
 		err_sys("Can't bind() myself");
+		close(fd);
+		fd = -1;
+	}
+
+	if (fd < 0) {
+		err_msg("No suitable socket found");
 		exit(EXIT_FAILNET);
 	}
 
 	if (opts.change_congestion) {
-
 		if (VL_LOUDISH(opts.verbose)) {
 			fprintf(stderr, "Congestion Avoidance: %s\n",
 					congestion_map[opts.congestion].conf_string);
@@ -303,17 +305,17 @@ instigate_ss(void)
 		}
 	}
 
-
 	ret = listen(fd, BACKLOG);
 	if (ret < 0) {
-		fprintf(stderr, "Can't listen(): %s\n", strerror(errno));
+		err_sys("listen(%d, %d) failed", fd, BACKLOG);
 		exit(EXIT_FAILNET);
 	}
 
-	fd = accept(fd, hostres->ai_addr, &hostres->ai_addrlen);
+	do {
+		fd = accept(fd, addrtmp->ai_addr, &addrtmp->ai_addrlen);
+	} while (fd == -1 && errno == EINTR);
 
 	freeaddrinfo(hostres);
-
 	return fd;
 }
 
