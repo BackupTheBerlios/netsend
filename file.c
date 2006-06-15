@@ -58,14 +58,13 @@ open_input_file(void)
 
 		ret = pipe(pipefd);
 		if (ret == -1) {
-			fprintf(stderr, "ERROR: Can't create pipe: %s!\n",
-					strerror(errno));
+			err_sys("Can't create pipe")
 			exit(EXIT_FAILMISC);
 		}
 
 		switch (pid = fork()) {
 			case -1:
-				fprintf(stderr, "ERROR: fork: %s\n", strerror(errno));
+				err_sys("Can't fork");
 				exit(EXIT_FAILMISC);
 				break;
 			case 0:
@@ -90,20 +89,18 @@ open_input_file(void)
 	*/
 	ret = stat(opts.infile, &stat_buf);
 	if (ret == -1) {
-		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.infile,
-				strerror(errno));
+		err_sys("Can't fstat file %s", opts.infile)
 		exit(EXIT_FAILMISC);
 	}
 
 	if (!(stat_buf.st_mode & S_IFREG)) {
-		fprintf(stderr, "ERROR: Not an regular file %s\n", opts.infile);
+		err_sys("Not an regular file %s", opts.infile);
 		exit(EXIT_FAILOPT);
 	}
 
 	fd = open(opts.infile, O_RDONLY);
 	if (fd == -1) {
-		fprintf(stderr, "ERROR: Can't open input file: %s!\n",
-				strerror(errno));
+		err_ret("Can't open input file: %s", opts.infile);
 		exit(EXIT_FAILMISC);
 	}
 
@@ -125,8 +122,7 @@ open_output_file(void)
 	fd = open(opts.outfile, O_WRONLY | O_CREAT | O_EXCL,
 			  S_IRUSR | S_IWUSR | S_IRGRP);
 	if (fd == -1) {
-		fprintf(stderr, "ERROR: Can't create outputfile: %s!\n",
-				strerror(errno));
+		err_sys("Can't create outputfile: %s", opts.outfile)
 		exit(EXIT_FAILOPT);
 	}
 
