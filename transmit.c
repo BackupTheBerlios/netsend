@@ -250,7 +250,6 @@ instigate_ss(void)
 	hosthints.ai_protocol = opts.protocol;
 	hosthints.ai_flags    = AI_PASSIVE;
 
-
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
 
 	addrtmp = hostres;
@@ -291,10 +290,6 @@ instigate_ss(void)
 		exit(EXIT_FAILNET);
 	}
 
-	do {
-		fd = accept(fd, addrtmp->ai_addr, &addrtmp->ai_addrlen);
-	} while (fd == -1 && errno == EINTR);
-
 	freeaddrinfo(hostres);
 	return fd;
 }
@@ -311,7 +306,7 @@ instigate_ss(void)
 void
 server_mode(void)
 {
-	int connected_fd, file_fd, child_status;
+	int connected_fd, server_fd, file_fd, child_status;
 
 	if (VL_GENTLE(opts.verbose)) {
 		fprintf(stderr, "Server Mode (send file: %s)\n",
@@ -320,11 +315,19 @@ server_mode(void)
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
+	server_fd = instigate_ss();
 
 	do {
+		for (;;) {
+			struct sockaddr sa;
+			socklen_t sa_len = sizeof sa;
 
-		/* block and wait for client */
-		connected_fd = instigate_ss();
+			connected_fd = accept(server_fd, &sa, &sa_len);
+			if (connected_fd >= 0)
+				break;
+			if (errno != EINTR)
+				err_sys("accept");
+		}
 
 		/* fetch sockopt before the first byte  */
 		get_sock_opts(connected_fd, &net_stat);
