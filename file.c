@@ -58,7 +58,7 @@ open_input_file(void)
 
 		ret = pipe(pipefd);
 		if (ret == -1) {
-			err_sys("Can't create pipe")
+			err_sys("Can't create pipe");
 			exit(EXIT_FAILMISC);
 		}
 
@@ -89,7 +89,7 @@ open_input_file(void)
 	*/
 	ret = stat(opts.infile, &stat_buf);
 	if (ret == -1) {
-		err_sys("Can't fstat file %s", opts.infile)
+		err_sys("Can't fstat file %s", opts.infile);
 		exit(EXIT_FAILMISC);
 	}
 
@@ -100,7 +100,7 @@ open_input_file(void)
 
 	fd = open(opts.infile, O_RDONLY);
 	if (fd == -1) {
-		err_ret("Can't open input file: %s", opts.infile);
+		err_msg("Can't open input file: %s", opts.infile);
 		exit(EXIT_FAILMISC);
 	}
 
@@ -122,7 +122,7 @@ open_output_file(void)
 	fd = open(opts.outfile, O_WRONLY | O_CREAT | O_EXCL,
 			  S_IRUSR | S_IWUSR | S_IRGRP);
 	if (fd == -1) {
-		err_sys("Can't create outputfile: %s", opts.outfile)
+		err_sys("Can't create outputfile: %s", opts.outfile);
 		exit(EXIT_FAILOPT);
 	}
 
