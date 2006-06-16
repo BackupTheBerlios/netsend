@@ -5,7 +5,6 @@ ifeq ($(shell test \! -f Make.Rules || echo yes),yes)
 endif
 
 DESTDIR=
-
 TARGET = netsend
 OBJECTS =    error.o    \
 						 file.o     \
@@ -53,3 +52,17 @@ clean :
 
 distclean: clean
 	@rm -f config.h Make.Rules
+
+DISTNAME=$(TARGET)
+
+release:
+	@if [ ! -f Make.Rules ]; then echo $(MAKE) Make.Rules first ;exit 1 ;fi
+	@if [ ! -L ../$(DISTNAME)-$(MAJOR_REL).$(MINOR_REL) ]; then \
+		echo generating ../$(DISTNAME)-$(MAJOR_REL).$(MINOR_REL) link ; \
+		ln -sf $(DISTNAME) ../$(DISTNAME)-$(MAJOR_REL).$(MINOR_REL) ; \
+		echo to ../$(DISTNAME) . ; fi
+	@diff ../$(DISTNAME)-$(MAJOR_REL).$(MINOR_REL)/Make.Rules Make.Rules
+	$(MAKE) distclean
+	cd .. ; tar zvfc $(DISTNAME)-$(MAJOR_REL).$(MINOR_REL).tar.gz \
+		--exclude .svn  --exclude '.#*' \
+		$(DISTNAME)-$(MAJOR_REL).$(MINOR_REL)/*

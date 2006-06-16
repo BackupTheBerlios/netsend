@@ -1,10 +1,54 @@
 # $Id$
 
-o extend the configure script to figure out
+o Extend the configure script to figure out
   the host operating system (exit != linux)
   and save major, minor and patchlevel to
   config.h. This offers the ability to substitute
   sendfile with splice and to exclude dccp header
   values
+
+o Socket option processing
+
+	IP:
+	
+	SO_DEBUG
+	SO_DONTROUTE
+	SO_BROADCAST
+	SO_SNDBUF
+	SO_RCVBUF
+	SO_REUSEADDR
+	SO_KEEPALIVE
+	SO_TYPE
+	SO_ERROR
+	SO_OOBINLINE
+	SO_NO_CHECK
+	SO_PRIORITY
+	SO_LINGER
+	SO_BSDCOMPAT ;-)
+	SO_TIMESTAMP
+	SO_RCVTIMEO
+	SO_SNDTIMEO
+	SO_RCVLOWAT
+	SO_SNDLOWAT
+	SO_PASSCRED
+	SO_PEERCRED
+	SO_PEERNAME
+	SO_ACCEPTCONN
+	SO_PEERSEC
+	
+	TCP:
+	
+	TCP_NODELAY
+	TCP_CORK
+	TCP_KEEPIDLE
+	TCP_KEEPINTVL
+	TCP_KEEPCNT
+	TCP_SYNCNT
+	TCP_LINGER2
+	TCP_DEFER_ACCEPT
+	TCP_WINDOW_CLAMP
+	TCP_QUICKACK
+	TCP_INFO
+ 
 
 o Many more - your ideas here! ;-)

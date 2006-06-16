@@ -58,7 +58,7 @@ get_mem_adv_m(int adv)
 		case MEMADV_WILLNEED: return POSIX_MADV_WILLNEED;
 		default: break;
 	}
-	DEBUGPRINTF("adv number %d unknown\n");
+	DEBUGPRINTF("adv number %d unknown\n", adv);
 	exit(EXIT_FAILMISC);
 }
 
@@ -75,7 +75,7 @@ get_mem_adv_f(int adv)
 		case MEMADV_WILLNEED: return POSIX_FADV_WILLNEED;
 		default: break;
 	}
-	DEBUGPRINTF("adv number %d unknown\n");
+	DEBUGPRINTF("adv number %d unknown\n", adv);
 	exit(EXIT_FAILMISC);
 }
 
@@ -259,8 +259,9 @@ instigate_ss(void)
 		if (addrtmp->ai_family != opts.family)
 			continue;
 
-                fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
-						addrtmp->ai_protocol);
+		fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
+				addrtmp->ai_protocol);
+
 		if (fd < 0) {
 			err_sys("socket");
 			continue;
@@ -268,12 +269,16 @@ instigate_ss(void)
 
 		set_socketopts(fd);
 
-		if (bind(fd, addrtmp->ai_addr, addrtmp->ai_addrlen) == 0)
-			break; /* success */
+		if (opts.protocol == IPPROTO_TCP) {
+			ret = bind(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
+			if (ret == 0)
+				break;  /* success */
 
-		err_sys("Can't bind() myself");
-		close(fd);
-		fd = -1;
+			err_sys("Can't bind() myself");
+			close(fd);
+			fd = -1;
+		}
+
 	}
 
 	if (fd < 0) {
@@ -281,13 +286,15 @@ instigate_ss(void)
 		exit(EXIT_FAILNET);
 	}
 
-	if (opts.change_congestion)
+	if (opts.protocol == IPPROTO_TCP && opts.change_congestion)
 		change_congestion(fd);
 
-	ret = listen(fd, BACKLOG);
-	if (ret < 0) {
-		err_sys("listen(%d, %d) failed", fd, BACKLOG);
-		exit(EXIT_FAILNET);
+	if (opts.protocol == IPPROTO_TCP) {
+		ret = listen(fd, BACKLOG);
+		if (ret < 0) {
+			err_sys("listen(%d, %d) failed", fd, BACKLOG);
+			exit(EXIT_FAILNET);
+		}
 	}
 
 	freeaddrinfo(hostres);
@@ -309,7 +316,7 @@ server_mode(void)
 	int connected_fd, server_fd, file_fd, child_status;
 
 	if (VL_GENTLE(opts.verbose)) {
-		fprintf(stderr, "Server Mode (send file: %s)\n",
+		fprintf(stderr, "server mode (file to send: %s)\n",
 				opts.execstring ? "" : opts.infile);
 	}
 
@@ -318,7 +325,7 @@ server_mode(void)
 	server_fd = instigate_ss();
 
 	do {
-		for (;;) {
+		while (opts.protocol == IPPROTO_TCP) {
 			struct sockaddr sa;
 			socklen_t sa_len = sizeof sa;
 

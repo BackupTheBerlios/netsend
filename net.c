@@ -32,6 +32,8 @@
 
 #include "global.h"
 
+extern struct opts opts;
+
 inline void
 xgetaddrinfo(const char *node, const char *service,
 		struct addrinfo *hints, struct addrinfo **res)
@@ -46,16 +48,8 @@ xgetaddrinfo(const char *node, const char *service,
 	}
 }
 
-/* get_sock_opts() appoint some socket specific
-** values for further use ... (hopefully ;-)
-** Values are determined by hand for the possibility
-** to change something
-** We should call this function after socket creation
-** and at the and off our transmit/receive phase
-**   --HGN
-*/
-int
-get_sock_opts(int fd, struct net_stat *ns)
+static inline int
+get_tcp_sock_opts(int fd, struct net_stat *ns)
 {
 	int ret;
 	socklen_t len;
@@ -74,49 +68,35 @@ get_sock_opts(int fd, struct net_stat *ns)
 		ns->mss = 1500;
 	}
 
-	/* TODO:
-	**
-	** IP:
-	**
-	** SO_DEBUG
-	** SO_DONTROUTE
-	** SO_BROADCAST
-	** SO_SNDBUF
-	** SO_RCVBUF
-	** SO_REUSEADDR
-	** SO_KEEPALIVE
-	** SO_TYPE
-	** SO_ERROR
-	** SO_OOBINLINE
-	** SO_NO_CHECK
-	** SO_PRIORITY
-	** SO_LINGER
-	** SO_BSDCOMPAT ;-)
-	** SO_TIMESTAMP
-	** SO_RCVTIMEO
-	** SO_SNDTIMEO
-	** SO_RCVLOWAT
-	** SO_SNDLOWAT
-	** SO_PASSCRED
-	** SO_PEERCRED
-	** SO_PEERNAME
-	** SO_ACCEPTCONN
-	** SO_PEERSEC
-	**
-	** TCP:
-	**
-	** TCP_NODELAY
-	** TCP_CORK
-	** TCP_KEEPIDLE
-	** TCP_KEEPINTVL
-	** TCP_KEEPCNT
-	** TCP_SYNCNT
-	** TCP_LINGER2
-	** TCP_DEFER_ACCEPT
-	** TCP_WINDOW_CLAMP
-	** TCP_QUICKACK
-	** TCP_INFO
-	*/
+	return 0;
+}
+
+
+/* get_sock_opts() appoint some socket specific
+** values for further use ... (hopefully ;-)
+** Values are determined by hand for the possibility
+** to change something
+** We should call this function after socket creation
+** and at the and off our transmit/receive phase
+**   --HGN
+*/
+int
+get_sock_opts(int fd, struct net_stat *ns)
+{
+
+	switch (opts.protocol) {
+		case IPPROTO_TCP:
+			return get_tcp_sock_opts(fd, ns);
+			break;
+		case IPPROTO_UDP:
+			return 0;
+		case IPPROTO_DCCP:
+			return 0;
+		default:
+			err_msg("Programmed Error");
+			exit(EXIT_FAILOPT);
+			break;
+	}
 
 	return 0;
 }

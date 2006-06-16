@@ -6,6 +6,10 @@
 
 prefix=/usr
 
+# version
+MAJOR_REL=0
+MINOR_REL=1
+
 
 # compiler flags
 
@@ -119,8 +123,13 @@ create_make_rules()
 {
 	echo "prefix =  $prefix"             >> Make.Rules
 	echo "exec_prefix = \${prefix}"      >> Make.Rules
-	echo
+	echo                                 >> Make.Rules
 	echo  "bindir = \${exec_prefix}/bin" >> Make.Rules
+
+	# version information
+	echo "MAJOR_REL=$MAJOR_REL"            >> Make.Rules
+	echo "MINOR_REL=$MINOR_REL"            >> Make.Rules
+	echo                                   >> Make.Rules
 	
 	# compiler flags
 	if [ "$debug" = yes ] ; then
