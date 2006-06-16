@@ -50,7 +50,7 @@ struct conf_map_t memadvice_map[] = {
 
 
 struct conf_map_t io_call_map[] = {
-	{ IO_NMAP,		"nmap"		},
+	{ IO_MMAP,		"mmap"		},
 	{ IO_SENDFILE,	"sendfile"  },
 	{ IO_RW,		"rw"		},
 	{ IO_READ,		"read"		},

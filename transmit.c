@@ -349,7 +349,7 @@ server_mode(void)
 			case IO_SENDFILE:
 				ss_sendfile(file_fd, connected_fd);
 				break;
-			case IO_NMAP:
+			case IO_MMAP:
 				ss_mmap(file_fd, connected_fd);
 				break;
 			case IO_RW:

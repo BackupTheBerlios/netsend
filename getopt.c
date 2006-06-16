@@ -320,7 +320,7 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 /* Parse our command-line options and set some default options
 ** Honorable tests adduced that command-lines like e.g.:
 ** ./netsend -4 -6 -vvvo tcp_nodelay off -o SO_KEEPALIVE 1 \
-**           -o SO_RCVBUF 65535  -u nmap -vp 444 -m tcp    \
+**           -o SO_RCVBUF 65535  -u mmap -vp 444 -m tcp    \
 **			 -c bic ./netsend.c
 ** are ready to run - I swear! ;-)
 */
@@ -385,7 +385,7 @@ parse_opts(int argc, char *argv[])
 	if (opts.workmode == MODE_SERVER) {
 		switch (opts.io_call) { /* only sendfile(), mmap(), ... allowed */
 			case IO_SENDFILE:
-			case IO_NMAP:
+			case IO_MMAP:
 			case IO_RW:
 				break;
 			default:

@@ -163,7 +163,7 @@ enum memaccess_advice {
 /* Supported io operations */
 
 enum io_call {
-	IO_NMAP = 0,
+	IO_MMAP = 0,
 	IO_SENDFILE,
 	IO_RW,
 	IO_READ,
