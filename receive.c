@@ -67,9 +67,8 @@ cs_read(int file_fd, int connected_fd)
 static int
 instigate_cs(void)
 {
-	int fd = 0, ret;
+	int fd = -1, ret;
 	struct addrinfo  hosthints, *hostres, *addrtmp;
-
 
 	memset(&hosthints, 0, sizeof(struct addrinfo));
 
@@ -78,45 +77,36 @@ instigate_cs(void)
 	hosthints.ai_socktype = opts.socktype;
 	hosthints.ai_protocol = opts.protocol;
 
-
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
 
-	addrtmp = hostres;
+	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
 
-	do {
-		/* We do not want unix domain socket's */
-		if (addrtmp->ai_family == PF_LOCAL) {
+		if (addrtmp->ai_family != opts.family)
+			continue;
+
+                fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
+						addrtmp->ai_protocol);
+		if (fd < 0) {
+			err_sys("socket");
 			continue;
 		}
 
-		/* TODO: add some sanity checks here ... */
+		if (opts.change_congestion)
+			change_congestion(fd);
 
-		/* We have found for what we are looking for */
-		if (addrtmp->ai_family == opts.family) {
-			break;
-		}
-
-	} while ((addrtmp = addrtmp->ai_next));
-
-	fd = socket(hostres->ai_family, hostres->ai_socktype,
-			hostres->ai_protocol);
-	if (fd < 0) {
-		fprintf(stderr, "ERROR: Can't create server socket: %s\n",
-				strerror(errno));
-		exit(EXIT_FAILNET);
-	}
-
-
-	if (opts.change_congestion)
-		change_congestion(fd);
-
-	ret = connect(fd, hostres->ai_addr, hostres->ai_addrlen);
-	if (ret == -1) {
-		fprintf(stderr,"ERROR: Can't connect to %s: %s!\n",
+		ret = connect(fd, hostres->ai_addr, hostres->ai_addrlen);
+		if (ret == -1) {
+			fprintf(stderr,"ERROR: Can't connect to %s: %s!\n",
 				opts.hostname, strerror(errno));
+			close(fd);
+			fd = -1;
+		}
+	}
+	freeaddrinfo(hostres);
+	if (fd < 0) {
+		err_msg("No suitable socket found");
 		exit(EXIT_FAILNET);
 	}
-
 	return fd;
 }
 
