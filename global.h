@@ -183,7 +183,7 @@ struct net_stat net_stat;
 
 /* Command-line options */
 
-enum workmode { MODE_SERVER = 0, MODE_CLIENT };
+enum workmode { MODE_TRANSMIT = 0, MODE_RECEIVE };
 
 struct opts {
 	int            family;
@@ -247,10 +247,10 @@ void change_congestion(int fd);
 
 
 /* receive.c */
-void client_mode(void);
+void receive_mode(void);
 
 /* transmit.c */
-void server_mode(void);
+void transmit_mode(void);
 
 
 

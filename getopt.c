@@ -87,10 +87,10 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 
 	switch((*opt_str)[1]) {
 		case 'r':
-			opts.workmode = MODE_CLIENT;
+			opts.workmode = MODE_RECEIVE;
 			break;
 		case 't':
-			opts.workmode = MODE_SERVER;
+			opts.workmode = MODE_TRANSMIT;
 			break;
 		case '6':
 			opts.family = PF_INET6;
@@ -342,7 +342,7 @@ parse_opts(int argc, char *argv[])
 	}
 
 	/* Initialize some default values */
-	opts.workmode    = MODE_SERVER;
+	opts.workmode    = MODE_RECEIVE;
 	opts.io_call     = IO_SENDFILE;
 	opts.protocol    = IPPROTO_TCP;
 	opts.socktype    = SOCK_STREAM;
@@ -372,9 +372,8 @@ parse_opts(int argc, char *argv[])
 		argv++;
 	}
 
-	if (argc <= 1) {
-		fprintf(stderr, "ERROR: %s missing!\n",
-				(opts.workmode == MODE_SERVER) ? "Filename" : "Hostname");
+	if (opts.workmode == MODE_TRANSMIT && argc <= 2) {
+		err_msg("ERROR: filename and hostname missing!");
 		usage();
 		exit(EXIT_FAILOPT);
 	}
@@ -382,7 +381,7 @@ parse_opts(int argc, char *argv[])
 	/* OK - parsing the command-line seems fine!
 	** Last but not least we drive some consistency checks
 	*/
-	if (opts.workmode == MODE_SERVER) {
+	if (opts.workmode == MODE_TRANSMIT) {
 		switch (opts.io_call) { /* only sendfile(), mmap(), ... allowed */
 			case IO_SENDFILE:
 			case IO_MMAP:
@@ -396,17 +395,16 @@ parse_opts(int argc, char *argv[])
 		opts.infile = malloc(strlen(argv[1]) + 1);
 		strcpy(opts.infile, argv[1]);
 
+		opts.hostname = malloc(strlen(argv[2]) + 1);
+		strcpy(opts.hostname, argv[2]);
 
-	} else { /* MODE_CLIENT */
+	} else { /* MODE_RECEIVE */
 		switch (opts.io_call) { /* read() allowed */
 			case IO_READ:
 				break;
 			default:
 				opts.io_call = IO_READ;
 		}
-
-		opts.hostname = malloc(strlen(argv[1]) + 1);
-		strcpy(opts.hostname, argv[1]);
 	}
 
 	return ret;

@@ -76,37 +76,36 @@ instigate_cs(void)
 	hosthints.ai_family   = opts.family;
 	hosthints.ai_socktype = opts.socktype;
 	hosthints.ai_protocol = opts.protocol;
+	hosthints.ai_flags    = AI_PASSIVE;
 
-	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
+	xgetaddrinfo(NULL, opts.port, &hosthints, &hostres);
 
 	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
 
 		if (addrtmp->ai_family != opts.family)
 			continue;
 
-                fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
-						addrtmp->ai_protocol);
+		fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
+				addrtmp->ai_protocol);
+
 		if (fd < 0) {
 			err_sys("socket");
 			continue;
 		}
 
-		if (opts.change_congestion)
-			change_congestion(fd);
-
-		ret = connect(fd, hostres->ai_addr, hostres->ai_addrlen);
-		if (ret == -1) {
-			fprintf(stderr,"ERROR: Can't connect to %s: %s!\n",
-				opts.hostname, strerror(errno));
-			close(fd);
-			fd = -1;
-		}
+		ret = bind(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
+		if (ret == 0)
+			break;  /* success */
 	}
-	freeaddrinfo(hostres);
-	if (fd < 0) {
-		err_msg("No suitable socket found");
+
+	ret = listen(fd, BACKLOG);
+	if (ret < 0) {
+		err_sys("listen(%d, %d) failed", fd, BACKLOG);
 		exit(EXIT_FAILNET);
 	}
+
+	freeaddrinfo(hostres);
+
 	return fd;
 }
 
@@ -118,23 +117,35 @@ instigate_cs(void)
 ** o write file, print diagnostic info and exit
 */
 void
-client_mode(void)
+receive_mode(void)
 {
-	int file_fd, connected_fd = 0;
+	int file_fd, connected_fd, server_fd;
 
 	if (VL_GENTLE(opts.verbose))
-		fprintf(stdout, "Client Mode (Hostname: %s)\n", opts.hostname);
+		fprintf(stdout, "receiver mode\n");
 
 	file_fd = open_output_file();
 
-	connected_fd = instigate_cs();
+	server_fd = instigate_cs();
 
-	/* take the transmit start time for diff */
-	gettimeofday(&opts.starttime, NULL);
+	do {
+		struct sockaddr sa;
+		socklen_t sa_len = sizeof sa;
 
-	cs_read(file_fd, connected_fd);
+		connected_fd = accept(server_fd, &sa, &sa_len);
+		if (connected_fd == -1) {
+			err_sys("accept error");
+			exit(EXIT_FAILNET);
+		}
 
-	gettimeofday(&opts.endtime, NULL);
+		/* take the transmit start time for diff */
+		gettimeofday(&opts.starttime, NULL);
+
+		cs_read(file_fd, connected_fd);
+
+		gettimeofday(&opts.endtime, NULL);
+
+	} while(0); /* XXX: Further improvement: iterating server ;-) */
 }
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

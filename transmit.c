@@ -240,15 +240,15 @@ set_socketopts(int fd)
 static int
 instigate_ss(void)
 {
-	int ret, fd;
+	int fd, ret;
 	struct addrinfo  hosthints, *hostres, *addrtmp;
 
+	memset(&hosthints, 0, sizeof(struct addrinfo));
 
 	/* probe our values */
 	hosthints.ai_family   = opts.family;
 	hosthints.ai_socktype = opts.socktype;
 	hosthints.ai_protocol = opts.protocol;
-	hosthints.ai_flags    = AI_PASSIVE;
 
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
 
@@ -261,23 +261,34 @@ instigate_ss(void)
 
 		fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
 				addrtmp->ai_protocol);
-
 		if (fd < 0) {
 			err_sys("socket");
 			continue;
 		}
 
-		set_socketopts(fd);
+		if (VL_LOUDISH(opts.verbose)) {
+			struct protoent *protoent;
 
-		if (opts.protocol == IPPROTO_TCP) {
-			ret = bind(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
-			if (ret == 0)
-				break;  /* success */
+			protoent = getprotobynumber(addrtmp->ai_protocol);
 
-			err_sys("Can't bind() myself");
-			close(fd);
-			fd = -1;
+			fprintf(stderr, "socket created - ");
+			fprintf(stderr, "protocol: %s(%d)\n",
+					protoent->p_name, protoent->p_proto);
 		}
+
+		ret = connect(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
+		if (ret == -1) {
+			err_sys("Can't connect to %s", opts.hostname);
+			exit(EXIT_FAILNET);
+		}
+
+		if (VL_LOUDISH(opts.verbose)) {
+			fprintf(stderr, "socket connected to %s via port %s\n",
+					opts.hostname, opts.port);
+		}
+
+
+		set_socketopts(fd);
 
 	}
 
@@ -288,14 +299,6 @@ instigate_ss(void)
 
 	if (opts.protocol == IPPROTO_TCP && opts.change_congestion)
 		change_congestion(fd);
-
-	if (opts.protocol == IPPROTO_TCP) {
-		ret = listen(fd, BACKLOG);
-		if (ret < 0) {
-			err_sys("listen(%d, %d) failed", fd, BACKLOG);
-			exit(EXIT_FAILNET);
-		}
-	}
 
 	freeaddrinfo(hostres);
 	return fd;
@@ -311,30 +314,20 @@ instigate_ss(void)
 ** o print diagnostic info
 */
 void
-server_mode(void)
+transmit_mode(void)
 {
-	int connected_fd, server_fd, file_fd, child_status;
+	int connected_fd, file_fd, child_status;
 
 	if (VL_GENTLE(opts.verbose)) {
-		fprintf(stderr, "server mode (file to send: %s)\n",
-				opts.execstring ? "" : opts.infile);
+		fprintf(stderr, "transmit mode (file: %s - hostname %s)\n",
+				 opts.infile, opts.hostname);
 	}
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
-	server_fd = instigate_ss();
+	connected_fd = instigate_ss();
 
 	do {
-		while (opts.protocol == IPPROTO_TCP) {
-			struct sockaddr sa;
-			socklen_t sa_len = sizeof sa;
-
-			connected_fd = accept(server_fd, &sa, &sa_len);
-			if (connected_fd >= 0)
-				break;
-			if (errno != EINTR)
-				err_sys("accept");
-		}
 
 		/* fetch sockopt before the first byte  */
 		get_sock_opts(connected_fd, &net_stat);

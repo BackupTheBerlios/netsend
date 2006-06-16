@@ -108,11 +108,11 @@ main(int argc, char *argv[])
 
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
-		case MODE_SERVER:
-			server_mode();
+		case MODE_TRANSMIT:
+			transmit_mode();
 			break;
-		case MODE_CLIENT:
-			client_mode();
+		case MODE_RECEIVE:
+			receive_mode();
 			break;
 		default:
 			fprintf(stderr, "Programmed Failure(%s:%d)!\n", __FILE__, __LINE__);
