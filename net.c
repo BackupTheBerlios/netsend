@@ -122,5 +122,33 @@ get_sock_opts(int fd, struct net_stat *ns)
 }
 
 
+extern struct opts opts;
+extern struct conf_map_t congestion_map[];
+
+void
+change_congestion(int fd)
+{
+	int ret;
+	struct protoent *pptr;
+
+	if (VL_LOUDISH(opts.verbose)) {
+		fprintf(stderr, "Congestion Avoidance: %s\n",
+			congestion_map[opts.congestion].conf_string);
+	}
+
+	pptr = getprotobyname("tcp");
+	if (!pptr) {
+		fputs("getprotobyname() return uncleanly!\n", stderr);
+		exit(EXIT_FAILNET);
+	}
+	ret = setsockopt(fd, pptr->p_proto, TCP_CONGESTION,
+			congestion_map[opts.congestion].conf_string,
+			strlen(congestion_map[opts.congestion].conf_string) + 1);
+	if (ret < 0 && VL_GENTLE(opts.verbose)) {
+		fprintf(stderr, "Can't set congestion avoidance algorithm(%s): %s!\n"
+			"Did you build a kernel with proper ca support?\n",
+			congestion_map[opts.congestion].conf_string, strerror(errno));
+	}
+}
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

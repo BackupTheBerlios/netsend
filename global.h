@@ -243,6 +243,8 @@ int parse_opts(int, char **);
 void xgetaddrinfo(const char *, const char *,
 		struct addrinfo *, struct addrinfo **);
 int get_sock_opts(int, struct net_stat *);
+void change_congestion(int fd);
+
 
 /* receive.c */
 void client_mode(void);

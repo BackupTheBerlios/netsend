@@ -282,28 +282,8 @@ instigate_ss(void)
 		exit(EXIT_FAILNET);
 	}
 
-	if (opts.change_congestion) {
-		if (VL_LOUDISH(opts.verbose)) {
-			fprintf(stderr, "Congestion Avoidance: %s\n",
-					congestion_map[opts.congestion].conf_string);
-		}
-
-		struct protoent *pptr = getprotobyname("tcp");
-		if (!pptr) {
-			fprintf(stderr, "getprotobyname() return uncleanly!\n");
-			exit(EXIT_FAILNET);
-		}
-
-		ret = setsockopt(fd, pptr->p_proto, TCP_CONGESTION,
-				congestion_map[opts.congestion].conf_string,
-				strlen(congestion_map[opts.congestion].conf_string) + 1);
-		if (ret < 0 && VL_GENTLE(opts.verbose)) {
-			fprintf(stderr, "Can't set congestion avoidance algorithm(%s): %s!\n"
-					"Did you build a kernel with proper ca support?\n",
-					congestion_map[opts.congestion].conf_string,
-					strerror(errno));
-		}
-	}
+	if (opts.change_congestion)
+		change_congestion(fd);
 
 	ret = listen(fd, BACKLOG);
 	if (ret < 0) {
