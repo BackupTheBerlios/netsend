@@ -57,6 +57,9 @@
 # define TCP_CONGESTION  13
 #endif
 
+/* dccp packet default size */
+#define	DCCP_STD_PACKET_SIZE 256
+
 /* Our makros start here */
 
 #define min(x,y) ({			\
@@ -113,17 +116,18 @@ struct socket_options {
 	int   value;
 };
 
-
-#define	CNT_SO_KEEPALIVE 0
-#define	CNT_SO_REUSEADDR 1
-#define	CNT_SO_BROADCAST 2
-#define	CNT_TCP_NODELAY  3
-#define	CNT_SO_SNDBUF    4
-#define	CNT_SO_RCVBUF    5
-#define	CNT_SO_SNDLOWAT  6
-#define	CNT_SO_RCVLOWAT  7
-#define	CNT_SO_SNDTIMEO  8
-#define	CNTSO_RCVTIMEO   9
+/* NOTE: if you rerange here - rerange also in main.c */
+#define	CNT_SO_KEEPALIVE             0
+#define	CNT_SO_REUSEADDR             1
+#define	CNT_SO_BROADCAST             2
+#define	CNT_TCP_NODELAY              3
+#define	CNT_SO_SNDBUF                4
+#define	CNT_SO_RCVBUF                5
+#define	CNT_SO_SNDLOWAT              6
+#define	CNT_SO_RCVLOWAT              7
+#define	CNT_SO_SNDTIMEO              8
+#define	CNT_SO_RCVTIMEO              9
+#define	CNT_DCCP_SOCKOPT_PACKET_SIZE 10
 
 struct conf_map_t {
 	int          conf_code;

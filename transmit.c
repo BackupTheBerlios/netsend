@@ -213,6 +213,36 @@ set_socketopts(int fd)
 		if (!socket_options[i].user_issue)
 			continue;
 
+		/* this switch statement look that the particular
+		** socketoption match our selected socket-type
+		*/
+		switch (socket_options[i].level) {
+			case SOL_SOCKET:
+				break; /* works on every socket */
+
+			/* fall-through begins here ... */
+			case IPPROTO_TCP:
+				if (opts.protocol == IPPROTO_TCP) {
+					break;
+				}
+			case IPPROTO_UDP:
+				if (opts.protocol == IPPROTO_UDP) {
+					break;
+				}
+			case SOL_DCCP:
+				if (opts.protocol == IPPROTO_DCCP) {
+					break;
+				}
+				/* and exit if socketoption and sockettype did not match */
+				err_msg("You selected an socketoption who isn't "
+						"compatible with this particular socket option");
+				exit(EXIT_FAILMISC);
+			default:
+				err_msg("Programmed Error");
+				exit(EXIT_FAILNET);
+		}
+
+		/* ... and do the dirty: set the socket options */
 		switch (socket_options[i].sockopt_type) {
 			case SVT_BOOL:
 			case SVT_ON:
@@ -287,10 +317,6 @@ instigate_ss(void)
 			fprintf(stderr, "socket connected to %s via port %s\n",
 					opts.hostname, opts.port);
 		}
-
-
-		set_socketopts(fd);
-
 	}
 
 	if (fd < 0) {
@@ -300,6 +326,35 @@ instigate_ss(void)
 
 	if (opts.protocol == IPPROTO_TCP && opts.change_congestion)
 		change_congestion(fd);
+
+	/* NOTE: in the first paragraph we set default socketoptions
+	** if the user doesn't select one and the socket
+	** need this (e.g. DCCP_SOCKOPT_PACKET_SIZE)
+	**
+	** In set_socketopts() we set user socketoptions
+	*/
+
+	/* set dccp packet size */
+	if (opts.protocol == IPPROTO_DCCP) {
+
+		int packet_size = DCCP_STD_PACKET_SIZE;
+
+		/* if user doesn't selected a packet size */
+		if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue) {
+			ret = setsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_PACKET_SIZE,
+					&packet_size, sizeof(packet_size));
+			if (ret == -1) {
+				err_sys("setsockopt dccp packet size");
+				exit(EXIT_FAILNET);
+			}
+		}
+	}
+
+
+	/* We iterate over our commandline argument array - where the user
+	** set socketoption and set this on our socket
+	*/
+	set_socketopts(fd);
 
 	freeaddrinfo(hostres);
 	return fd;

@@ -56,7 +56,7 @@ struct conf_map_t io_call_map[] = {
 	{ IO_READ,		"read"		},
 };
 
-
+/* Don't arrange wild! Look at the CNT_* order! */
 struct socket_options socket_options[] = {
   {"SO_KEEPALIVE", SOL_SOCKET,  SO_KEEPALIVE, SVT_BOOL, 0, 0},
   {"SO_REUSEADDR", SOL_SOCKET,  SO_REUSEADDR, SVT_BOOL, 0, 0},
@@ -68,6 +68,7 @@ struct socket_options socket_options[] = {
   {"SO_RCVLOWAT",  SOL_SOCKET,  SO_RCVLOWAT,  SVT_INT,  0, 0},
   {"SO_SNDTIMEO",  SOL_SOCKET,  SO_SNDTIMEO,  SVT_INT,  0, 0},
   {"SO_RCVTIMEO",  SOL_SOCKET,  SO_RCVTIMEO,  SVT_INT,  0, 0},
+  {"DCCP_SOCKOPT_PACKET_SIZE",  SOL_DCCP,  DCCP_SOCKOPT_PACKET_SIZE,  SVT_INT,  0, 0},
   {NULL, 0, 0, 0, 0, 0}
 };
 
