@@ -65,7 +65,7 @@ cs_read(int file_fd, int connected_fd)
 ** options
 */
 static int
-instigate_cs(void)
+instigate_cs(int *ret_fd)
 {
 	int fd = -1, ret;
 	struct addrinfo  hosthints, *hostres, *addrtmp;
@@ -108,7 +108,9 @@ instigate_cs(void)
 
 	freeaddrinfo(hostres);
 
-	return fd;
+	*ret_fd = fd;
+
+	return 0;
 }
 
 /* *** Main Client Routine ***
@@ -127,16 +129,16 @@ receive_mode(void)
 
 	file_fd = open_output_file();
 
-	server_fd = instigate_cs();
+	instigate_cs(&server_fd);
 
 	do {
-		struct sockaddr sa;
+		struct sockaddr_storage sa;
 		socklen_t sa_len = sizeof sa;
 
 		msg(LOUDISH, "accept");
 
 		if (opts.protocol == IPPROTO_TCP) {
-			connected_fd = accept(server_fd, &sa, &sa_len);
+			connected_fd = accept(server_fd, (struct sockaddr *) &sa, &sa_len);
 			if (connected_fd == -1) {
 				err_sys("accept error");
 				exit(EXIT_FAILNET);

@@ -87,14 +87,15 @@ ss_rw(int file_fd, int connected_fd)
 	ssize_t cnt, cnt_coll = 0;
 	unsigned char *buf;
 
+	msg(STRESSFUL, "send via read/write io operation");
+
 	/* user option or default */
 	buflen = opts.buffer_size;
 
 	/* allocate buffer */
 	buf = malloc(buflen);
 	if (!buf) {
-		fprintf(stderr, "ERROR: Can't allocate %d bytes: %s!\n",
-				buflen, strerror(errno));
+		err_sys("Can't allocate %d bytes", buflen);
 		exit(EXIT_FAILMEM);
 	}
 
@@ -117,8 +118,13 @@ ss_rw(int file_fd, int connected_fd)
 		do {
 			ssize_t written = write(connected_fd, bufptr, cnt);
 			if (written < 0) {
-				if (errno != EINTR)
+				if (errno != EINTR) {
+					err_sys("write error");
+					/* FIXME: should we replace this goto statement
+					** with a exit() call?
+					*/
 					goto out;
+				}
 				continue;
 			}
 			cnt -= written;
@@ -140,6 +146,8 @@ ss_mmap(int file_fd, int connected_fd)
 	struct stat stat_buf;
 	void *mmap_buf;
 
+	msg(STRESSFUL, "send via mmap/write io operation");
+
 	ret = fstat(file_fd, &stat_buf);
 	if (ret == -1) {
 		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.infile,
@@ -153,7 +161,8 @@ ss_mmap(int file_fd, int connected_fd)
 				opts.infile, strerror(errno));
 	}
 
-	if (opts.mem_advice && posix_madvise(mmap_buf, stat_buf.st_size, get_mem_adv_m(opts.mem_advice)))
+	if (opts.mem_advice &&
+		posix_madvise(mmap_buf, stat_buf.st_size, get_mem_adv_m(opts.mem_advice)))
 		err_sys("posix_madvise");	/* do not exit */
 
 	rc = write(connected_fd, mmap_buf, stat_buf.st_size);
@@ -164,7 +173,7 @@ ss_mmap(int file_fd, int connected_fd)
 
 	ret = munmap(mmap_buf, stat_buf.st_size);
 	if (ret == -1) {
-		fprintf(stderr, "ERROR: Can't munmap buffer: %s\n", strerror(errno));
+		err_sys("Can't munmap buffer");
 	}
 
 	return rc;
@@ -179,10 +188,11 @@ ss_sendfile(int file_fd, int connected_fd)
 	struct stat stat_buf;
 	off_t offset = 0;
 
+	msg(STRESSFUL, "send via sendfile io operation");
+
 	ret = fstat(file_fd, &stat_buf);
 	if (ret == -1) {
-		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.infile,
-				strerror(errno));
+		err_sys("Can't fstat file %s", opts.infile);
 		exit(EXIT_FAILMISC);
 	}
 
@@ -192,7 +202,7 @@ ss_sendfile(int file_fd, int connected_fd)
 		exit(EXIT_FAILNET);
 	}
 	if (rc != stat_buf.st_size) {
-		fprintf(stderr, "ERROR: Incomplete transfer from sendfile: %d of %ld bytes",
+		err_msg("Incomplete transfer from sendfile: %d of %ld bytes",
 				rc, stat_buf.st_size);
 		exit(EXIT_FAILNET);
 	}
@@ -272,6 +282,7 @@ instigate_ss(void)
 {
 	int fd, ret;
 	struct addrinfo  hosthints, *hostres, *addrtmp;
+	struct protoent *protoent;
 
 	memset(&hosthints, 0, sizeof(struct addrinfo));
 
@@ -296,27 +307,27 @@ instigate_ss(void)
 			continue;
 		}
 
-		if (VL_LOUDISH(opts.verbose)) {
-			struct protoent *protoent;
+		protoent = getprotobynumber(addrtmp->ai_protocol);
+		msg(LOUDISH, "socket created - protocol %s(%d)",
+			protoent->p_name, protoent->p_proto);
 
-			protoent = getprotobynumber(addrtmp->ai_protocol);
 
-			fprintf(stderr, "socket created - ");
-			fprintf(stderr, "protocol: %s(%d)\n",
-					protoent->p_name, protoent->p_proto);
-		}
-
-		/* connect to peer */
+		/* Connect to peer
+		** There are three advantages to call connect for all types
+		** of our socket protocols (especially udp)
+		**
+		** 1. We don't need to specify a destination address (only call write)
+		** 2. Performance advantages (kernel level)
+		** 3. Error detection (e.g. destination port unreachable at udp)
+		*/
 		ret = connect(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
 		if (ret == -1) {
 			err_sys("Can't connect to %s", opts.hostname);
 			exit(EXIT_FAILNET);
 		}
 
-		if (VL_LOUDISH(opts.verbose)) {
-			fprintf(stderr, "socket connected to %s via port %s\n",
-					opts.hostname, opts.port);
-		}
+		msg(LOUDISH, "socket connected to %s via port %s",
+			opts.hostname, opts.port);
 	}
 
 	if (fd < 0) {
@@ -374,10 +385,8 @@ transmit_mode(void)
 {
 	int connected_fd, file_fd, child_status;
 
-	if (VL_GENTLE(opts.verbose)) {
-		fprintf(stderr, "transmit mode (file: %s - hostname %s)\n",
-				 opts.infile, opts.hostname);
-	}
+	msg(GENTLE, "transmit mode (file: %s  -  hostname: %s)",
+		opts.infile, opts.hostname);
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
@@ -391,9 +400,6 @@ transmit_mode(void)
 		/* take the transmit start time for diff */
 		gettimeofday(&opts.starttime, NULL);
 
-		/* depend on the io_call we must handle our input
-		** file a little bit different
-		*/
 		switch (opts.io_call) {
 			case IO_SENDFILE:
 				ss_sendfile(file_fd, connected_fd);
@@ -405,7 +411,7 @@ transmit_mode(void)
 				ss_rw(file_fd, connected_fd);
 				break;
 			default:
-				fprintf(stderr, "Programmed Failure(%s:%d)!\n", __FILE__, __LINE__);
+				err_msg("Programmed Failure");
 				exit(EXIT_FAILMISC);
 				break;
 		}
