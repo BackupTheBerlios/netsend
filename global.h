@@ -219,6 +219,13 @@ struct opts {
 		x_err_sys(__FILE__, __LINE__,  format , ## args); \
 	} while (0)
 
+enum {
+	QUITSCENT = 0,
+	GENTLE,
+	LOUDISH,
+	STRESSFUL
+};
+
 /*** Interface ***/
 
 /* xfunc.c definitions */
@@ -229,6 +236,7 @@ void * salloc(int, size_t);
 /* error.c */
 void x_err_ret(const char *file, int line_no, const char *, ...);
 void x_err_sys(const char *file, int line_no, const char *, ...);
+void msg(const int, const char *, ...);
 void print_bt(void);
 
 /* file.c */

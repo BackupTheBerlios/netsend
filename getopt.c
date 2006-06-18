@@ -357,8 +357,10 @@ parse_opts(int argc, char *argv[])
 
 		opt_str = argv[1];
 
-		if (opt_str[0] != '-')
+		if ((opt_str[0] == '-' && !opt_str[1]) ||
+		     opt_str[0] != '-') {
 			break;
+		}
 
 		/* ... inner loop - read command line switches and
 		** correspondent arguments (e.g. -s SOCKETOPTION VALUE)
@@ -372,16 +374,17 @@ parse_opts(int argc, char *argv[])
 		argv++;
 	}
 
-	if (opts.workmode == MODE_TRANSMIT && argc <= 2) {
-		err_msg("ERROR: filename and hostname missing!");
-		usage();
-		exit(EXIT_FAILOPT);
-	}
-
 	/* OK - parsing the command-line seems fine!
 	** Last but not least we drive some consistency checks
 	*/
 	if (opts.workmode == MODE_TRANSMIT) {
+
+		if (argc <= 2) {
+			err_msg("filename and hostname missing!");
+			usage();
+			exit(EXIT_FAILOPT);
+		}
+
 		switch (opts.io_call) { /* only sendfile(), mmap(), ... allowed */
 			case IO_SENDFILE:
 			case IO_MMAP:
@@ -399,6 +402,12 @@ parse_opts(int argc, char *argv[])
 		strcpy(opts.hostname, argv[2]);
 
 	} else { /* MODE_RECEIVE */
+
+		if (argc >= 2) {
+			opts.outfile = malloc(strlen(argv[1]) + 1);
+			strcpy(opts.outfile, argv[1]);
+		}
+
 		switch (opts.io_call) { /* read() allowed */
 			case IO_READ:
 				break;

@@ -117,6 +117,10 @@ open_output_file(void)
 		return STDOUT_FILENO;
 	}
 
+	if (!strcmp(opts.outfile, "-")) {
+		return STDOUT_FILENO;
+	}
+
 	umask(0);
 
 	fd = open(opts.outfile, O_WRONLY | O_CREAT | O_EXCL,

@@ -35,7 +35,7 @@ struct conf_map_t congestion_map[] = {
 	{ CA_HYBLA,    "hybla"    },
 	{ CA_HTCP,     "htcp"     },
 	{ CA_CUBIC,    "cubic"    },
-	{ CA_RENO,     "reno"     },
+	{ CA_RENO,     "reno"     }
 };
 
 
@@ -102,8 +102,7 @@ main(int argc, char *argv[])
 		exit(EXIT_FAILOPT);
 	}
 
-	if (VL_GENTLE(opts.verbose))
-		fputs(PROGRAMNAME " - " VERSIONSTRING "\n", stderr);
+	msg(GENTLE, PROGRAMNAME " - " VERSIONSTRING);
 
 
 	/* Branch to final workmode ... */
@@ -115,12 +114,13 @@ main(int argc, char *argv[])
 			receive_mode();
 			break;
 		default:
-			fprintf(stderr, "Programmed Failure(%s:%d)!\n", __FILE__, __LINE__);
+			err_msg("Programmed Failure");
 			exit(EXIT_FAILMISC);
 	}
 
-	if (VL_LOUDISH(opts.verbose))
+	if (opts.verbose > LOUDISH) {
 		print_analyse();
+	}
 
 	return ret;
 }

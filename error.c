@@ -29,10 +29,36 @@
 #include <string.h>
 /* TODO: extend our configure script to loop for declaration */
 #include <execinfo.h>
+#include <time.h>
 
 #include "global.h"
 
 #define	MAXERRMSG 1024
+
+extern struct opts opts;
+
+
+void
+msg(const int level, const char *format, ...)
+{
+	va_list ap;
+	struct timeval tv;
+
+	 if (opts.verbose < level)
+		 return;
+
+	 if (opts.verbose > LOUDISH) {
+		 gettimeofday(&tv, NULL);
+		 fprintf(stderr, "[%ld.%ld] ", tv.tv_sec, tv.tv_usec);
+	 }
+
+	 va_start(ap, format);
+	 vfprintf(stderr, format, ap);
+	 va_end(ap);
+
+	 fputs("\n", stderr);
+}
+
 
 static void
 err_doit(int sys_error, const char *file, const int line_no,
@@ -66,7 +92,7 @@ x_err_ret(const char *file, int line_no, const char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	err_doit(1, file, line_no, fmt, ap);
+	err_doit(0, file, line_no, fmt, ap);
 	va_end(ap);
 	return;
 }

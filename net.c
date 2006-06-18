@@ -34,6 +34,7 @@
 
 extern struct opts opts;
 
+
 inline void
 xgetaddrinfo(const char *node, const char *service,
 		struct addrinfo *hints, struct addrinfo **res)
@@ -42,13 +43,24 @@ xgetaddrinfo(const char *node, const char *service,
 
 	ret = getaddrinfo(node, service, hints, res);
 	if (ret != 0) {
-		fprintf(stderr, "ERROR: Call to getaddrinfo() failed: %s!\n",
+		err_msg("Call to getaddrinfo() failed: %s!\n",
 				(ret == EAI_SYSTEM) ?  strerror(errno) : gai_strerror(ret));
 		exit(EXIT_FAILNET);
 	}
 }
 
-static inline int
+
+static int
+get_ip_sock_opts(int fd, struct net_stat *ns)
+{
+	(void) fd;
+	(void) ns;
+
+	return 0;
+}
+
+
+static int
 get_tcp_sock_opts(int fd, struct net_stat *ns)
 {
 	int ret;
@@ -83,6 +95,16 @@ get_tcp_sock_opts(int fd, struct net_stat *ns)
 int
 get_sock_opts(int fd, struct net_stat *ns)
 {
+	int ret;
+
+	/* at the moment we asume every descriptor is
+	** ip based - so we always call get_ip_sock_opts()
+	*/
+
+	ret = get_ip_sock_opts(fd, ns);
+	if (ret != 0) {
+		return ret;
+	}
 
 	switch (opts.protocol) {
 		case IPPROTO_TCP:

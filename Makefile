@@ -38,7 +38,7 @@ config.h:
 $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJECTS)
 
-%.o: %.c
+%.o: %.c global.h
 	$(CC) $(CFLAGS) -c  $< -o $@
 
 install: all

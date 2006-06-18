@@ -121,8 +121,7 @@ receive_mode(void)
 {
 	int file_fd, connected_fd, server_fd;
 
-	if (VL_GENTLE(opts.verbose))
-		fprintf(stdout, "receiver mode\n");
+	msg(GENTLE, "receiver mode");
 
 	file_fd = open_output_file();
 
@@ -131,6 +130,8 @@ receive_mode(void)
 	do {
 		struct sockaddr sa;
 		socklen_t sa_len = sizeof sa;
+
+		msg(LOUDISH, "accept");
 
 		connected_fd = accept(server_fd, &sa, &sa_len);
 		if (connected_fd == -1) {
@@ -141,7 +142,9 @@ receive_mode(void)
 		/* take the transmit start time for diff */
 		gettimeofday(&opts.starttime, NULL);
 
+		msg(LOUDISH, "read");
 		cs_read(file_fd, connected_fd);
+		msg(LOUDISH, "done");
 
 		gettimeofday(&opts.endtime, NULL);
 
