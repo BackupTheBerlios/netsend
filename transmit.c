@@ -188,7 +188,7 @@ ss_sendfile(int file_fd, int connected_fd)
 
 	rc = sendfile(connected_fd, file_fd, &offset, stat_buf.st_size);
 	if (rc == -1) {
-		fprintf(stderr, "ERROR: Failure in sendfile routine: %s\n", strerror(errno));
+		err_sys("Failure in sendfile routine");
 		exit(EXIT_FAILNET);
 	}
 	if (rc != stat_buf.st_size) {
@@ -276,6 +276,7 @@ instigate_ss(void)
 					protoent->p_name, protoent->p_proto);
 		}
 
+		/* connect to peer */
 		ret = connect(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
 		if (ret == -1) {
 			err_sys("Can't connect to %s", opts.hostname);

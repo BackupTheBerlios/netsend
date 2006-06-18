@@ -98,10 +98,12 @@ instigate_cs(void)
 			break;  /* success */
 	}
 
-	ret = listen(fd, BACKLOG);
-	if (ret < 0) {
-		err_sys("listen(%d, %d) failed", fd, BACKLOG);
-		exit(EXIT_FAILNET);
+	if (opts.protocol == IPPROTO_TCP) {
+		ret = listen(fd, BACKLOG);
+		if (ret < 0) {
+			err_sys("listen(%d, %d) failed", fd, BACKLOG);
+			exit(EXIT_FAILNET);
+		}
 	}
 
 	freeaddrinfo(hostres);
@@ -133,17 +135,20 @@ receive_mode(void)
 
 		msg(LOUDISH, "accept");
 
-		connected_fd = accept(server_fd, &sa, &sa_len);
-		if (connected_fd == -1) {
-			err_sys("accept error");
-			exit(EXIT_FAILNET);
+		if (opts.protocol == IPPROTO_TCP) {
+			connected_fd = accept(server_fd, &sa, &sa_len);
+			if (connected_fd == -1) {
+				err_sys("accept error");
+				exit(EXIT_FAILNET);
+			}
 		}
+
 
 		/* take the transmit start time for diff */
 		gettimeofday(&opts.starttime, NULL);
 
 		msg(LOUDISH, "read");
-		cs_read(file_fd, connected_fd);
+		cs_read(file_fd, opts.protocol == IPPROTO_TCP ? connected_fd : server_fd);
 		msg(LOUDISH, "done");
 
 		gettimeofday(&opts.endtime, NULL);
