@@ -123,7 +123,7 @@ instigate_cs(int *ret_fd)
 void
 receive_mode(void)
 {
-	int file_fd, connected_fd, server_fd;
+	int ret, file_fd, connected_fd, server_fd;
 
 	msg(GENTLE, "receiver mode");
 
@@ -135,14 +135,23 @@ receive_mode(void)
 		struct sockaddr_storage sa;
 		socklen_t sa_len = sizeof sa;
 
-		msg(LOUDISH, "accept");
-
 		if (opts.protocol == IPPROTO_TCP) {
+
+			char peer[1024];
+
 			connected_fd = accept(server_fd, (struct sockaddr *) &sa, &sa_len);
 			if (connected_fd == -1) {
 				err_sys("accept error");
 				exit(EXIT_FAILNET);
 			}
+
+			ret = getnameinfo((struct sockaddr *)&sa, sa_len, peer,
+							  sizeof(peer), NULL, 0, 0);
+			if (ret != 0) {
+				err_msg("getnameinfo error: %s",  gai_strerror(ret));
+				exit(EXIT_FAILNET);
+			}
+			msg(GENTLE, "accept from %s", peer);
 		}
 
 
