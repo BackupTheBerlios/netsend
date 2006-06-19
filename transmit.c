@@ -127,10 +127,10 @@ ss_rw(int file_fd, int connected_fd)
 				}
 				continue;
 			}
+			cnt_coll =+ written;
 			cnt -= written;
 			bufptr += written;
 		} while (cnt > 0);
-		cnt_coll += cnt;
 	}
 out:
 	free(buf);
