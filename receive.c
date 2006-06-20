@@ -27,6 +27,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdbool.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #include "global.h"
 
@@ -34,7 +39,10 @@ extern struct opts opts;
 extern struct conf_map_t io_call_map[];
 extern struct socket_options socket_options[];
 
-
+/* This is our inner receive function.
+** It reads from a connected socket descriptor
+** and write to the file descriptor
+*/
 static ssize_t
 cs_read(int file_fd, int connected_fd)
 {
@@ -61,29 +69,91 @@ cs_read(int file_fd, int connected_fd)
 	return rc;
 }
 
+
 /* Creates our client socket and initialize
 ** options
+**
+** XXX: at the moment we can't release ourself from the mulicast channel
+** because struct ip_mreq and struct ipv6_mreq is function local. But at
+** the moment this doesn't really matter because netsend deliever the file
+** and exit - it isn't a uptime daemon.
 */
 static int
 instigate_cs(int *ret_fd)
 {
+	int on = 1;
+	char *hostname = NULL;
+	bool use_multicast = false;
 	int fd = -1, ret;
 	struct addrinfo  hosthints, *hostres, *addrtmp;
+	struct ip_mreq mreq;
+	struct ipv6_mreq mreq6;
+
 
 	memset(&hosthints, 0, sizeof(struct addrinfo));
 
-	/* probe our values */
 	hosthints.ai_family   = opts.family;
 	hosthints.ai_socktype = opts.socktype;
 	hosthints.ai_protocol = opts.protocol;
 	hosthints.ai_flags    = AI_PASSIVE;
 
-	xgetaddrinfo(NULL, opts.port, &hosthints, &hostres);
+
+	/* Check if the user want to bind to a
+	** multicast channel. We must implement this check
+	** here because if something fail we set hostname to
+	** NULL and initialize a standard udp socket
+	*/
+	if (opts.hostname && opts.protocol == IPPROTO_UDP) {
+
+		hostname = opts.hostname;
+
+		if (inet_pton(AF_INET, hostname, &mreq.imr_multiaddr) <= 0) {
+			if (inet_pton(AF_INET6, hostname, &mreq6.ipv6mr_multiaddr) <= 0) {
+				err_msg("You didn't specify an valid multicast address (%s)!",
+						hostname);
+				exit(EXIT_FAILNET);
+			}
+			/* IPv6 */
+			if (!IN6_IS_ADDR_MULTICAST(&mreq6.ipv6mr_multiaddr)) {
+				err_msg("You didn't specify an valid IPv6 multicast address (%s)!",
+						hostname);
+				exit(EXIT_FAILNET);
+			}
+			hosthints.ai_family = AF_INET6;
+			mreq6.ipv6mr_interface = 0;
+			use_multicast = true;
+
+		} else { /* IPv4 */
+			if (!IN_MULTICAST(ntohl(mreq.imr_multiaddr.s_addr))) {
+				err_msg("You didn't specify an valid IPv4 multicast address (%s)!",
+						hostname);
+				exit(EXIT_FAILNET);
+			}
+			hosthints.ai_family = AF_INET;
+			mreq.imr_interface.s_addr = INADDR_ANY;
+			use_multicast = true;
+
+			/* no look if our user specify strict ipv6 address (-6) but
+			** deliver us with a (valid) ipv4 multicast address
+			*/
+			if (opts.family == AF_INET6) {
+				err_msg("You specify strict ipv6 support (-6) add a "
+						"IPv4 multicast address!");
+				exit(EXIT_FAILOPT);
+			}
+		}
+		hosthints.ai_flags = AI_NUMERICHOST;
+	}
+
+	/* probe our values */
+	xgetaddrinfo(hostname, opts.port, &hosthints, &hostres);
 
 	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
 
-		if (addrtmp->ai_family != opts.family)
+		if (opts.family != AF_UNSPEC &&
+			addrtmp->ai_family != opts.family) { /* user fixed family! */
 			continue;
+		}
 
 		fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
 				addrtmp->ai_protocol);
@@ -93,15 +163,76 @@ instigate_cs(int *ret_fd)
 			continue;
 		}
 
+		/* For multicast sockets it is maybe necessary to set
+		** socketoption SO_REUSEADDR, cause multiple receiver on
+		** the same host will bind to this local socket.
+		** In all other cases: there is no penalty - hopefully! ;-)
+		*/
+		ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+		if (ret == -1) {
+			err_sys("setsockopt (SO_REUSEADDR)");
+			exit(EXIT_FAILNET);
+		}
+
 		ret = bind(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
-		if (ret == 0)
-			break;  /* success */
+		if (ret == 0) {   /* bind call success */
+
+			if (use_multicast) {
+
+				switch (addrtmp->ai_family) {
+					case AF_INET6:
+						ret = setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+								&on, sizeof(int));
+						if (ret == -1) {
+							err_sys("setsockopt (IPV6_MULTICAST_LOOP) failed");
+							exit(EXIT_FAILNET);
+						}
+						msg(STRESSFUL, "set IPV6_MULTICAST_LOOP option");
+
+						ret = setsockopt(fd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+								         &mreq6, sizeof(mreq6));
+						if (ret == -1) {
+							err_sys("setsockopt (IPV6_JOIN_GROUP) failed");
+							exit(EXIT_FAILNET);
+						}
+						msg(GENTLE, "join IPv6 multicast group");
+
+						break;
+					case AF_INET:
+						ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
+								&on, sizeof(int));
+						if (ret == -1) {
+							err_sys("setsockopt (IP_MULTICAST_LOOP) failed");
+							exit(EXIT_FAILNET);
+						}
+						msg(STRESSFUL, "set IP_MULTICAST_LOOP option");
+
+						ret = setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+								         &mreq, sizeof(mreq));
+						if (ret == -1) {
+							err_sys("setsockopt (IP_ADD_MEMBERSHIP) failed");
+							exit(EXIT_FAILNET);
+						}
+						msg(GENTLE, "add membership to IPv4 multicast group");
+						break;
+					default:
+						err_msg("Programmed Error");
+						exit(EXIT_FAILINT);
+						break;
+				}
+			}
+			/* Fine: we find a valid socket, bind to it and probably set
+			** socketoptions for the multicast mode.
+			** Now break out an do the really interesting stuff ....
+			*/
+			break;
+		}
 	}
 
 	if (opts.protocol == IPPROTO_TCP) {
 		ret = listen(fd, BACKLOG);
 		if (ret < 0) {
-			err_sys("listen(%d, %d) failed", fd, BACKLOG);
+			err_sys("listen(fd: %d, backlog: %d) failed", fd, BACKLOG);
 			exit(EXIT_FAILNET);
 		}
 	}
@@ -124,6 +255,8 @@ void
 receive_mode(void)
 {
 	int ret, file_fd, connected_fd, server_fd;
+	struct sockaddr_storage sa;
+	socklen_t sa_len = sizeof sa;
 
 	msg(GENTLE, "receiver mode");
 
@@ -131,40 +264,46 @@ receive_mode(void)
 
 	instigate_cs(&server_fd);
 
-	do {
-		struct sockaddr_storage sa;
-		socklen_t sa_len = sizeof sa;
 
-		if (opts.protocol == IPPROTO_TCP) {
+	if (opts.protocol == IPPROTO_TCP) {
 
-			char peer[1024];
+		char peer[1024];
 
-			connected_fd = accept(server_fd, (struct sockaddr *) &sa, &sa_len);
-			if (connected_fd == -1) {
-				err_sys("accept error");
-				exit(EXIT_FAILNET);
-			}
-
-			ret = getnameinfo((struct sockaddr *)&sa, sa_len, peer,
-							  sizeof(peer), NULL, 0, 0);
-			if (ret != 0) {
-				err_msg("getnameinfo error: %s",  gai_strerror(ret));
-				exit(EXIT_FAILNET);
-			}
-			msg(GENTLE, "accept from %s", peer);
+		connected_fd = accept(server_fd, (struct sockaddr *) &sa, &sa_len);
+		if (connected_fd == -1) {
+			err_sys("accept error");
+			exit(EXIT_FAILNET);
 		}
 
+		ret = getnameinfo((struct sockaddr *)&sa, sa_len, peer,
+				sizeof(peer), NULL, 0, 0);
+		if (ret != 0) {
+			err_msg("getnameinfo error: %s",  gai_strerror(ret));
+			exit(EXIT_FAILNET);
+		}
+		msg(GENTLE, "accept from %s", peer);
+	}
 
-		/* take the transmit start time for diff */
-		gettimeofday(&opts.starttime, NULL);
 
-		msg(LOUDISH, "read");
-		cs_read(file_fd, opts.protocol == IPPROTO_TCP ? connected_fd : server_fd);
-		msg(LOUDISH, "done");
+	/* take the transmit start time for diff */
+	gettimeofday(&opts.starttime, NULL);
 
-		gettimeofday(&opts.endtime, NULL);
+	msg(LOUDISH, "block in read");
 
-	} while(0); /* XXX: Further improvement: iterating server ;-) */
+	cs_read(file_fd, opts.protocol == IPPROTO_TCP ? connected_fd : server_fd);
+
+	msg(LOUDISH, "done");
+
+	gettimeofday(&opts.endtime, NULL);
+
+	/* FIXME: print statistic here */
+
+	/* We sync the file descriptor here because in a worst
+	** case this call block and sophisticate the time
+	** measurement.
+	*/
+	fsync(file_fd);
+
 }
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

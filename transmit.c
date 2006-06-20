@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <sys/sendfile.h>
 #include <sys/types.h>
@@ -280,6 +281,7 @@ set_socketopts(int fd)
 static int
 instigate_ss(void)
 {
+	bool use_multicast = false;
 	int fd, ret;
 	struct addrinfo  hosthints, *hostres, *addrtmp;
 	struct protoent *protoent;
@@ -297,8 +299,10 @@ instigate_ss(void)
 
 	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
 
-		if (addrtmp->ai_family != opts.family)
+		if (opts.family != AF_UNSPEC &&
+			addrtmp->ai_family != opts.family) { /* user fixed family! */
 			continue;
+		}
 
 		fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
 				addrtmp->ai_protocol);
@@ -311,6 +315,106 @@ instigate_ss(void)
 		msg(LOUDISH, "socket created - protocol %s(%d)",
 			protoent->p_name, protoent->p_proto);
 
+		/* mulicast checks */
+		if (addrtmp->ai_protocol == IPPROTO_UDP) {
+			switch (addrtmp->ai_family) {
+				case AF_INET6:
+					if (IN6_IS_ADDR_MULTICAST(&((struct sockaddr_in6 *)
+									addrtmp->ai_addr)->sin6_addr)) {
+						use_multicast = true;
+					}
+					break;
+				case AF_INET:
+					if (IN_MULTICAST(ntohl(((struct sockaddr_in *)
+									addrtmp->ai_addr)->sin_addr.s_addr))) {
+						use_multicast = true;
+					}
+					break;
+				default:
+					err_msg("Programmed Error");
+					exit(EXIT_FAILINT);
+			}
+		}
+
+		if (use_multicast) {
+			int hops_ttl = 30;
+				int on = 1;
+			switch (addrtmp->ai_family) {
+				case AF_INET6:
+					ret = setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+							         (char *)&hops_ttl, sizeof(hops_ttl));
+					if (ret == -1) {
+						err_sys("Can't set socketoption IPV6_MULTICAST_HOPS");
+						exit(EXIT_FAILNET);
+					}
+
+					ret = setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+							&on, sizeof(int));
+					if (ret == -1) {
+						err_sys("setsockopt (IPV6_MULTICAST_LOOP) failed");
+						exit(EXIT_FAILNET);
+					}
+					break;
+				case AF_INET:
+					ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL,
+							         (char *)&hops_ttl, sizeof(hops_ttl));
+					if (ret == -1) {
+						err_sys("Can't set socketoption IP_MULTICAST_TTL");
+						exit(EXIT_FAILNET);
+					}
+
+					ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
+							&on, sizeof(int));
+					if (ret == -1) {
+						err_sys("setsockopt (IP_MULTICAST_LOOP) failed");
+						exit(EXIT_FAILNET);
+					}
+					msg(STRESSFUL, "set IP_MULTICAST_LOOP option");
+					break;
+				default:
+					err_msg("Programmed Error");
+					exit(EXIT_FAILINT);
+					break;
+			}
+		}
+
+		if (opts.protocol == IPPROTO_TCP && opts.change_congestion)
+			change_congestion(fd);
+
+		/* NOTE: in the first paragraph we set default socketoptions
+		** if the user doesn't select one and the socket
+		** need this (e.g. DCCP_SOCKOPT_PACKET_SIZE)
+		**
+		** In set_socketopts() we set user socketoptions
+		*/
+
+		/* set dccp packet size */
+		if (opts.protocol == IPPROTO_DCCP) {
+
+			int packet_size = DCCP_STD_PACKET_SIZE;
+
+			/* if user doesn't selected a packet size */
+			if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue) {
+				ret = setsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_PACKET_SIZE,
+						&packet_size, sizeof(packet_size));
+				if (ret == -1) {
+					err_sys("setsockopt dccp packet size");
+					exit(EXIT_FAILNET);
+				}
+			}
+		}
+
+
+		/* We iterate over our commandline argument array - where the user
+		** set socketoption and set this on our socket
+		** NOTE: it is necessary to set the soketoption before we call
+		** connect, which will invoke a syn packet!
+		** Example: if we set the receive buffer size to a greater value, tcp
+		** must handle this case and send in the initial packet a window scale
+		** option! Now you realize why we send the socketoption before we call
+		** connect.    --HGN
+		*/
+		set_socketopts(fd);
 
 		/* Connect to peer
 		** There are three advantages to call connect for all types
@@ -335,37 +439,6 @@ instigate_ss(void)
 		exit(EXIT_FAILNET);
 	}
 
-	if (opts.protocol == IPPROTO_TCP && opts.change_congestion)
-		change_congestion(fd);
-
-	/* NOTE: in the first paragraph we set default socketoptions
-	** if the user doesn't select one and the socket
-	** need this (e.g. DCCP_SOCKOPT_PACKET_SIZE)
-	**
-	** In set_socketopts() we set user socketoptions
-	*/
-
-	/* set dccp packet size */
-	if (opts.protocol == IPPROTO_DCCP) {
-
-		int packet_size = DCCP_STD_PACKET_SIZE;
-
-		/* if user doesn't selected a packet size */
-		if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue) {
-			ret = setsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_PACKET_SIZE,
-					&packet_size, sizeof(packet_size));
-			if (ret == -1) {
-				err_sys("setsockopt dccp packet size");
-				exit(EXIT_FAILNET);
-			}
-		}
-	}
-
-
-	/* We iterate over our commandline argument array - where the user
-	** set socketoption and set this on our socket
-	*/
-	set_socketopts(fd);
 
 	freeaddrinfo(hostres);
 	return fd;
@@ -423,7 +496,6 @@ transmit_mode(void)
 
 	} while (0); /* XXX: Further improvement: iterating server ;-) */
 }
-
 
 
 

@@ -187,7 +187,8 @@ struct net_stat net_stat;
 
 /* Command-line options */
 
-enum workmode { MODE_TRANSMIT = 0, MODE_RECEIVE };
+
+enum workmode { MODE_NONE = 0, MODE_TRANSMIT, MODE_RECEIVE };
 
 struct opts {
 	int            family;

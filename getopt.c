@@ -38,7 +38,11 @@ void
 usage(void)
 {
 	fprintf(stderr,
-			"USAGE: %s [options] ( -t infile  |  -r hostname )\n\n"
+			"USAGE: %s [options] ( -t <input-file> <hostname>  |  -r <output-file> <multicast>\n\n"
+			"    -t <input-file>  <hostname>     _t_ransmit input-file to host hostname\n"
+			"    -r <output-file> <multicast>    _r_eceive data and save to outputfile\n"
+			"                                    bind local socket to multicast group\n"
+			"                                    (output-file and multicast adddr in receive mode are optional)\n\n"
 			"-m <tcp | udp | dccp>    specify default transfer protocol (default: tcp)\n"
 			"-o <outfile>             save file to outfile (standard: STDOUT)\n"
 			"-p <port>                set portnumber (default: 6666)\n"
@@ -93,10 +97,10 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			opts.workmode = MODE_TRANSMIT;
 			break;
 		case '6':
-			opts.family = PF_INET6;
+			opts.family = AF_INET6;
 			break;
 		case '4':
-			opts.family = PF_INET;
+			opts.family = AF_INET;
 			break;
 		case 'v':
 			opts.verbose++;
@@ -342,11 +346,11 @@ parse_opts(int argc, char *argv[])
 	}
 
 	/* Initialize some default values */
-	opts.workmode    = MODE_RECEIVE;
+	opts.workmode    = MODE_NONE;
 	opts.io_call     = IO_SENDFILE;
 	opts.protocol    = IPPROTO_TCP;
 	opts.socktype    = SOCK_STREAM;
-	opts.family      = PF_INET;
+	opts.family      = AF_UNSPEC;
 	opts.buffer_size = DEFAULT_BUFSIZE;
 
 	opts.port = alloc(strlen(DEFAULT_PORT) + 1);
@@ -401,11 +405,26 @@ parse_opts(int argc, char *argv[])
 		opts.hostname = malloc(strlen(argv[2]) + 1);
 		strcpy(opts.hostname, argv[2]);
 
-	} else { /* MODE_RECEIVE */
+	} else if (opts.workmode == MODE_RECEIVE) { /* MODE_RECEIVE */
 
-		if (argc >= 2) {
-			opts.outfile = malloc(strlen(argv[1]) + 1);
-			strcpy(opts.outfile, argv[1]);
+		switch (--argc) {
+			case 0: /* nothing to do */
+				break;
+
+			case 2:
+				opts.hostname = malloc(strlen(argv[2]) + 1);
+				strcpy(opts.hostname, argv[2]);
+			case 1:
+				opts.outfile = malloc(strlen(argv[1]) + 1);
+				strcpy(opts.outfile, argv[1]);
+				break;
+
+			default:
+				err_msg("You specify to many arguments!");
+				usage();
+				exit(EXIT_FAILINT);
+				break;
+
 		}
 
 		switch (opts.io_call) { /* read() allowed */
@@ -414,6 +433,11 @@ parse_opts(int argc, char *argv[])
 			default:
 				opts.io_call = IO_READ;
 		}
+	} else {
+		err_msg("You must specify your work mode: receive "
+				"or transmit (-r | -t)!");
+		usage();
+		exit(EXIT_FAILOPT);
 	}
 
 	return ret;
