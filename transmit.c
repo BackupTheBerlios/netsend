@@ -292,6 +292,7 @@ instigate_ss(void)
 	hosthints.ai_family   = opts.family;
 	hosthints.ai_socktype = opts.socktype;
 	hosthints.ai_protocol = opts.protocol;
+	hosthints.ai_flags    = AI_ADDRCONFIG;
 
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
 

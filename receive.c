@@ -95,7 +95,7 @@ instigate_cs(int *ret_fd)
 	hosthints.ai_family   = opts.family;
 	hosthints.ai_socktype = opts.socktype;
 	hosthints.ai_protocol = opts.protocol;
-	hosthints.ai_flags    = AI_PASSIVE;
+	hosthints.ai_flags    = AI_PASSIVE | AI_ADDRCONFIG;
 
 
 	/* Check if the user want to bind to a
@@ -142,7 +142,7 @@ instigate_cs(int *ret_fd)
 				exit(EXIT_FAILOPT);
 			}
 		}
-		hosthints.ai_flags = AI_NUMERICHOST;
+		hosthints.ai_flags = AI_NUMERICHOST | AI_ADDRCONFIG;
 	}
 
 	/* probe our values */
