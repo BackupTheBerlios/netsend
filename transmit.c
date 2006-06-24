@@ -37,6 +37,7 @@
 #include <sys/sendfile.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <netinet/in.h>
 
 #include "debug.h"
 #include "global.h"
