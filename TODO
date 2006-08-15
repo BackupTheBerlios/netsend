@@ -50,5 +50,12 @@ o Socket option processing
 	TCP_QUICKACK
 	TCP_INFO
  
+o Collect Failures and document for user help
+
+  1. ERROR [receive.c:202]: setsockopt (IP_ADD_MEMBERSHIP) failed (No such device)
+
+     a) No kernel support
+     b) No route (sudo ip r add 244.0.0.0/8 dev eth0)
 
 o Many more - your ideas here! ;-)
+

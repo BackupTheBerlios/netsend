@@ -63,6 +63,18 @@
 
 /* Our makros start here */
 
+/* Forces a function to be always inlined
+** 'must inline' - so that they get inlined even
+** if optimizing for size
+*/
+#undef __always_inline
+#if __GNUC_PREREQ (3,2)
+# define __always_inline __inline __attribute__ ((__always_inline__))
+#else
+# define __always_inline __inline
+#endif
+
+
 #define min(x,y) ({			\
 	typeof(x) _x = (x);		\
 	typeof(y) _y = (y);		\
