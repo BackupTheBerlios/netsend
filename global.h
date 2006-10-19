@@ -63,6 +63,11 @@
 
 /* Our makros start here */
 
+#define NIPQUAD(addr)   ((unsigned char *)&addr)[0], \
+                        ((unsigned char *)&addr)[1], \
+                        ((unsigned char *)&addr)[2], \
+                        ((unsigned char *)&addr)[3]
+
 /* Forces a function to be always inlined
 ** 'must inline' - so that they get inlined even
 ** if optimizing for size
@@ -73,7 +78,6 @@
 #else
 # define __always_inline __inline
 #endif
-
 
 #define min(x,y) ({			\
 	typeof(x) _x = (x);		\

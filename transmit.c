@@ -83,6 +83,27 @@ get_mem_adv_f(int adv)
 
 
 static ssize_t
+write_len(int fd, const void *buf, size_t len)
+{
+	const char *bufptr = buf;
+	ssize_t total = 0;
+	do {
+		ssize_t written = write(fd, bufptr, len);
+		if (written < 0) {
+			if (errno == EINTR)
+				continue;
+			break;
+		}
+		total += written;
+		bufptr += written;
+		len -= written;
+	} while (len > 0);
+
+	return total > 0 ? total : -1;
+}
+
+
+static ssize_t
 ss_rw(int file_fd, int connected_fd)
 {
 	int buflen;
@@ -114,24 +135,13 @@ ss_rw(int file_fd, int connected_fd)
 	}
 
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
-		unsigned char *bufptr;
-		net_stat.read_call_cnt++;
-		bufptr = buf;
-		do {
-			ssize_t written = write(connected_fd, bufptr, cnt);
-			if (written < 0) {
-				if (errno != EINTR) {
-					err_sys("write error");
-					/* FIXME: should we replace this goto statement
-					** with a exit() call?
-					*/
-					goto out;
-				}
-				continue;
-			}
-			cnt_coll =+ written;
-			cnt -= written;
-			bufptr += written;
+		cnt_coll = write_len(connected_fd, buf, cnt);
+		if (cnt_coll != cnt) {
+			err_sys("write error");
+			/* FIXME: should we replace this goto statement
+			** with a exit() call?
+			*/
+			goto out;
 		} while (cnt > 0);
 	}
 out:
@@ -167,7 +177,7 @@ ss_mmap(int file_fd, int connected_fd)
 		posix_madvise(mmap_buf, stat_buf.st_size, get_mem_adv_m(opts.mem_advice)))
 		err_sys("posix_madvise");	/* do not exit */
 
-	rc = write(connected_fd, mmap_buf, stat_buf.st_size);
+	rc = write_len(connected_fd, mmap_buf, stat_buf.st_size);
 	if (rc != stat_buf.st_size) {
 		fprintf(stderr, "ERROR: Can't flush buffer within write call: %s!\n",
 				strerror(errno));

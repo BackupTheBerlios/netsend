@@ -249,9 +249,11 @@ instigate_cs(int *ret_fd)
 	return 0;
 }
 
-void
+static void
 signal_hndl(int signo)
 {
+	(void) signo;
+
 	fprintf(stderr, "received signal\n");
 	return;
 }
@@ -269,14 +271,14 @@ receive_mode(void)
 	int ret, file_fd, connected_fd, server_fd;
 	struct sockaddr_storage sa;
 	socklen_t sa_len = sizeof sa;
-	 struct sigaction sigterm_sa;
+	struct sigaction sigterm_sa;
 
 
 
-	  sigterm_sa.sa_handler = signal_hndl;
-	   sigemptyset(&sigterm_sa.sa_mask);
-	   sigterm_sa.sa_flags = 0;
-	   sigaction(SIGPIPE, &sigterm_sa, NULL);
+	sigterm_sa.sa_handler = signal_hndl;
+	sigemptyset(&sigterm_sa.sa_mask);
+	sigterm_sa.sa_flags = 0;
+	sigaction(SIGPIPE, &sigterm_sa, NULL);
 
 	msg(GENTLE, "receiver mode");
 
