@@ -72,6 +72,7 @@ usage(void)
 			"       westwood\n"
 			"       reno\n"
 			"-D                       no delay socket option (disable Nagle Algorithm)\n"
+			"-N <int>                 specify how big write calls are (default: 8 * 1024)\n"
 			"-e                       reuse port\n"
 			"-6                       prefer ipv6\n"
 			"-E <command>             execute command in server-mode and bind STDIN\n"
@@ -216,7 +217,7 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			(*argc)--;
 			(*argv)++;
 			break;
-		case 'b':
+		case 'N':
 			if (((*opt_str)[2])  || ((*argc) <= 2)) {
 				fprintf(stderr, "option error (%c:%d)\n",
 						(*opt_str)[2], (*argc));
@@ -355,7 +356,7 @@ parse_opts(int argc, char *argv[])
 	opts.protocol    = IPPROTO_TCP;
 	opts.socktype    = SOCK_STREAM;
 	opts.family      = AF_UNSPEC;
-	opts.buffer_size = DEFAULT_BUFSIZE;
+	opts.buffer_size = 0; /* we use default values (sendfile(): unlimited) */
 
 	opts.port = alloc(strlen(DEFAULT_PORT) + 1);
 	sprintf(opts.port, "%s", DEFAULT_PORT);

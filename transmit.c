@@ -113,7 +113,7 @@ ss_rw(int file_fd, int connected_fd)
 	msg(STRESSFUL, "send via read/write io operation");
 
 	/* user option or default */
-	buflen = opts.buffer_size;
+	buflen = opts.buffer_size ? opts.buffer_size : DEFAULT_BUFSIZE;
 
 	/* allocate buffer */
 	buf = malloc(buflen);
