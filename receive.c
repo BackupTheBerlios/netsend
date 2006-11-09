@@ -56,7 +56,7 @@ cs_read(int file_fd, int connected_fd)
 	char *buf;
 
 	/* user option or default(DEFAULT_BUFSIZE) */
-	buflen = opts.buffer_size;
+	buflen = (opts.buffer_size == 0) ? DEFAULT_BUFSIZE : opts.buffer_size;
 
 	/* allocate read buffer */
 	buf = malloc(buflen);

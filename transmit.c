@@ -156,7 +156,7 @@ static ssize_t
 ss_mmap(int file_fd, int connected_fd)
 {
 	int ret = 0;
-	ssize_t rc;
+	ssize_t rc, written = 0, write_cnt;
 	struct stat stat_buf;
 	void *mmap_buf;
 
@@ -179,10 +179,26 @@ ss_mmap(int file_fd, int connected_fd)
 		posix_madvise(mmap_buf, stat_buf.st_size, get_mem_adv_m(opts.mem_advice)))
 		err_sys("posix_madvise");	/* do not exit */
 
-	rc = write_len(connected_fd, mmap_buf, stat_buf.st_size);
-	if (rc != stat_buf.st_size) {
+	/* full or partial write */
+	write_cnt = opts.buffer_size ?
+		opts.buffer_size : stat_buf.st_size;
+
+	/* write chunked sized frames */
+	while (stat_buf.st_size - written >= write_cnt) {
+		rc = write_len(connected_fd, &mmap_buf[written], write_cnt);
+		written += rc;
+	};
+	/* and write remaining bytes, if any */
+	write_cnt = stat_buf.st_size - written;
+	if (write_cnt > 0) {
+		rc = write_len(connected_fd, &mmap_buf[written], write_cnt);
+		written += rc;
+	}
+
+	if (stat_buf.st_size != written) {
 		fprintf(stderr, "ERROR: Can't flush buffer within write call: %s!\n",
 				strerror(errno));
+		fprintf(stderr, " size: %d written %d\n", stat_buf.st_size, written);
 	}
 
 	ret = munmap(mmap_buf, stat_buf.st_size);
