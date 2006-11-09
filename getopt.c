@@ -212,8 +212,8 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 						(*opt_str)[2], (*argc));
 				exit(1);
 			}
-			opts.execstring = alloc(strlen((*argv)[1]) + 1);
-			strcpy(opts.outfile, (*argv)[1]);
+			opts.execstring = alloc(strlen((*argv)[2]) + 1);
+			strcpy(opts.outfile, (*argv)[2]);
 			(*argc)--;
 			(*argv)++;
 			break;
@@ -223,7 +223,7 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 						(*opt_str)[2], (*argc));
 				exit(1);
 			}
-			opts.buffer_size = strtol((*argv)[1], (char **)NULL, 10);
+			opts.buffer_size = strtol((*argv)[2], (char **)NULL, 10);
 			if (opts.buffer_size <= 0) {
 				fprintf(stderr, "Buffer size to small (%d byte)!\n",
 						opts.buffer_size);
