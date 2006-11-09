@@ -144,7 +144,7 @@ ss_rw(int file_fd, int connected_fd)
 			** with a exit() call?
 			*/
 			goto out;
-		} while (cnt > 0);
+		}
 	}
 out:
 	free(buf);
@@ -185,20 +185,22 @@ ss_mmap(int file_fd, int connected_fd)
 
 	/* write chunked sized frames */
 	while (stat_buf.st_size - written >= write_cnt) {
-		rc = write_len(connected_fd, &mmap_buf[written], write_cnt);
+		char *tmpbuf = mmap_buf;
+		rc = write_len(connected_fd, tmpbuf + written, write_cnt);
 		written += rc;
 	};
 	/* and write remaining bytes, if any */
 	write_cnt = stat_buf.st_size - written;
 	if (write_cnt > 0) {
-		rc = write_len(connected_fd, &mmap_buf[written], write_cnt);
+		char *tmpbuf = mmap_buf;
+		rc = write_len(connected_fd, tmpbuf + written, write_cnt);
 		written += rc;
 	}
 
 	if (stat_buf.st_size != written) {
 		fprintf(stderr, "ERROR: Can't flush buffer within write call: %s!\n",
 				strerror(errno));
-		fprintf(stderr, " size: %d written %d\n", stat_buf.st_size, written);
+		fprintf(stderr, " size: %ld written %d\n", (long)stat_buf.st_size, written);
 	}
 
 	ret = munmap(mmap_buf, stat_buf.st_size);
