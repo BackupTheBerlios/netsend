@@ -28,6 +28,7 @@
 #include <stdarg.h>
 #include <string.h>
 /* TODO: extend our configure script to loop for declaration */
+#define HAVE_BACKTRACE
 #include <execinfo.h>
 #include <time.h>
 
