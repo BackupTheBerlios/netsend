@@ -197,10 +197,8 @@ struct net_stat {
 	int mss;
 	int keep_alive;
 	int read_call_cnt;
+	int write_call_cnt;
 };
-
-struct net_stat net_stat;
-
 
 /* Command-line options */
 

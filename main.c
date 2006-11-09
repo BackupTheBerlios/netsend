@@ -75,6 +75,7 @@ struct socket_options socket_options[] = {
 };
 
 struct opts opts;
+struct net_stat net_stat;
 
 
 /* TODO: s/fprintf/snprintf/ and separate output
