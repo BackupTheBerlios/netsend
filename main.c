@@ -86,10 +86,11 @@ print_analyse(void)
 {
 	fprintf(stdout, "Netsend Statistic:\n\n"
 			"Network Data:\n"
-			"MTU: %d\n"
+			"MTU:                   %d\n"
 			"IO Operations:\n"
-			"Read Calls: %d\n",
-			net_stat.mss, net_stat.read_call_cnt);
+			"Read Calls:            %d\n"
+			"Write/Sendefile Calls: %d\n",
+			net_stat.mss, net_stat.read_call_cnt, net_stat.send_call_cnt);
 }
 
 
@@ -122,7 +123,7 @@ main(int argc, char *argv[])
 			exit(EXIT_FAILMISC);
 	}
 
-	if (opts.verbose > LOUDISH) {
+	if (opts.statistics) {
 		print_analyse();
 	}
 

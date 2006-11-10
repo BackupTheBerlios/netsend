@@ -77,7 +77,8 @@ usage(void)
 			"-6                       prefer ipv6\n"
 			"-E <command>             execute command in server-mode and bind STDIN\n"
 			"                         and STDOUT to program\n"
-			"-v                       display statistic information\n"
+			"-T                       print statistics\n"
+			"-v                       make output verbose (vv even more verbose)\n"
 			"-V                       print version\n"
 			"-h                       print this help screen\n"
 			"*****************************************************\n"
@@ -109,6 +110,9 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			break;
 		case 'v':
 			opts.verbose++;
+			break;
+		case 'T':
+			opts.statistics++;
 			break;
 		case 'm':
 			if (((*opt_str)[2])  || ((*argc) <= 2)) {

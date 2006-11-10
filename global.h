@@ -214,6 +214,7 @@ struct opts {
 	int            congestion;
 	int            mem_advice;
 	int            verbose;
+	int			   statistics;
 	char           *port;
 	char           *me;
 	char           *hostname;
