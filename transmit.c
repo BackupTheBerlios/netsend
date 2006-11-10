@@ -90,7 +90,7 @@ write_len(int fd, const void *buf, size_t len)
 	ssize_t total = 0;
 	do {
 		ssize_t written = write(fd, bufptr, len);
-		net_stat.write_call_cnt += 1;
+		net_stat.send_call_cnt += 1;
 		if (written < 0) {
 			if (errno == EINTR)
 				continue;
@@ -216,8 +216,8 @@ static ssize_t
 ss_sendfile(int file_fd, int connected_fd)
 {
 	int ret = 0;
-	ssize_t rc;
 	struct stat stat_buf;
+	ssize_t rc, write_cnt;
 	off_t offset = 0;
 
 	msg(STRESSFUL, "send via sendfile io operation");
@@ -228,14 +228,34 @@ ss_sendfile(int file_fd, int connected_fd)
 		exit(EXIT_FAILMISC);
 	}
 
-	rc = sendfile(connected_fd, file_fd, &offset, stat_buf.st_size);
-	if (rc == -1) {
-		err_sys("Failure in sendfile routine");
-		exit(EXIT_FAILNET);
+	/* full or partial write */
+	write_cnt = opts.buffer_size ?
+		opts.buffer_size : stat_buf.st_size;
+
+	/* write chunked sized frames */
+	while (stat_buf.st_size - offset - 1 >= write_cnt) {
+		rc = sendfile(connected_fd, file_fd, &offset, write_cnt);
+		if (rc == -1) {
+			err_sys("Failure in sendfile routine");
+			exit(EXIT_FAILNET);
+		}
+		net_stat.send_call_cnt += 1;
+	};
+	/* and write remaining bytes, if any */
+	write_cnt = stat_buf.st_size - offset - 1;
+	if (write_cnt >= 0) {
+		rc = sendfile(connected_fd, file_fd, &offset, write_cnt + 1);
+		if (rc == -1) {
+			err_sys("Failure in sendfile routine");
+			exit(EXIT_FAILNET);
+		}
+		net_stat.send_call_cnt += 1;
 	}
-	if (rc != stat_buf.st_size) {
+
+
+	if (offset != stat_buf.st_size) {
 		err_msg("Incomplete transfer from sendfile: %d of %ld bytes",
-				rc, stat_buf.st_size);
+				offset , stat_buf.st_size);
 		exit(EXIT_FAILNET);
 	}
 
