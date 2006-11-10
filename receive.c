@@ -41,6 +41,7 @@
 #include "global.h"
 
 extern struct opts opts;
+extern struct net_stat net_stat;
 extern struct conf_map_t io_call_map[];
 extern struct socket_options socket_options[];
 
@@ -68,6 +69,8 @@ cs_read(int file_fd, int connected_fd)
 
 	/* main client loop */
 	while ((rc = read(connected_fd, buf, buflen)) > 0) {
+		net_stat.read_call_cnt++;
+		net_stat.read_call_bytes += rc;
 		write(file_fd, buf, rc); /* FIXME: to late and to drunken ... */
 	}
 

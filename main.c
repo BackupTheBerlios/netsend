@@ -42,13 +42,13 @@ struct conf_map_t congestion_map[] = {
 
 
 struct conf_map_t memadvice_map[] = {
-	{ MEMADV_NORMAL,	"normal" }, 
-	{ MEMADV_RANDOM,	"random" }, 
-	{ MEMADV_SEQUENTIAL,	"sequential" }, 
-	{ MEMADV_WILLNEED,	"willneed" }, 
+	{ MEMADV_NORMAL,	"normal" },
+	{ MEMADV_RANDOM,	"random" },
+	{ MEMADV_SEQUENTIAL,	"sequential" },
+	{ MEMADV_WILLNEED,	"willneed" },
 	{ MEMADV_DONTNEED,	"dontneed" },
 	{ MEMADV_NOREUSE,	"noreuse" }
-};	
+};
 
 
 struct conf_map_t io_call_map[] = {
@@ -89,8 +89,12 @@ print_analyse(void)
 			"MTU:                   %d\n"
 			"IO Operations:\n"
 			"Read Calls:            %d\n"
-			"Write/Sendefile Calls: %d\n",
-			net_stat.mss, net_stat.read_call_cnt, net_stat.send_call_cnt);
+			"Read Bytes:            %ld\n"
+			"Write/Sendefile Calls: %d\n"
+			"Write/Sendefile Bytes: %ld\n",
+			net_stat.mss,
+			net_stat.read_call_cnt, net_stat.read_call_bytes,
+			net_stat.send_call_cnt, net_stat.send_call_bytes);
 }
 
 

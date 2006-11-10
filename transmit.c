@@ -145,9 +145,13 @@ ss_rw(int file_fd, int connected_fd)
 			*/
 			goto out;
 		}
+		/* correct statistics */
+		net_stat.send_call_bytes += cnt_coll;
 	}
 out:
 	free(buf);
+
+
 	return cnt_coll;
 }
 
@@ -208,6 +212,9 @@ ss_mmap(int file_fd, int connected_fd)
 		err_sys("Can't munmap buffer");
 	}
 
+	/* correct statistics */
+	net_stat.send_call_bytes = stat_buf.st_size;
+
 	return rc;
 }
 
@@ -258,6 +265,9 @@ ss_sendfile(int file_fd, int connected_fd)
 				offset , stat_buf.st_size);
 		exit(EXIT_FAILNET);
 	}
+
+	/* correct statistics */
+	net_stat.send_call_bytes = stat_buf.st_size;
 
 	return rc;
 }
