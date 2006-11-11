@@ -22,9 +22,18 @@
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
+
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netdb.h>
+
+#include <sys/time.h>
+#include <sys/resource.h>
+
+#include "config.h"
+#ifdef HAVE_RDTSCLL
+# include <linux/timex.h>
+#endif /* HAVE_RDTSCLL */
 
 #ifndef SOCK_DCCP
 # define SOCK_DCCP 6
@@ -193,13 +202,26 @@ enum io_call {
 
 /* Centralize our statistic data */
 
+struct use_stat {
+	struct timeval time;
+	struct rusage  ru;
+#ifdef HAVE_RDTSCLL
+	long long      tsc;
+#endif
+};
+
 struct net_stat {
-	int mss;
-	int keep_alive;
-	int read_call_cnt;
+	int  mss;
+	int  keep_alive;
+
+	int  read_call_cnt;
 	long read_call_bytes;
-	int send_call_cnt;
+
+	int  send_call_cnt;
 	long send_call_bytes;
+
+	struct use_stat use_stat_start;
+	struct use_stat use_stat_end;
 };
 
 /* Command-line options */
@@ -255,6 +277,7 @@ enum {
 void * alloc(size_t);
 void * salloc(int, size_t);
 #define	zalloc(x) salloc(0, x)
+inline void touch_use_stat(struct use_stat *);
 
 /* error.c */
 void x_err_ret(const char *file, int line_no, const char *, ...);

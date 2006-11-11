@@ -136,6 +136,8 @@ ss_rw(int file_fd, int connected_fd)
 		err_sys("posix_fadvise");	/* do not exit */
 	}
 
+	touch_use_stat(&net_stat.use_stat_start);
+
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
 		cnt_coll = write_len(connected_fd, buf, cnt);
 		if (cnt_coll != cnt) {
@@ -148,6 +150,9 @@ ss_rw(int file_fd, int connected_fd)
 		/* correct statistics */
 		net_stat.send_call_bytes += cnt_coll;
 	}
+
+	touch_use_stat(&net_stat.use_stat_end);
+
 out:
 	free(buf);
 
@@ -187,6 +192,8 @@ ss_mmap(int file_fd, int connected_fd)
 	write_cnt = opts.buffer_size ?
 		opts.buffer_size : stat_buf.st_size;
 
+	touch_use_stat(&net_stat.use_stat_start);
+
 	/* write chunked sized frames */
 	while (stat_buf.st_size - written >= write_cnt) {
 		char *tmpbuf = mmap_buf;
@@ -200,6 +207,8 @@ ss_mmap(int file_fd, int connected_fd)
 		rc = write_len(connected_fd, tmpbuf + written, write_cnt);
 		written += rc;
 	}
+
+	touch_use_stat(&net_stat.use_stat_end);
 
 	if (stat_buf.st_size != written) {
 		fprintf(stderr, "ERROR: Can't flush buffer within write call: %s!\n",
@@ -239,6 +248,8 @@ ss_sendfile(int file_fd, int connected_fd)
 	write_cnt = opts.buffer_size ?
 		opts.buffer_size : stat_buf.st_size;
 
+	touch_use_stat(&net_stat.use_stat_start);
+
 	/* write chunked sized frames */
 	while (stat_buf.st_size - offset - 1 >= write_cnt) {
 		rc = sendfile(connected_fd, file_fd, &offset, write_cnt);
@@ -258,6 +269,8 @@ ss_sendfile(int file_fd, int connected_fd)
 		}
 		net_stat.send_call_cnt += 1;
 	}
+
+	touch_use_stat(&net_stat.use_stat_end);
 
 
 	if (offset != stat_buf.st_size) {

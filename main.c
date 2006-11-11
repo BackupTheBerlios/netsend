@@ -79,12 +79,14 @@ struct net_stat net_stat;
 
 
 /* TODO: s/fprintf/snprintf/ and separate output
-** for different workmode  --HGN
+** for different workmode (e.g. don't display read
+** calls if we drive transmit mode
+** --HGN
 */
 static void
 print_analyse(void)
 {
-	fprintf(stdout, "Netsend Statistic:\n\n"
+	fprintf(stderr, "Netsend Statistic:\n\n"
 			"Network Data:\n"
 			"MTU:                   %d\n"
 			"IO Operations:\n"
@@ -95,6 +97,10 @@ print_analyse(void)
 			net_stat.mss,
 			net_stat.read_call_cnt, net_stat.read_call_bytes,
 			net_stat.send_call_cnt, net_stat.send_call_bytes);
+#ifdef HAVE_RDTSCLL
+	fprintf(stderr, "cpu cycles: %lld\n",
+			net_stat.use_stat_end.tsc - net_stat.use_stat_start.tsc);
+#endif
 }
 
 

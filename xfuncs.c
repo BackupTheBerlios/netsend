@@ -56,5 +56,18 @@ salloc(int c, size_t size){
 	return ptr;
 }
 
+inline void
+touch_use_stat(struct use_stat *use_stat)
+{
+
+
+#ifdef HAVE_RDTSCLL
+	rdtscll(use_stat->tsc);
+	fprintf(stderr, "%lld\n", use_stat->tsc);
+#endif
+
+	return;
+}
+
 
 /* vim:set ts=4 sw=4 tw=78 noet: */
