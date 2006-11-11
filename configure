@@ -165,6 +165,43 @@ EOF
 	rmdir "$TMPDIR"
 }
 
+check_for_rdtscll()
+{
+	echo -n "checking for rdtscll..."
+	TMPDIR=`mktemp -d`
+	cat > "$TMPDIR"/rdtscll.c <<EOF
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#ifdef __linux__
+#include <linux/timex.h>    /* rdtscll -- pentium processor tick counter */
+#endif
+
+int main(int argc, char **argv){
+long long cnt;
+rdtscll(cnt);
+return 0;
+}
+EOF
+	gcc -o /dev/null "$TMPDIR"/rdtscll.c >/dev/null 2>&1
+	if [ $? -eq 0 ];then
+		echo " yes"
+		echo "#define HAVE_RDTSCLL 1" >>config.h
+	else
+		echo " no"
+		echo "#undef HAVE_RDTSCLL" >>config.h
+
+	fi
+	rm -f "$TMPDIR"/rdtscll.c
+	rmdir "$TMPDIR"
+}
+
 
 print_config()
 {
@@ -187,6 +224,7 @@ print_config_header
 create_make_rules
 
 check_for_alloca
+check_for_rdtscll
 
 print_config
 
