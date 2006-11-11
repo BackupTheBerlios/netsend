@@ -99,7 +99,7 @@ print_analyse(void)
 			net_stat.send_call_cnt, net_stat.send_call_bytes);
 #ifdef HAVE_RDTSCLL
 	fprintf(stderr, "cpu cycles: %lld\n",
-			net_stat.use_stat_end.tsc - net_stat.use_stat_start.tsc);
+			tsc_diff(net_stat.use_stat_end.tsc, net_stat.use_stat_start.tsc));
 #endif
 }
 

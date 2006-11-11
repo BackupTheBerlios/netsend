@@ -56,6 +56,18 @@ salloc(int c, size_t size){
 	return ptr;
 }
 
+long long
+tsc_diff(long long end, long long start)
+{
+	long long ret = end - start;
+
+	if (ret >= 0)
+		return ret;
+
+	/* TODO: handle overflow */
+	return ret;
+}
+
 inline void
 touch_use_stat(struct use_stat *use_stat)
 {
@@ -63,7 +75,6 @@ touch_use_stat(struct use_stat *use_stat)
 
 #ifdef HAVE_RDTSCLL
 	rdtscll(use_stat->tsc);
-	fprintf(stderr, "%lld\n", use_stat->tsc);
 #endif
 
 	return;
