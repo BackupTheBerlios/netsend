@@ -27,6 +27,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <limits.h>
+
+#ifndef ULLONG_MAX
+# define ULLONG_MAX 18446744073709551615ULL
+#endif
+
 #include "global.h"
 
 /* Simple malloc wrapper - prevent error checking */
@@ -56,16 +62,15 @@ salloc(int c, size_t size){
 	return ptr;
 }
 
-long long
-tsc_diff(long long end, long long start)
+unsigned long long
+tsc_diff(unsigned long long end, unsigned long long start)
 {
 	long long ret = end - start;
 
 	if (ret >= 0)
 		return ret;
 
-	/* TODO: handle overflow */
-	return ret;
+	return (ULLONG_MAX - start) + end;
 }
 
 inline void

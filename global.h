@@ -278,7 +278,7 @@ void * alloc(size_t);
 void * salloc(int, size_t);
 #define	zalloc(x) salloc(0, x)
 inline void touch_use_stat(struct use_stat *);
-long long tsc_diff(long long, long long);
+unsigned long long tsc_diff(unsigned long long, unsigned long long);
 
 /* error.c */
 void x_err_ret(const char *file, int line_no, const char *, ...);
