@@ -40,11 +40,12 @@ WARNINGS="-Wall -W -Wwrite-strings -Wsign-compare \
 #   (http://netsend.berlios.de/deve.html)
 
 
-# internal configure values
+# internal values
 
 c_red="\033[31,1m"
 c_reset="\033[0m"
 
+cc_flags=""
 
 # function declarations
 
@@ -136,12 +137,15 @@ create_make_rules()
 	# compiler flags
 	if [ "$debug" = yes ] ; then
 		echo "XCFLAGS=-g -O0 -DDEBUG"          >> Make.Rules
+		cc_flags="-g -O0 -DDEBUG"
 	else
 		echo "XCFLAGS=$cflags_save"            >> Make.Rules
+		cc_flags="$cflags_save"
 	fi
 	echo "WARNINGS = $WARNINGS"              >> Make.Rules
 	echo "CFLAGS = \$(WARNINGS) \$(XCFLAGS)" >> Make.Rules
 
+	cc_flags="$WARNINGS $cc_flags"
 }
 
 
@@ -214,12 +218,13 @@ print_config()
 	echo -e "\nConfigure picked following defaults, options and paths:"
 	echo -e "Please validate this values (at least it isn't my box ;-)"
 	echo
-	echo "  Prefix: $prefix"
+	echo   "  Prefix:         $prefix"
 	if [ "$debug" = yes ] ; then
-		echo "  Debug:  yes"
+		echo "  Debug:          yes"
 	else
-		echo "  Debug:  no"
+		echo "  Debug:          no"
 	fi
+	echo   "  Compiler Flags: $cc_flags"
 	echo
 }
 
