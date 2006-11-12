@@ -27,6 +27,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/time.h>
+
 #include <limits.h>
 
 #ifndef ULLONG_MAX
@@ -72,5 +74,30 @@ tsc_diff(unsigned long long end, unsigned long long start)
 
 	return (ULLONG_MAX - start) + end;
 }
+
+int
+subtime(struct timeval *op1, struct timeval *op2, struct timeval *result)
+{
+	int borrow = 0, sign = 0;
+	struct timeval *temp_time;
+
+	if (TIME_LT(op1, op2)) {
+		temp_time = op1;
+		op1  = op2;
+		op2  = temp_time;
+		sign = 1;
+	}
+	if (op1->tv_usec >= op2->tv_usec) {
+		result->tv_usec = op1->tv_usec-op2->tv_usec;
+	}
+	else {
+		result->tv_usec = (op1->tv_usec + 1000000) - op2->tv_usec;
+		borrow = 1;
+	}
+	result->tv_sec = (op1->tv_sec-op2->tv_sec) - borrow;
+
+	return sign;
+}
+
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

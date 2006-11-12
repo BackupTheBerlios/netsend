@@ -86,6 +86,8 @@ struct net_stat net_stat;
 static void
 print_analyse(void)
 {
+	struct timeval tv_tmp;
+
 	fprintf(stderr, "Netsend Statistic:\n\n"
 			"Network Data:\n"
 			"MTU:                   %d\n"
@@ -97,6 +99,10 @@ print_analyse(void)
 			net_stat.mss,
 			net_stat.read_call_cnt, net_stat.read_call_bytes,
 			net_stat.send_call_cnt, net_stat.send_call_bytes);
+
+	subtime(&net_stat.use_stat_end.time, &net_stat.use_stat_start.time, &tv_tmp);
+
+	fprintf(stderr, "%lu sec, %lu usec\n", tv_tmp.tv_sec, tv_tmp.tv_usec);
 #ifdef HAVE_RDTSCLL
 	fprintf(stderr, "cpu cycles: %lld\n",
 			tsc_diff(net_stat.use_stat_end.tsc, net_stat.use_stat_start.tsc));

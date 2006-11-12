@@ -273,6 +273,13 @@ enum {
 
 /*** Interface ***/
 
+/* error.c */
+void x_err_ret(const char *file, int line_no, const char *, ...);
+void x_err_sys(const char *file, int line_no, const char *, ...);
+void msg(const int, const char *, ...);
+void print_bt(void);
+
+
 /* xfunc.c definitions */
 void * alloc(size_t);
 void * salloc(int, size_t);
@@ -286,16 +293,23 @@ enum where_send {
 #define TIME_GT(x,y) (x->tv_sec > y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec > y->tv_usec))
 #define TIME_LT(x,y) (x->tv_sec < y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec < y->tv_usec))
 unsigned long long tsc_diff(unsigned long long, unsigned long long);
+int subtime(struct timeval *, struct timeval *, struct timeval *);
 
-/* gcc is smart enough to realize that where is static at
-** complile time and reorder this branch --HGN
+/* Gcc is smart enough to realize that argument 'where' is static
+** at compile time and reorder the branch - this is tested!
+** Through this optimization our rdtscll call is closer
+** to send routine and therefor accurater.
+** --HGN
 */
 static inline void
 touch_use_stat(enum where_send where, struct use_stat *use_stat)
 {
 
 	if (where == TOUCH_BEFORE_SEND) {
-		gettimeofday(&use_stat->time, NULL);
+		if (getrusage(RUSAGE_SELF, &use_stat->ru) < 0)
+			err_sys("Failure in getrusage()");
+		if (gettimeofday(&use_stat->time, NULL) < 0)
+			err_sys("Failure in gettimeofday()");
 #ifdef HAVE_RDTSCLL
 		rdtscll(use_stat->tsc);
 #endif
@@ -303,17 +317,14 @@ touch_use_stat(enum where_send where, struct use_stat *use_stat)
 #ifdef HAVE_RDTSCLL
 		rdtscll(use_stat->tsc);
 #endif
-		gettimeofday(&use_stat->time, NULL);
+		if (gettimeofday(&use_stat->time, NULL) < 0)
+			err_sys("Failure in gettimeofday()");
+		if (getrusage(RUSAGE_SELF, &use_stat->ru) < 0)
+			err_sys("Failure in getrusage()");
 	}
 	return;
 };
 
-
-/* error.c */
-void x_err_ret(const char *file, int line_no, const char *, ...);
-void x_err_sys(const char *file, int line_no, const char *, ...);
-void msg(const int, const char *, ...);
-void print_bt(void);
 
 /* file.c */
 int open_input_file(void);
