@@ -277,8 +277,37 @@ enum {
 void * alloc(size_t);
 void * salloc(int, size_t);
 #define	zalloc(x) salloc(0, x)
-inline void touch_use_stat(struct use_stat *);
+
+
+enum where_send {
+	TOUCH_BEFORE_SEND = 0,
+    TOUCH_AFTER_SEND
+};
+#define TIME_GT(x,y) (x->tv_sec > y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec > y->tv_usec))
+#define TIME_LT(x,y) (x->tv_sec < y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec < y->tv_usec))
 unsigned long long tsc_diff(unsigned long long, unsigned long long);
+
+/* gcc is smart enough to realize that where is static at
+** complile time and reorder this branch --HGN
+*/
+static inline void
+touch_use_stat(enum where_send where, struct use_stat *use_stat)
+{
+
+	if (where == TOUCH_BEFORE_SEND) {
+		gettimeofday(&use_stat->time, NULL);
+#ifdef HAVE_RDTSCLL
+		rdtscll(use_stat->tsc);
+#endif
+	} else { /* TOUCH_AFTER_SEND */
+#ifdef HAVE_RDTSCLL
+		rdtscll(use_stat->tsc);
+#endif
+		gettimeofday(&use_stat->time, NULL);
+	}
+	return;
+};
+
 
 /* error.c */
 void x_err_ret(const char *file, int line_no, const char *, ...);

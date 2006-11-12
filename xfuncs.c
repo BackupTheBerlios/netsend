@@ -73,17 +73,4 @@ tsc_diff(unsigned long long end, unsigned long long start)
 	return (ULLONG_MAX - start) + end;
 }
 
-inline void
-touch_use_stat(struct use_stat *use_stat)
-{
-
-
-#ifdef HAVE_RDTSCLL
-	rdtscll(use_stat->tsc);
-#endif
-
-	return;
-}
-
-
 /* vim:set ts=4 sw=4 tw=78 noet: */

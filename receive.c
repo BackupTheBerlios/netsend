@@ -271,7 +271,7 @@ signal_hndl(int signo)
 void
 receive_mode(void)
 {
-	int ret, file_fd, connected_fd, server_fd;
+	int ret, file_fd, connected_fd = -1, server_fd;
 	struct sockaddr_storage sa;
 	socklen_t sa_len = sizeof sa;
 	struct sigaction sigterm_sa;
