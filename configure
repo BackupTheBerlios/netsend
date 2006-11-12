@@ -121,6 +121,8 @@ print_config_header()
 
 create_make_rules()
 {
+	cflags_save="$CFLAGS"
+
 	echo "prefix =  $prefix"             >> Make.Rules
 	echo "exec_prefix = \${prefix}"      >> Make.Rules
 	echo                                 >> Make.Rules
@@ -133,10 +135,13 @@ create_make_rules()
 	
 	# compiler flags
 	if [ "$debug" = yes ] ; then
-		echo "DEBUG=-g -O0 -DDEBUG"          >> Make.Rules
+		echo "XCFLAGS=-g -O0 -DDEBUG"          >> Make.Rules
+	else
+		echo "XCFLAGS=$cflags_save"            >> Make.Rules
 	fi
-	echo "WARNINGS = $WARNINGS"            >> Make.Rules
-	echo "CFLAGS = \$(WARNINGS) \$(DEBUG)" >> Make.Rules
+	echo "WARNINGS = $WARNINGS"              >> Make.Rules
+	echo "CFLAGS = \$(WARNINGS) \$(XCFLAGS)" >> Make.Rules
+
 }
 
 
