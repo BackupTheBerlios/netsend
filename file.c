@@ -126,8 +126,25 @@ open_output_file(void)
 	fd = open(opts.outfile, O_WRONLY | O_CREAT | O_EXCL,
 			  S_IRUSR | S_IWUSR | S_IRGRP);
 	if (fd == -1) {
-		err_sys("Can't create outputfile: %s", opts.outfile);
-		exit(EXIT_FAILOPT);
+		struct stat s;
+		if (errno != EEXIST) {
+			err_sys("Can't create outputfile: %s", opts.outfile);
+			exit(EXIT_FAILOPT);
+		}
+		fd = open(opts.outfile, O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
+		if (fd == -1) {
+			err_sys("Can't open outputfile: %s", opts.outfile);
+			exit(EXIT_FAILOPT);
+		}
+		if (fstat(fd, &s)) {
+			err_sys("stat() error: %s", opts.outfile);
+			exit(EXIT_FAILOPT);
+		}
+		if (S_ISREG(s.st_mode)) { /* symblic link that pointed to regular file */
+			err_sys("Can't create outputfile: %s", opts.outfile);
+			exit(EXIT_FAILOPT);
+		}
+		/* file is a named pipe, socket, etc. */
 	}
 
 	return fd;
