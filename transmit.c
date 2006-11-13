@@ -140,22 +140,23 @@ ss_rw(int file_fd, int connected_fd)
 
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
 		cnt_coll = write_len(connected_fd, buf, cnt);
-		if (cnt_coll != cnt) {
+		if (cnt_coll == -1) {
 			err_sys("write error");
-			/* FIXME: should we replace this goto statement
-			** with a exit() call?
-			*/
-			goto out;
+			exit(EXIT_FAILNET);;
 		}
 		/* correct statistics */
 		net_stat.send_call_bytes += cnt_coll;
+
+		/* if we reached a user transfer limit? */
+		if (opts.multiple_barrier &&
+				net_stat.send_call_bytes >= (buflen * opts.multiple_barrier)) {
+			break;
+		}
 	}
 
 	touch_use_stat(TOUCH_AFTER_SEND, &net_stat.use_stat_end);
 
-out:
 	free(buf);
-
 
 	return cnt_coll;
 }

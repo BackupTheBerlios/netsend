@@ -72,14 +72,16 @@ usage(void)
 			"-u <sendfile | mmap | rw | read >\n"
 			"                         utilize specific function-call for IO operation\n"
 			"                         (this depends on operation mode (-t, -r)\n"
+			"-N                       select buffer chunk size (e.g. sendfile transfer amount per call)\n"
+			"-n                       set maximum number of sized chunkes. This limit upper transfer limit\n"
 			"-o <outfile>             save file to outfile (standard: STDOUT)\n"
 			"-a <advice>              set memory advisory information\n"
-			"       normal\n"
-			"       sequential\n"
-			"       random\n"
-			"       willneed\n"
-			"       dontneed\n"
-			"       noreuse (equal to willneed for -u mmap)\n" /* 2.6.16 treats them the same */
+			"          * normal\n"
+			"          * sequential\n"
+			"          * random\n"
+			"          * willneed\n"
+			"          * dontneed\n"
+			"          * noreuse (equal to willneed for -u mmap)\n" /* 2.6.16 treats them the same */
 			"-c <congestion>          set the congestion algorithm\n"
 			"       available algorithms (kernelversion >= 2.6.16)\n"
 			"          * bic\n"
@@ -245,6 +247,16 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			}
 			opts.execstring = alloc(strlen((*argv)[2]) + 1);
 			strcpy(opts.outfile, (*argv)[2]);
+			(*argc)--;
+			(*argv)++;
+			break;
+		case 'n':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(EXIT_FAILOPT);
+			}
+			opts.multiple_barrier = strtol((*argv)[2], (char **)NULL, 10);
 			(*argc)--;
 			(*argv)++;
 			break;

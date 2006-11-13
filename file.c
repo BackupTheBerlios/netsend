@@ -93,10 +93,12 @@ open_input_file(void)
 		exit(EXIT_FAILMISC);
 	}
 
+#if 0
 	if (!(stat_buf.st_mode & S_IFREG)) {
 		err_sys("Not an regular file %s", opts.infile);
 		exit(EXIT_FAILOPT);
 	}
+#endif
 
 	fd = open(opts.infile, O_RDONLY);
 	if (fd == -1) {

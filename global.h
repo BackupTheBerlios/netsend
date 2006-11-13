@@ -230,25 +230,34 @@ struct net_stat {
 enum workmode { MODE_NONE = 0, MODE_TRANSMIT, MODE_RECEIVE };
 
 struct opts {
-	int            family;
-	int            socktype;
-	int            reuse;
-	int            nodelay;
-	int            change_congestion;
-	int            congestion;
-	int            mem_advice;
-	int            verbose;
-	int			   statistics;
+	int family;
+	int protocol;
+	int socktype;
+	int reuse;
+	int nodelay;
+	int change_congestion;
+	int congestion;
+	int mem_advice;
+
+	int   verbose;
+	int   statistics;
+	char *me;
+
 	char           *port;
-	char           *me;
 	char           *hostname;
 	char           *infile;
 	char		   *outfile;
 	char           *execstring;
 	enum workmode  workmode;
 	enum io_call   io_call;
-	int            protocol;
-	int            buffer_size;
+
+	/* if user set multiple_barrier then
+	** (buffer_size * multiple_barrier)
+	** is the maximum transfer amount
+	*/
+	int buffer_size;
+	int multiple_barrier;
+
 	struct timeval starttime;
 	struct timeval endtime;
 
