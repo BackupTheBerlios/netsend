@@ -86,17 +86,17 @@ struct net_stat net_stat;
 ** --HGN
 */
 static void
-print_analyse(void)
+print_analyse(FILE *out)
 {
 	struct timeval tv_tmp;
 	struct utsname utsname;
 	double delta_time;
 
 	if (!uname(&utsname)) {
-	fprintf(stderr, "%s (kernel: %s, arch: %s)\n", utsname.nodename, utsname.release, utsname.machine);
+	fprintf(out, "%s (kernel: %s, arch: %s)\n", utsname.nodename, utsname.release, utsname.machine);
 			}
 
-	fprintf(stderr, "Netsend Statistic:\n\n"
+	fprintf(out, "Netsend Statistic:\n\n"
 			"Network Data:\n"
 			"MTU:                   %d\n"
 			"IO Operations:\n"
@@ -113,11 +113,11 @@ print_analyse(void)
 	if (delta_time <= 0.0)
 		delta_time = 0.0001;
 
-	fprintf(stderr, "# %.5f sec\n", delta_time);
-	fprintf(stderr, "# %.5f KB/sec\n", (((double)net_stat.send_call_bytes) / delta_time) / 1024);
+	fprintf(out, "# %.5f sec\n", delta_time);
+	fprintf(out, "# %.5f KB/sec\n", (((double)net_stat.send_call_bytes) / delta_time) / 1024);
 
 #ifdef HAVE_RDTSCLL
-	fprintf(stderr, "# %lld cpu cycles\n",
+	fprintf(out, "# %lld cpu cycles\n",
 			tsc_diff(net_stat.use_stat_end.tsc, net_stat.use_stat_start.tsc));
 #endif
 }
@@ -150,7 +150,7 @@ main(int argc, char *argv[])
 	}
 
 	if (opts.statistics) {
-		print_analyse();
+		print_analyse(stderr);
 	}
 
 	return ret;
