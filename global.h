@@ -264,6 +264,13 @@ struct opts {
 		x_err_sys(__FILE__, __LINE__,  format , ## args); \
 	} while (0)
 
+#define err_sys_die(exitcode, format, args...) \
+	do { \
+		x_err_sys(__FILE__, __LINE__, format , ## args); \
+		exit( exitcode ); \
+	} while (0)
+
+
 enum {
 	QUITSCENT = 0,
 	GENTLE,
