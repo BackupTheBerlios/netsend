@@ -214,11 +214,11 @@ struct net_stat {
 	int  mss;
 	int  keep_alive;
 
-	int  read_call_cnt;
-	long read_call_bytes;
+	unsigned int read_call_cnt;
+	ssize_t      read_call_bytes;
 
-	int  send_call_cnt;
-	long send_call_bytes;
+	unsigned int send_call_cnt;
+	ssize_t      send_call_bytes;
 
 	struct use_stat use_stat_start;
 	struct use_stat use_stat_end;

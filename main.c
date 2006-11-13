@@ -24,9 +24,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <sys/utsname.h>
+
 #include "global.h"
 
 struct conf_map_t congestion_map[] = {
@@ -87,24 +89,35 @@ static void
 print_analyse(void)
 {
 	struct timeval tv_tmp;
+	struct utsname utsname;
+	double delta_time;
+
+	if (!uname(&utsname)) {
+	fprintf(stderr, "%s (kernel: %s, arch: %s)\n", utsname.nodename, utsname.release, utsname.machine);
+			}
 
 	fprintf(stderr, "Netsend Statistic:\n\n"
 			"Network Data:\n"
 			"MTU:                   %d\n"
 			"IO Operations:\n"
-			"Read Calls:            %d\n"
-			"Read Bytes:            %ld\n"
-			"Write/Sendefile Calls: %d\n"
-			"Write/Sendefile Bytes: %ld\n",
+			"Read Calls:            %u\n"
+			"Read Bytes:            %zd\n"
+			"Write/Sendefile Calls: %u\n"
+			"Write/Sendefile Bytes: %zd\n",
 			net_stat.mss,
 			net_stat.read_call_cnt, net_stat.read_call_bytes,
 			net_stat.send_call_cnt, net_stat.send_call_bytes);
 
 	subtime(&net_stat.use_stat_end.time, &net_stat.use_stat_start.time, &tv_tmp);
+	delta_time = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	if (delta_time <= 0.0)
+		delta_time = 0.0001;
 
-	fprintf(stderr, "%lu sec, %lu usec\n", tv_tmp.tv_sec, tv_tmp.tv_usec);
+	fprintf(stderr, "# %.5f sec\n", delta_time);
+	fprintf(stderr, "# %.5f KB/sec\n", (((double)net_stat.send_call_bytes) / delta_time) / 1024);
+
 #ifdef HAVE_RDTSCLL
-	fprintf(stderr, "cpu cycles: %lld\n",
+	fprintf(stderr, "# %lld cpu cycles\n",
 			tsc_diff(net_stat.use_stat_end.tsc, net_stat.use_stat_start.tsc));
 #endif
 }
