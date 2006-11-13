@@ -128,9 +128,6 @@ main(int argc, char *argv[])
 {
 	int ret = EXIT_OK;
 
-	/* shut up gcc: salloc() temporally not used */
-	(void) salloc(0, 0);
-
 	if (parse_opts(argc, argv)) {
 		usage();
 		exit(EXIT_FAILOPT);
