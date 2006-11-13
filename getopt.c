@@ -27,10 +27,30 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <sched.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
 #include "global.h"
+
+
+#ifndef SCHED_BATCH
+# define SCHED_BATCH 3
+#endif
+
+struct sched_policymap_t
+{
+	const int  no;
+	const char *name;
+} sched_policymap[] =
+{
+	{ SCHED_OTHER, "SCHED_OTHER" },
+	{ SCHED_FIFO,  "SCHED_FIFO"  },
+	{ SCHED_RR,    "SCHED_RR"    },
+	{ SCHED_BATCH, "SCHED_BATCH" },
+	{ 0, NULL },
+};
+
 
 extern struct opts opts;
 extern struct conf_map_t congestion_map[];
@@ -62,15 +82,22 @@ usage(void)
 			"       noreuse (equal to willneed for -u mmap)\n" /* 2.6.16 treats them the same */
 			"-c <congestion>          set the congestion algorithm\n"
 			"       available algorithms (kernelversion >= 2.6.16)\n"
-			"       bic\n"
-			"       cubic\n"
-			"       highspeed\n"
-			"       htcp\n"
-			"       hybla\n"
-			"       scalable\n"
-			"       vegas\n"
-			"       westwood\n"
-			"       reno\n"
+			"          * bic\n"
+			"          * cubic\n"
+			"          * highspeed\n"
+			"          * htcp\n"
+			"          * hybla\n"
+			"          * scalable\n"
+			"          * vegas\n"
+			"          * westwood\n"
+			"          * reno\n"
+			"-P <sched_policy> <priority>\n"
+			"       sched_policy:\n"
+			"          * SCHED_OTHER\n"
+			"          * SCHED_FIFO\n"
+			"          * SCHED_RR\n"
+			"          * SCHED_BATCH (since kernel 2.6.16)\n"
+			"       priority: MAX or MIN\n"
 			"-D                       no delay socket option (disable Nagle Algorithm)\n"
 			"-N <int>                 specify how big write calls are (default: 8 * 1024)\n"
 			"-e                       reuse port\n"
@@ -267,7 +294,7 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			 */
 		case 'o':
 			if (((*opt_str)[2])  || ((*argc) <= 3)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+				fprintf(stderr, "Option error (%c:%d)\n",
 						(*opt_str)[2], (*argc));
 				exit(1);
 			}
@@ -322,6 +349,54 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			(*argc) -= 2;
 			(*argv) += 2;
 			break;
+
+		/* Scheduling policy menu[tm] */
+		case 'P':
+			if (((*opt_str)[2])  || ((*argc) <= 3)) {
+				fprintf(stderr, "Option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				fprintf(stderr, "-P <POLICY> <PRIORITY>\n POLICY:\n");
+				i = 0;
+				while (sched_policymap[i++].name)
+					fprintf(stderr, "  * %s\n", sched_policymap[i].name);
+				fprintf(stderr, " PRIORITY:\n * MAX\n * MIN\n");
+				exit(EXIT_FAILOPT);
+			}
+			/* parse socket option argument */
+			for (i = 0; sched_policymap[i].name; i++) {
+				if (!strcasecmp((*argv)[2], sched_policymap[i].name)) {
+					opts.sched_policy = sched_policymap[i].no;
+					opts.sched_user++;
+				}
+			}
+
+			if (!opts.sched_user) {
+				fprintf(stderr, "Not a valid scheduling policy (%s)!\nValid:\n",
+						(*argv)[2]);
+				i = 0;
+				while (sched_policymap[i++].name)
+					fprintf(stderr, " * %s\n", sched_policymap[i].name);
+				exit(EXIT_FAILOPT);
+			}
+
+			/* user choosed a valid scheduling policy now the last
+			** argument, the nicelevel must also match.
+			** e.g. (-20 .. 19, priority MAX, MIN);
+			*/
+			if (!strcasecmp((*argv)[3], "MAX")) {
+				opts.priority = sched_get_priority_max(opts.sched_policy);
+			} else if (!strcasecmp((*argv)[3], "MIN")) {
+				opts.priority = sched_get_priority_min(opts.sched_policy);
+			} else {
+				fprintf(stderr, "Not a valid scheduling priority (%s)!\n"
+						"Valid: max or min\n",
+						(*argv)[3]);
+				exit(EXIT_FAILOPT);
+			}
+			(*argc) -= 2;
+			(*argv) += 2;
+			break;
+
 		default:
 			fprintf(stderr, "Short option %c not supported!\n", (*opt_str)[1]);
 			exit(EXIT_FAILINT);

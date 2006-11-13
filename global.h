@@ -251,6 +251,10 @@ struct opts {
 	int            buffer_size;
 	struct timeval starttime;
 	struct timeval endtime;
+
+	int	sched_user; /* this is true if user wan't to change scheduling */
+	int sched_policy;
+	int priority;
 };
 
 /* error handling macros */

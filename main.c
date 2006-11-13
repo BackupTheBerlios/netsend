@@ -93,8 +93,10 @@ print_analyse(FILE *out)
 	double delta_time;
 
 	if (!uname(&utsname)) {
-	fprintf(out, "%s (kernel: %s, arch: %s)\n", utsname.nodename, utsname.release, utsname.machine);
-			}
+		fprintf(out, "%s (kernel: %s, arch: %s)\n",
+				utsname.nodename, utsname.release, utsname.machine);
+	}
+
 
 	fprintf(out, "Netsend Statistic:\n\n"
 			"Network Data:\n"
