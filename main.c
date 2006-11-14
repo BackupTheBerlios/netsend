@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sched.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
@@ -137,6 +138,14 @@ main(int argc, char *argv[])
 
 	msg(GENTLE, PROGRAMNAME " - " VERSIONSTRING);
 
+	if (opts.sched_user) {
+		struct sched_param sp;
+		sp.sched_priority = opts.priority;
+
+		if (sched_setscheduler(0, opts.sched_policy, &sp)) {
+			err_sys("sched_setscheduler()");
+		}
+	}
 
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
