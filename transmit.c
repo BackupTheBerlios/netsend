@@ -183,7 +183,7 @@ ss_mmap(int file_fd, int connected_fd)
 
 	mmap_buf = mmap(NULL, stat_buf.st_size, PROT_READ, MAP_SHARED, file_fd, 0);
 	if (mmap_buf == MAP_FAILED) {
-		fprintf(stderr, "ERROR: Can't mmap file %s: %s\n",
+		err_sys_die(EXIT_FAILMISC, "Can't mmap file %s: %s\n",
 				opts.infile, strerror(errno));
 	}
 
