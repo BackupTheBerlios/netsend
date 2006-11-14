@@ -90,7 +90,7 @@ write_len(int fd, const void *buf, size_t len)
 	ssize_t total = 0;
 	do {
 		ssize_t written = write(fd, bufptr, len);
-		net_stat.send_call_cnt += 1;
+		net_stat.total_tx_calls += 1;
 		if (written < 0) {
 			if (errno == EINTR)
 				continue;
@@ -145,11 +145,11 @@ ss_rw(int file_fd, int connected_fd)
 			exit(EXIT_FAILNET);;
 		}
 		/* correct statistics */
-		net_stat.send_call_bytes += cnt_coll;
+		net_stat.total_tx_bytes += cnt_coll;
 
 		/* if we reached a user transfer limit? */
 		if (opts.multiple_barrier &&
-				net_stat.send_call_bytes >= (buflen * opts.multiple_barrier)) {
+				net_stat.total_tx_bytes >= (buflen * opts.multiple_barrier)) {
 			break;
 		}
 	}
@@ -223,7 +223,7 @@ ss_mmap(int file_fd, int connected_fd)
 	}
 
 	/* correct statistics */
-	net_stat.send_call_bytes = stat_buf.st_size;
+	net_stat.total_tx_bytes = stat_buf.st_size;
 
 	return rc;
 }
@@ -258,7 +258,7 @@ ss_sendfile(int file_fd, int connected_fd)
 			err_sys("Failure in sendfile routine");
 			exit(EXIT_FAILNET);
 		}
-		net_stat.send_call_cnt += 1;
+		net_stat.total_tx_calls += 1;
 	};
 	/* and write remaining bytes, if any */
 	write_cnt = stat_buf.st_size - offset - 1;
@@ -268,7 +268,7 @@ ss_sendfile(int file_fd, int connected_fd)
 			err_sys("Failure in sendfile routine");
 			exit(EXIT_FAILNET);
 		}
-		net_stat.send_call_cnt += 1;
+		net_stat.total_tx_calls += 1;
 	}
 
 	touch_use_stat(TOUCH_AFTER_SEND, &net_stat.use_stat_end);
@@ -281,7 +281,7 @@ ss_sendfile(int file_fd, int connected_fd)
 	}
 
 	/* correct statistics */
-	net_stat.send_call_bytes = stat_buf.st_size;
+	net_stat.total_tx_bytes = stat_buf.st_size;
 
 	return rc;
 }

@@ -110,8 +110,8 @@ print_analyse(FILE *out)
 			"Write/Sendefile Calls: %u\n"
 			"Write/Sendefile Bytes: %zd\n",
 			net_stat.mss,
-			net_stat.read_call_cnt, net_stat.read_call_bytes,
-			net_stat.send_call_cnt, net_stat.send_call_bytes);
+			net_stat.total_rx_calls, net_stat.total_rx_bytes,
+			net_stat.total_tx_calls, net_stat.total_tx_bytes);
 
 	subtime(&net_stat.use_stat_end.time, &net_stat.use_stat_start.time, &tv_tmp);
 	delta_time = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
@@ -119,7 +119,7 @@ print_analyse(FILE *out)
 		delta_time = 0.0001;
 
 	fprintf(out, "# %.5f sec\n", delta_time);
-	fprintf(out, "# %.5f KB/sec\n", (((double)net_stat.send_call_bytes) / delta_time) / 1024);
+	fprintf(out, "# %.5f KB/sec\n", (((double)net_stat.total_tx_bytes) / delta_time) / 1024);
 
 #ifdef HAVE_RDTSCLL
 	fprintf(out, "# %lld cpu cycles\n",
