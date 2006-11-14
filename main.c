@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sched.h>
+#include <limits.h>
+#include <unistd.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
@@ -145,6 +147,9 @@ main(int argc, char *argv[])
 		if (sched_setscheduler(0, opts.sched_policy, &sp)) {
 			err_sys("sched_setscheduler()");
 		}
+	}
+	if ((opts.nice != INT_MAX) && (nice(opts.nice) == -1)) {
+		err_sys("nice()");
 	}
 
 	/* Branch to final workmode ... */

@@ -264,6 +264,7 @@ struct opts {
 	int	sched_user; /* this is true if user wan't to change scheduling */
 	int sched_policy;
 	int priority;
+	int nice;
 };
 
 /* error handling macros */

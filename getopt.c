@@ -28,6 +28,7 @@
 #include <string.h>
 #include <strings.h>
 #include <sched.h>
+#include <limits.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
@@ -100,6 +101,7 @@ usage(void)
 			"          * SCHED_RR\n"
 			"          * SCHED_BATCH (since kernel 2.6.16)\n"
 			"       priority: MAX or MIN\n"
+			"-C <int>                 change nice value of process\n"
 			"-D                       no delay socket option (disable Nagle Algorithm)\n"
 			"-N <int>                 specify how big write calls are (default: 8 * 1024)\n"
 			"-e                       reuse port\n"
@@ -409,6 +411,17 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			(*argv) += 2;
 			break;
 
+		case 'C':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(EXIT_FAILOPT);
+			}
+			opts.nice = strtol((*argv)[2], (char **)NULL, 10);
+			(*argc)--;
+			(*argv)++;
+			break;
+
 		default:
 			fprintf(stderr, "Short option %c not supported!\n", (*opt_str)[1]);
 			exit(EXIT_FAILINT);
@@ -448,6 +461,9 @@ parse_opts(int argc, char *argv[])
 	opts.socktype    = SOCK_STREAM;
 	opts.family      = AF_UNSPEC;
 	opts.buffer_size = 0; /* we use default values (sendfile(): unlimited) */
+
+	/* if opts.nice is equal INT_MAX nobody change something - hopefully */
+	opts.nice = INT_MAX;
 
 	opts.port = alloc(strlen(DEFAULT_PORT) + 1);
 	sprintf(opts.port, "%s", DEFAULT_PORT);
