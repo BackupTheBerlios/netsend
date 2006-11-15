@@ -291,7 +291,7 @@ struct opts {
 	} while (0)
 
 /* abort if buffer is not large enough */
-#define DO_SNPRINTF( buf, len, fmt, ... ) ({
+#define DO_SNPRINTF( buf, len, fmt, ... ) ({ \
         int _xlen = snprintf((buf), (len), fmt, __VA_ARGS__ ); \
         if (_xlen < 0 || _xlen >= (len)) \
                 err_msg_die(EXIT_FAILINT, "buflen %u not sufficient (ret %d)", (len), _xlen); \
