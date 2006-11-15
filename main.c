@@ -82,23 +82,26 @@ struct socket_options socket_options[] = {
 struct opts opts;
 struct net_stat net_stat;
 
+#define	MAX_STATLEN 4096
 
-/* TODO: s/fprintf/snprintf/ and separate output
-** for different workmode (e.g. don't display read
-** calls if we drive transmit mode
-** --HGN
-*/
 static void
 print_analyse(FILE *out)
 {
+	int written = 0;
 	struct timeval tv_tmp;
 	struct utsname utsname;
-	double delta_time;
+	double total_real, delta_time, delta_time_2, tmp;
+	char buf[MAX_STATLEN];
 
 	if (!uname(&utsname)) {
 		fprintf(out, "%s (kernel: %s, arch: %s)\n",
 				utsname.nodename, utsname.release, utsname.machine);
 	}
+
+	written += snprintf(buf + written, MAX_STATLEN - written,
+			"Statistic\n");
+
+	fprintf(out, "%s", buf);
 
 
 	fprintf(out, "Netsend Statistic:\n\n"
@@ -114,17 +117,36 @@ print_analyse(FILE *out)
 			net_stat.total_tx_calls, net_stat.total_tx_bytes);
 
 	subtime(&net_stat.use_stat_end.time, &net_stat.use_stat_start.time, &tv_tmp);
-	delta_time = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
-	if (delta_time <= 0.0)
-		delta_time = 0.0001;
+	total_real = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	if (total_real <= 0.0)
+		total_real = 0.0001;
 
-	fprintf(out, "# %.5f sec\n", delta_time);
-	fprintf(out, "# %.5f KB/sec\n", (((double)net_stat.total_tx_bytes) / delta_time) / 1024);
+	fprintf(out, "# real: %.5f sec\n", total_real);
+	fprintf(out, "# %.5f KB/sec\n", (((double)net_stat.total_tx_bytes) / total_real) / 1024);
 
 #ifdef HAVE_RDTSCLL
 	fprintf(out, "# %lld cpu cycles\n",
 			tsc_diff(net_stat.use_stat_end.tsc, net_stat.use_stat_start.tsc));
 #endif
+
+	fputs("\n", stderr); /* barrier */
+
+	subtime(&net_stat.use_stat_end.ru.ru_utime, &net_stat.use_stat_start.ru.ru_utime, &tv_tmp);
+	delta_time = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	fprintf(out, "# utime: %.5f sec\n", delta_time);
+
+	subtime(&net_stat.use_stat_end.ru.ru_stime, &net_stat.use_stat_start.ru.ru_stime, &tv_tmp);
+	delta_time_2 = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	fprintf(out, "# stime: %.5f sec\n", delta_time_2);
+
+	tmp = delta_time + delta_time_2;
+
+	if (tmp <= 0.0)
+		tmp = 0.0001;
+
+	fprintf(out, "# cpu:   %.5f sec (CPU %.2f%%)\n", tmp, (tmp / total_real ) * 100 );
+
+
 }
 
 
