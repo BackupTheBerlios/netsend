@@ -28,6 +28,7 @@
 #include <string.h>
 
 #include <sys/time.h>
+#include <sys/utsname.h>
 
 #include <limits.h>
 
@@ -36,6 +37,178 @@
 #endif
 
 #include "global.h"
+
+struct net_stat net_stat;
+struct opts opts;
+
+/* abort if buffer is not large enough */
+#define DO_SNPRINTF( buf, len, fmt, ... ) ({ \
+        int _xlen = snprintf((buf), (len), fmt, __VA_ARGS__ ); \
+        if (_xlen < 0 || _xlen >= (len)) \
+                err_msg_die(EXIT_FAILINT, "buflen %u not sufficient (ret %d)", (len), _xlen); \
+        _xlen; \
+})
+
+
+struct statistic_map_t
+{
+	const char *s_name;
+	const char *l_name;
+} statistic_map[] =
+{
+#define	STAT_MTU      0
+	{ "mtu        ", "Maximum Transfer Unit      " },
+
+#define	STAT_RX_CALLS 1
+	{ "rx-calls   ", "Number of read calls        " },
+#define	STAT_RX_BYTES 2
+	{ "rx-amount  ", "Received data quantum      " },
+#define	STAT_TX_CALLS 3
+	{ "tx-calls   ", "Number of write calls       " },
+#define	STAT_TX_BYTES 4
+	{ "tx-amount  ", "Transmitted data quantum   " },
+
+#define	STAT_REAL_TIME 5
+	{ "real       ", "Cumulative real time        " },
+#define	STAT_UTIME 6
+	{ "utime      ", "Cumulative user space time  " },
+#define	STAT_STIME 7
+	{ "stime      ", "Cumulative kernel space time" },
+#define	STAT_CPU_TIME 8
+	{ "cpu        ", "Cumulative us/ks time       " },
+#define	STAT_CPU_CYCLES 9
+	{ "cpu-cycles ", "CPU cycles                  " },
+};
+
+#define	MAX_STATLEN 4096
+#define	KB (1024)
+#define	MB (1024 * 1024)
+
+void
+print_analyse(FILE *out)
+{
+	int len = 0;
+	char buf[MAX_STATLEN];
+	struct timeval tv_tmp;
+	struct utsname utsname;
+	double total_real, delta_time, delta_time_2, tmp;
+
+	if (uname(&utsname))
+		*utsname.nodename = *utsname.release = *utsname.machine = 0;
+
+	len += DO_SNPRINTF(buf + len, sizeof buf - len,
+			"\n** %s statistics (%s | %s | %s) ** \n",
+			opts.workmode == MODE_TRANSMIT ? "tx" : "rx",
+			utsname.nodename, utsname.release, utsname.machine);
+
+	if (opts.workmode == MODE_TRANSMIT) {
+
+		const char *tx_call_str;
+
+		/* display system call count */
+		switch (opts.io_call) {
+			case IO_SENDFILE: tx_call_str = "sendfile"; break;
+			case IO_MMAP: tx_call_str = "mmap"; break;
+			case IO_RW: tx_call_str = "write"; break;
+			default: tx_call_str = ""; break;
+		}
+
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %d (%s)\n",
+				statistic_map[STAT_TX_CALLS].s_name,
+				net_stat.total_tx_calls, tx_call_str);
+
+		/* display data amount */
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd byte",
+				statistic_map[STAT_TX_BYTES].s_name, net_stat.total_tx_bytes);
+		if ( (net_stat.total_tx_bytes / KB) > 1) { /* display KB */
+			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%zd KB",
+					(net_stat.total_tx_bytes / KB));
+			if ( (net_stat.total_tx_bytes / MB) > 1) { /* display MB */
+				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %zd MB",
+						(net_stat.total_tx_bytes / MB));
+			}
+			len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")");
+		}
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", "\n"); /* newline */
+
+	} else { /* MODE_RECEIVE */
+
+		/* display system call count */
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %d (read)\n",
+				statistic_map[STAT_RX_CALLS].s_name,
+				net_stat.total_rx_calls);
+
+		/* display data amount */
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd byte",
+				statistic_map[STAT_RX_BYTES].s_name, net_stat.total_rx_bytes);
+		if ( (net_stat.total_rx_bytes / KB) > 1) { /* display KB */
+			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%zd KB",
+					(net_stat.total_rx_bytes / KB));
+			if ( (net_stat.total_rx_bytes / MB) > 1) { /* display MB */
+				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %zd MB",
+						(net_stat.total_rx_bytes / MB));
+			}
+			len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")");
+		}
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", "\n"); /* newline */
+	}
+
+
+	fprintf(out, "%s", buf);
+	fflush(out);
+
+#if 0
+
+	fprintf(out, "Netsend Statistic:\n\n"
+			"Network Data:\n"
+			"MTU:                   %d\n"
+			"IO Operations:\n"
+			"Read Calls:            %u\n"
+			"Read Bytes:            %zd\n"
+			"Write/Sendefile Calls: %u\n"
+			"Write/Sendefile Bytes: %zd\n",
+			net_stat.mss,
+			net_stat.total_rx_calls, net_stat.total_rx_bytes,
+			net_stat.total_tx_calls, net_stat.total_tx_bytes);
+
+	subtime(&net_stat.use_stat_end.time, &net_stat.use_stat_start.time, &tv_tmp);
+	total_real = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	if (total_real <= 0.0)
+		total_real = 0.0001;
+
+	fprintf(out, "# real: %.5f sec\n", total_real);
+	fprintf(out, "# %.5f KB/sec\n", (((double)net_stat.total_tx_bytes) / total_real) / 1024);
+
+#ifdef HAVE_RDTSCLL
+	fprintf(out, "# %lld cpu cycles\n",
+			tsc_diff(net_stat.use_stat_end.tsc, net_stat.use_stat_start.tsc));
+#endif
+
+	fputs("\n", stderr); /* barrier */
+
+	subtime(&net_stat.use_stat_end.ru.ru_utime, &net_stat.use_stat_start.ru.ru_utime, &tv_tmp);
+	delta_time = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	fprintf(out, "# utime: %.5f sec\n", delta_time);
+
+	subtime(&net_stat.use_stat_end.ru.ru_stime, &net_stat.use_stat_start.ru.ru_stime, &tv_tmp);
+	delta_time_2 = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	fprintf(out, "# stime: %.5f sec\n", delta_time_2);
+
+	tmp = delta_time + delta_time_2;
+
+	if (tmp <= 0.0)
+		tmp = 0.0001;
+
+	fprintf(out, "# cpu:   %.5f sec (CPU %.2f%%)\n", tmp, (tmp / total_real ) * 100 );
+
+#endif
+
+
+}
+
+#undef DO_SNPRINTF
+#undef MAX_STATLEN
+
 
 /* Simple malloc wrapper - prevent error checking */
 void *

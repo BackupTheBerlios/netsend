@@ -290,15 +290,6 @@ struct opts {
 		exit( exitcode ); \
 	} while (0)
 
-/* abort if buffer is not large enough */
-#define DO_SNPRINTF( buf, len, fmt, ... ) ({ \
-        int _xlen = snprintf((buf), (len), fmt, __VA_ARGS__ ); \
-        if (_xlen < 0 || _xlen >= (len)) \
-                err_msg_die(EXIT_FAILINT, "buflen %u not sufficient (ret %d)", (len), _xlen); \
-        _xlen; \
-})
-
-
 enum {
 	QUITSCENT = 0,
 	GENTLE,
@@ -319,6 +310,7 @@ void print_bt(void);
 void * alloc(size_t);
 void * salloc(int, size_t);
 #define	zalloc(x) salloc(0, x)
+void print_analyse(FILE *);
 
 
 enum where_send {
