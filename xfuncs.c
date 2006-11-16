@@ -49,6 +49,8 @@ struct opts opts;
         _xlen; \
 })
 
+#define	T2S(x) ((opts.statistics > 1) ? statistic_map[x].l_name : statistic_map[x].s_name)
+
 
 struct statistic_map_t
 {
@@ -57,27 +59,27 @@ struct statistic_map_t
 } statistic_map[] =
 {
 #define	STAT_MTU      0
-	{ "mtu        ", "Maximum Transfer Unit      " },
+	{ "mtu:        ", "Maximum Transfer Unit:        " },
 
 #define	STAT_RX_CALLS 1
-	{ "rx-calls   ", "Number of read calls        " },
+	{ "rx-calls:   ", "Number of read calls:         " },
 #define	STAT_RX_BYTES 2
-	{ "rx-amount  ", "Received data quantum      " },
+	{ "rx-amount:  ", "Received data quantum:        " },
 #define	STAT_TX_CALLS 3
-	{ "tx-calls   ", "Number of write calls       " },
+	{ "tx-calls:   ", "Number of write calls:        " },
 #define	STAT_TX_BYTES 4
-	{ "tx-amount  ", "Transmitted data quantum   " },
+	{ "tx-amount:  ", "Transmitted data quantum:     " },
 
 #define	STAT_REAL_TIME 5
-	{ "real       ", "Cumulative real time        " },
+	{ "real:       ", "Cumulative real time:         " },
 #define	STAT_UTIME 6
-	{ "utime      ", "Cumulative user space time  " },
+	{ "utime:      ", "Cumulative user space time:   " },
 #define	STAT_STIME 7
-	{ "stime      ", "Cumulative kernel space time" },
+	{ "stime:      ", "Cumulative kernel space time: " },
 #define	STAT_CPU_TIME 8
-	{ "cpu        ", "Cumulative us/ks time       " },
+	{ "cpu:        ", "Cumulative us/ks time:        " },
 #define	STAT_CPU_CYCLES 9
-	{ "cpu-cycles ", "CPU cycles                  " },
+	{ "cpu-cycles: ", "CPU cycles:                   " },
 };
 
 #define	MAX_STATLEN 4096
@@ -114,12 +116,12 @@ print_analyse(FILE *out)
 		}
 
 		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %d (%s)\n",
-				statistic_map[STAT_TX_CALLS].s_name,
+				T2S(STAT_TX_CALLS),
 				net_stat.total_tx_calls, tx_call_str);
 
 		/* display data amount */
 		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd byte",
-				statistic_map[STAT_TX_BYTES].s_name, net_stat.total_tx_bytes);
+				T2S(STAT_TX_BYTES), net_stat.total_tx_bytes);
 		if ( (net_stat.total_tx_bytes / KB) > 1) { /* display KB */
 			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%zd KB",
 					(net_stat.total_tx_bytes / KB));
@@ -135,12 +137,12 @@ print_analyse(FILE *out)
 
 		/* display system call count */
 		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %d (read)\n",
-				statistic_map[STAT_RX_CALLS].s_name,
+				T2S(STAT_RX_CALLS),
 				net_stat.total_rx_calls);
 
 		/* display data amount */
 		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd byte",
-				statistic_map[STAT_RX_BYTES].s_name, net_stat.total_rx_bytes);
+				T2S(STAT_RX_BYTES), net_stat.total_rx_bytes);
 		if ( (net_stat.total_rx_bytes / KB) > 1) { /* display KB */
 			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%zd KB",
 					(net_stat.total_rx_bytes / KB));
@@ -206,6 +208,7 @@ print_analyse(FILE *out)
 
 }
 
+#undef T2S
 #undef DO_SNPRINTF
 #undef MAX_STATLEN
 
