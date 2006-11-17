@@ -79,12 +79,20 @@ struct statistic_map_t
 #define	STAT_CPU_TIME 8
 	{ "cpu:        ", "Cumulative us/ks time:        " },
 #define	STAT_CPU_CYCLES 9
-	{ "cpu-cycles: ", "CPU cycles:                   " },
+	{ "cpu-ticks:  ", "CPU ticks since programm start:" },
+#define	STAT_THROUGH 10
+	{ "throughput: ", "Throughput:                   :" },
 };
 
 #define	MAX_STATLEN 4096
-#define	KB (1024)
-#define	MB (1024 * 1024)
+
+#define	KiB (1024)
+#define	MiB (KiB * 1024)
+#define	GiB (MiB * 1024)
+
+#define	kB (1000)
+#define	MB (kB * 1000)
+#define	GB (MB * 1000)
 
 void
 print_analyse(FILE *out)
@@ -93,7 +101,8 @@ print_analyse(FILE *out)
 	char buf[MAX_STATLEN];
 	struct timeval tv_tmp;
 	struct utsname utsname;
-	double total_real, delta_time, delta_time_2, tmp;
+	double total_real, total_utime, total_stime, total_cpu;
+	double throughput;
 
 	if (uname(&utsname))
 		*utsname.nodename = *utsname.release = *utsname.machine = 0;
@@ -120,14 +129,14 @@ print_analyse(FILE *out)
 				net_stat.total_tx_calls, tx_call_str);
 
 		/* display data amount */
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd byte",
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd Byte",
 				T2S(STAT_TX_BYTES), net_stat.total_tx_bytes);
-		if ( (net_stat.total_tx_bytes / KB) > 1) { /* display KB */
-			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%zd KB",
-					(net_stat.total_tx_bytes / KB));
-			if ( (net_stat.total_tx_bytes / MB) > 1) { /* display MB */
-				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %zd MB",
-						(net_stat.total_tx_bytes / MB));
+		if ( (net_stat.total_tx_bytes / KiB) > 1) { /* display KiB */
+			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%zd KiB",
+					(net_stat.total_tx_bytes / KiB));
+			if ( (net_stat.total_tx_bytes / MiB) > 1) { /* display MiB */
+				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %zd MiB",
+						(net_stat.total_tx_bytes / MiB));
 			}
 			len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")");
 		}
@@ -141,70 +150,69 @@ print_analyse(FILE *out)
 				net_stat.total_rx_calls);
 
 		/* display data amount */
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd byte",
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd Byte",
 				T2S(STAT_RX_BYTES), net_stat.total_rx_bytes);
-		if ( (net_stat.total_rx_bytes / KB) > 1) { /* display KB */
-			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%zd KB",
-					(net_stat.total_rx_bytes / KB));
-			if ( (net_stat.total_rx_bytes / MB) > 1) { /* display MB */
-				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %zd MB",
-						(net_stat.total_rx_bytes / MB));
+		if ( (net_stat.total_rx_bytes / KiB) > 1) { /* display KiB */
+			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%zd KiB",
+					(net_stat.total_rx_bytes / KiB));
+			if ( (net_stat.total_rx_bytes / MiB) > 1) { /* display MiB */
+				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %zd MiB",
+						(net_stat.total_rx_bytes / MiB));
 			}
-			len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")");
 		}
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", "\n"); /* newline */
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")\n"); /* newline */
 	}
-
-
-	fprintf(out, "%s", buf);
-	fflush(out);
-
-#if 0
-
-	fprintf(out, "Netsend Statistic:\n\n"
-			"Network Data:\n"
-			"MTU:                   %d\n"
-			"IO Operations:\n"
-			"Read Calls:            %u\n"
-			"Read Bytes:            %zd\n"
-			"Write/Sendefile Calls: %u\n"
-			"Write/Sendefile Bytes: %zd\n",
-			net_stat.mss,
-			net_stat.total_rx_calls, net_stat.total_rx_bytes,
-			net_stat.total_tx_calls, net_stat.total_tx_bytes);
 
 	subtime(&net_stat.use_stat_end.time, &net_stat.use_stat_start.time, &tv_tmp);
 	total_real = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
 	if (total_real <= 0.0)
-		total_real = 0.0001;
+		total_real = 0.00001;
 
-	fprintf(out, "# real: %.5f sec\n", total_real);
-	fprintf(out, "# %.5f KB/sec\n", (((double)net_stat.total_tx_bytes) / total_real) / 1024);
+	/* real time */
+	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.4f sec\n",
+			T2S(STAT_REAL_TIME), total_real);
 
+	/* user, system, cpu-time & cpu cycles */
+	subtime(&net_stat.use_stat_end.ru.ru_utime, &net_stat.use_stat_start.ru.ru_utime, &tv_tmp);
+	total_utime = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	subtime(&net_stat.use_stat_end.ru.ru_stime, &net_stat.use_stat_start.ru.ru_stime, &tv_tmp);
+	total_stime = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	total_cpu = total_utime + total_stime;
+	if (total_cpu <= 0.0)
+		total_cpu = 0.0001;
+
+	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.4f sec\n",
+			T2S(STAT_UTIME), total_utime);
+	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.4f sec\n",
+			T2S(STAT_STIME), total_stime);
+	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.4f sec (cpu/real: %.2f%%)\n",
+			T2S(STAT_CPU_TIME), total_cpu, (total_cpu / total_real ) * 100);
 #ifdef HAVE_RDTSCLL
-	fprintf(out, "# %lld cpu cycles\n",
+	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %lld cycles\n",
+			T2S(STAT_CPU_CYCLES),
 			tsc_diff(net_stat.use_stat_end.tsc, net_stat.use_stat_start.tsc));
 #endif
 
-	fputs("\n", stderr); /* barrier */
 
-	subtime(&net_stat.use_stat_end.ru.ru_utime, &net_stat.use_stat_start.ru.ru_utime, &tv_tmp);
-	delta_time = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
-	fprintf(out, "# utime: %.5f sec\n", delta_time);
+	/* throughput */
+	throughput = opts.workmode == MODE_TRANSMIT ?
+		((double)net_stat.total_tx_bytes) / total_real :
+		((double)net_stat.total_rx_bytes) / total_real;
 
-	subtime(&net_stat.use_stat_end.ru.ru_stime, &net_stat.use_stat_start.ru.ru_stime, &tv_tmp);
-	delta_time_2 = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
-	fprintf(out, "# stime: %.5f sec\n", delta_time_2);
+	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.5f KiB/sec",
+			T2S(STAT_THROUGH), throughput / KiB);
+	if ((throughput / MiB) > 1) {
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%.5f MiB/sec",
+				(throughput / MiB));
+		if ((throughput / GiB) > 1) {
+			len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %.5f GiB/sec",
+					(throughput / GiB));
+		}
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")\n"); /* newline */
+	}
 
-	tmp = delta_time + delta_time_2;
-
-	if (tmp <= 0.0)
-		tmp = 0.0001;
-
-	fprintf(out, "# cpu:   %.5f sec (CPU %.2f%%)\n", tmp, (tmp / total_real ) * 100 );
-
-#endif
-
+	fprintf(out, "%s", buf);
+	fflush(out);
 
 }
 
