@@ -86,13 +86,21 @@ struct statistic_map_t
 
 #define	MAX_STATLEN 4096
 
-#define	KiB (1024)
-#define	MiB (KiB * 1024)
-#define	GiB (MiB * 1024)
+/* 2**n */
+#define	KiB   (1024)           /* kibibyte */
+#define	MiB   (KiB * 1024)     /* mebibyte */
+#define	GiB   (MiB * 1024)     /* gibibyte */
+#define	Kibit (1024)           /* kibit */
+#define	Mibit (Kibit * 1024)   /* mebibit */
+#define	Gibit (Mibit * 1024)   /* gibibit */
 
-#define	kB (1000)
-#define	MB (kB * 1000)
-#define	GB (MB * 1000)
+/* 10**n */
+#define	kB (1000)       /* kilobyte */
+#define	MB (kB * 1000)  /* megabyte */
+#define	GB (MB * 1000)	/* gigabyte */
+#define	kb (1000)		/* kilobit */
+#define	Mb (kb * 1000)  /* megabit */
+#define	Gb (Mb * 1000)  /* gigabit */
 
 void
 print_analyse(FILE *out)

@@ -226,7 +226,8 @@ struct net_stat {
 
 /* Command-line options */
 
-
+#define	BIT_UNIT  1
+#define	BYTE_UNIT 2
 enum workmode { MODE_NONE = 0, MODE_TRANSMIT, MODE_RECEIVE };
 
 struct opts {
@@ -239,8 +240,9 @@ struct opts {
 	int congestion;
 	int mem_advice;
 
-	int   verbose;
-	int   statistics;
+	int  verbose;
+	int  statistics;
+	int  stat_unit;
 	char *me;
 
 	char           *port;

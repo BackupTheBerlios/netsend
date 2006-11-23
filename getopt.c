@@ -109,6 +109,7 @@ usage(void)
 			"-E <command>             execute command in server-mode and bind STDIN\n"
 			"                         and STDOUT to program\n"
 			"-T                       print statistics\n"
+			"-8                       print statistic in bit instead of byte\n"
 			"-v                       make output verbose (vv even more verbose)\n"
 			"-V                       print version\n"
 			"-h                       print this help screen\n"
@@ -144,6 +145,9 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			break;
 		case 'T':
 			opts.statistics++;
+			break;
+		case '8':
+			opts.stat_unit = BIT_UNIT;
 			break;
 		case 'm':
 			if (((*opt_str)[2])  || ((*argc) <= 2)) {
@@ -460,6 +464,7 @@ parse_opts(int argc, char *argv[])
 	opts.protocol    = IPPROTO_TCP;
 	opts.socktype    = SOCK_STREAM;
 	opts.family      = AF_UNSPEC;
+	opts.stat_unit   = BYTE_UNIT;
 	opts.buffer_size = 0; /* we use default values (sendfile(): unlimited) */
 
 	/* if opts.nice is equal INT_MAX nobody change something - hopefully */
