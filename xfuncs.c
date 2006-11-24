@@ -38,14 +38,14 @@
 
 #include "global.h"
 
-struct net_stat net_stat;
-struct opts opts;
+extern struct net_stat net_stat;
+extern struct opts opts;
 
 /* abort if buffer is not large enough */
 #define DO_SNPRINTF( buf, len, fmt, ... ) ({ \
         int _xlen = snprintf((buf), (len), fmt, __VA_ARGS__ ); \
         if (_xlen < 0 || ((size_t)_xlen) >= (len)) \
-                err_msg_die(EXIT_FAILINT, "buflen %u not sufficient (ret %d)", (len), _xlen); \
+                err_msg_die(EXIT_FAILINT, "Buflen %u not sufficient (ret %d)", (len), _xlen); \
         _xlen; \
 })
 
@@ -86,27 +86,84 @@ struct statistic_map_t
 
 #define	MAX_STATLEN 4096
 
-/* 2**n */
-#define	KiB   (1024)           /* kibibyte */
-#define	MiB   (KiB * 1024)     /* mebibyte */
-#define	GiB   (MiB * 1024)     /* gibibyte */
-#define	Kibit (1024)           /* kibit */
-#define	Mibit (Kibit * 1024)   /* mebibit */
-#define	Gibit (Mibit * 1024)   /* gibibit */
+/* unit stuff */
+struct unit_map_t
+{
+	const char *name_short;
+	const char *name_long;
+	const uint64_t factor;
+} unit_map[] =
+{
+	{ NULL, NULL, 1 },
 
-/* 10**n */
-#define	kB (1000)       /* kilobyte */
-#define	MB (kB * 1000)  /* megabyte */
-#define	GB (MB * 1000)	/* gigabyte */
-#define	kb (1000)		/* kilobit */
-#define	Mb (kb * 1000)  /* megabit */
-#define	Gb (Mb * 1000)  /* gigabit */
+	/* 2**n (Binary prefixes, IEC 60027-2) */
+#define KiB 1
+	{ "KiB",   "kibibyte", 1024 },
+#define	Kibit 2
+	{ "Kibit", "kibit",    1016 },
+#define	MiB 3
+	{ "MiB",   "mebibyte", 1048576},
+#define	Mibit 4
+	{ "Mibit", "mebibit",  1048568},
+#define	GiB 5
+	{ "GiB",   "gibibyte", 1073741824LL},
+#define	Gibit 6
+	{ "Gibit", "gibibit",  1073741816LL},
+
+	/* 10**n (SI prefixes) */
+#define	kB 7
+	{ "kB",    "kilobyte", 1000 },
+#define	kb 8
+	{ "kbit",  "kilobit",  992 },
+#define	MB 9
+	{ "MB",    "megabyte", 1000000 },
+#define	Mb 10
+	{ "Mbit",  "megabit",  999992 },
+#define	GB 11
+	{ "GB",    "gigabyte", 1000000000LL },
+#define	Gb 12
+	{ "Gbit",  "gigabit",  999999992LL },
+};
+
+#define	K_UNIT ( (opts.stat_prefix == STAT_PREFIX_SI) ? \
+		((opts.stat_unit == BYTE_UNIT) ? kB   : kb) : \
+		((opts.stat_unit == BYTE_UNIT) ? KiB  : Kibit) )
+#define	M_UNIT ( (opts.stat_prefix == STAT_PREFIX_SI) ? \
+		((opts.stat_unit == BYTE_UNIT) ? MB   : Mb) : \
+		((opts.stat_unit == BYTE_UNIT) ? MiB  : Mibit) )
+#define	G_UNIT ( (opts.stat_prefix == STAT_PREFIX_SI) ? \
+		((opts.stat_unit == BYTE_UNIT) ? GB   : Gb) : \
+		((opts.stat_unit == BYTE_UNIT) ? GiB  : Gibit) )
+
+#define	UNIT_MAX 128
+
+static char *
+unit_conv(char *buf, int buf_len, ssize_t bytes, int unit_scale)
+{
+	int ret;
+	ssize_t res = bytes / unit_map[unit_scale].factor;
+
+	ret = snprintf(buf, buf_len, "%zd %s", res,
+			(opts.statistics > 1) ? unit_map[unit_scale].name_long :
+			unit_map[unit_scale].name_short);
+	if (ret < 0 || (ssize_t)ret >= buf_len) {
+		err_msg_die(EXIT_FAILINT, "Buflen %u not sufficient (ret %d)",
+				buf_len, ret);
+	}
+	return buf;
+}
+
+#define	UNIT_CONV(byte, unit_scale) (unit_conv(unit_buf, UNIT_MAX, byte, unit_scale))
+#define	UNIT_N2F(x) (unit_map[x].factor)
+#define	UNIT_N2S(x) ((opts.statistics > 1) ? \
+		unit_map[x].name_long : \
+		unit_map[x].name_short)
 
 void
 print_analyse(FILE *out)
 {
 	int len = 0;
-	char buf[MAX_STATLEN];
+	char buf[MAX_STATLEN], unit_buf[UNIT_MAX];
 	struct timeval tv_tmp;
 	struct utsname utsname;
 	double total_real, total_utime, total_stime, total_cpu;
@@ -137,14 +194,18 @@ print_analyse(FILE *out)
 				net_stat.total_tx_calls, tx_call_str);
 
 		/* display data amount */
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd Byte",
-				T2S(STAT_TX_BYTES), net_stat.total_tx_bytes);
-		if ( (net_stat.total_tx_bytes / KiB) > 1) { /* display KiB */
-			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%zd KiB",
-					(net_stat.total_tx_bytes / KiB));
-			if ( (net_stat.total_tx_bytes / MiB) > 1) { /* display MiB */
-				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %zd MiB",
-						(net_stat.total_tx_bytes / MiB));
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd %s",
+				T2S(STAT_TX_BYTES), opts.stat_unit == BYTE_UNIT ?
+				net_stat.total_tx_bytes : net_stat.total_tx_bytes * 8,
+				opts.stat_unit == BYTE_UNIT ? "Byte" : "Bit");
+
+		if ( (net_stat.total_tx_bytes / UNIT_N2F(K_UNIT)) > 1) { /* display Kilo */
+			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%s",
+					UNIT_CONV(net_stat.total_tx_bytes, K_UNIT));
+
+			if ( (net_stat.total_tx_bytes / UNIT_N2F(M_UNIT)) > 1) { /* display mega */
+				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %s",
+						UNIT_CONV(net_stat.total_tx_bytes, M_UNIT));
 			}
 			len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")");
 		}
@@ -158,14 +219,19 @@ print_analyse(FILE *out)
 				net_stat.total_rx_calls);
 
 		/* display data amount */
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd Byte",
-				T2S(STAT_RX_BYTES), net_stat.total_rx_bytes);
-		if ( (net_stat.total_rx_bytes / KiB) > 1) { /* display KiB */
-			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%zd KiB",
-					(net_stat.total_rx_bytes / KiB));
-			if ( (net_stat.total_rx_bytes / MiB) > 1) { /* display MiB */
-				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %zd MiB",
-						(net_stat.total_rx_bytes / MiB));
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd %s",
+				T2S(STAT_RX_BYTES), opts.stat_unit == BYTE_UNIT ?
+				net_stat.total_tx_bytes : net_stat.total_tx_bytes * 8,
+				opts.stat_unit == BYTE_UNIT ? "Byte" : "Bit");
+
+		if ( (net_stat.total_rx_bytes / UNIT_N2F(K_UNIT)) > 1) { /* display kilo */
+
+			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%s",
+					UNIT_CONV(net_stat.total_rx_bytes, K_UNIT));
+
+			if ( (net_stat.total_rx_bytes / UNIT_N2F(M_UNIT)) > 1) { /* display mega */
+				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %s",
+						UNIT_CONV(net_stat.total_rx_bytes, M_UNIT));
 			}
 		}
 		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")\n"); /* newline */
@@ -207,14 +273,17 @@ print_analyse(FILE *out)
 		((double)net_stat.total_tx_bytes) / total_real :
 		((double)net_stat.total_rx_bytes) / total_real;
 
-	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.5f KiB/sec",
-			T2S(STAT_THROUGH), throughput / KiB);
-	if ((throughput / MiB) > 1) {
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%.5f MiB/sec",
-				(throughput / MiB));
-		if ((throughput / GiB) > 1) {
-			len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %.5f GiB/sec",
-					(throughput / GiB));
+
+	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.5f %s/sec",
+			T2S(STAT_THROUGH), throughput / UNIT_N2F(K_UNIT),
+		    UNIT_N2S(K_UNIT));
+
+	if ((throughput / UNIT_N2F(M_UNIT)) > 1) {
+		len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%.5f %s/sec",
+				(throughput / UNIT_N2F(M_UNIT)), UNIT_N2S(M_UNIT));
+		if ((throughput / UNIT_N2F(G_UNIT)) > 1) {
+			len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %.5f %s/sec",
+					(throughput / UNIT_N2F(G_UNIT)), UNIT_N2S(G_UNIT));
 		}
 		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")\n"); /* newline */
 	}

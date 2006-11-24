@@ -228,6 +228,8 @@ struct net_stat {
 
 #define	BIT_UNIT  1
 #define	BYTE_UNIT 2
+#define	STAT_PREFIX_SI 1
+#define	STAT_PREFIX_BINARY 2
 enum workmode { MODE_NONE = 0, MODE_TRANSMIT, MODE_RECEIVE };
 
 struct opts {
@@ -243,6 +245,7 @@ struct opts {
 	int  verbose;
 	int  statistics;
 	int  stat_unit;
+	int  stat_prefix;
 	char *me;
 
 	char           *port;
