@@ -147,13 +147,14 @@ struct socket_options {
 #define	CNT_SO_REUSEADDR             1
 #define	CNT_SO_BROADCAST             2
 #define	CNT_TCP_NODELAY              3
-#define	CNT_SO_SNDBUF                4
-#define	CNT_SO_RCVBUF                5
-#define	CNT_SO_SNDLOWAT              6
-#define	CNT_SO_RCVLOWAT              7
-#define	CNT_SO_SNDTIMEO              8
-#define	CNT_SO_RCVTIMEO              9
-#define	CNT_DCCP_SOCKOPT_PACKET_SIZE 10
+#define	CNT_TCP_CORK                 4
+#define	CNT_SO_SNDBUF                5
+#define	CNT_SO_RCVBUF                6
+#define	CNT_SO_SNDLOWAT              7
+#define	CNT_SO_RCVLOWAT              8
+#define	CNT_SO_SNDTIMEO              9
+#define	CNT_SO_RCVTIMEO              10
+#define	CNT_DCCP_SOCKOPT_PACKET_SIZE 11
 
 struct conf_map_t {
 	int          conf_code;

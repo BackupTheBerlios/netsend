@@ -38,8 +38,6 @@ o Socket option processing
 	
 	TCP:
 	
-	TCP_NODELAY
-	TCP_CORK
 	TCP_KEEPIDLE
 	TCP_KEEPINTVL
 	TCP_KEEPCNT

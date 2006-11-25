@@ -364,8 +364,12 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			** pot then the programmer - just kidding ... ;-)
 			*/
 			if (!socket_options[i].sockopt_name) {
-				fprintf(stderr, "ERROR: socketoption %s not supported!\n",
-						(*argv)[2]);
+				err_msg("socketoption \"%s\" not supported!", (*argv)[2]);
+				fputs("Known Options:\n", stderr);
+				for (i = 0; socket_options[i].sockopt_name; i++) {
+					fputs(socket_options[i].sockopt_name, stderr);
+					putc('\n', stderr);
+				}
 				exit(EXIT_FAILOPT);
 			}
 			(*argc) -= 2;
