@@ -23,6 +23,7 @@
 */
 
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -50,7 +51,7 @@ msg(const int level, const char *format, ...)
 
 	 if (opts.verbose > LOUDISH) {
 		 gettimeofday(&tv, NULL);
-		 fprintf(stderr, "[%ld.%ld] ", tv.tv_sec, tv.tv_usec);
+		 fprintf(stderr, "[%ld.%06ld] ", tv.tv_sec, tv.tv_usec);
 	 }
 
 	 va_start(ap, format);
@@ -123,6 +124,7 @@ void print_bt(void)
 		fprintf(stderr, "#%2d  %s\n", i - 1, bt_syms[i]);
 	}
 	fputs("\n", stderr);
+	free(bt_syms);
 }
 
 

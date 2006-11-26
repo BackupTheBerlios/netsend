@@ -119,7 +119,7 @@ open_output_file(void)
 		return STDOUT_FILENO;
 	}
 
-	if (!strcmp(opts.outfile, "-")) {
+	if (!strncmp(opts.outfile, "-", 1)) {
 		return STDOUT_FILENO;
 	}
 
