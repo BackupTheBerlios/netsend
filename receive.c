@@ -60,12 +60,7 @@ cs_read(int file_fd, int connected_fd)
 	buflen = (opts.buffer_size == 0) ? DEFAULT_BUFSIZE : opts.buffer_size;
 
 	/* allocate read buffer */
-	buf = malloc(buflen);
-	if (!buf) {
-		fprintf(stderr, "ERROR: Can't allocate %d bytes: %s!\n",
-				buflen, strerror(errno));
-		exit(EXIT_FAILMEM);
-	}
+	buf = alloc(buflen);
 
 	/* main client loop */
 	while ((rc = read(connected_fd, buf, buflen)) > 0) {

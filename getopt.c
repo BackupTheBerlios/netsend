@@ -525,10 +525,10 @@ parse_opts(int argc, char *argv[])
 				break;
 		}
 
-		opts.infile = malloc(strlen(argv[1]) + 1);
+		opts.infile = alloc(strlen(argv[1]) + 1);
 		strcpy(opts.infile, argv[1]);
 
-		opts.hostname = malloc(strlen(argv[2]) + 1);
+		opts.hostname = alloc(strlen(argv[2]) + 1);
 		strcpy(opts.hostname, argv[2]);
 
 	} else if (opts.workmode == MODE_RECEIVE) { /* MODE_RECEIVE */
@@ -538,10 +538,10 @@ parse_opts(int argc, char *argv[])
 				break;
 
 			case 2:
-				opts.hostname = malloc(strlen(argv[2]) + 1);
+				opts.hostname = alloc(strlen(argv[2]) + 1);
 				strcpy(opts.hostname, argv[2]);
 			case 1:
-				opts.outfile = malloc(strlen(argv[1]) + 1);
+				opts.outfile = alloc(strlen(argv[1]) + 1);
 				strcpy(opts.outfile, argv[1]);
 				break;
 

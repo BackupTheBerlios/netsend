@@ -118,11 +118,7 @@ ss_rw(int file_fd, int connected_fd)
 	buflen = opts.buffer_size ? opts.buffer_size : DEFAULT_BUFSIZE;
 
 	/* allocate buffer */
-	buf = malloc(buflen);
-	if (!buf) {
-		err_sys("Can't allocate %d bytes", buflen);
-		exit(EXIT_FAILMEM);
-	}
+	buf = alloc(buflen);
 
 	/* XXX: proof this code for this case that we read from
 	** STDIN. Exact: the default buflen and the interaction
