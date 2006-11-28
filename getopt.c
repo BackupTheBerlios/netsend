@@ -188,7 +188,7 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 						(*opt_str)[2], (*argc));
 				exit(1);
 			}
-			for (i = 0; i <= MEMADV_MAX; i++ ) {
+			for (i = 0; i < MEMADV_MAX; i++ ) {
 				if (!strcasecmp((*argv)[2], memadvice_map[i].conf_string)) {
 					opts.mem_advice = memadvice_map[i].conf_code;
 					(*argc)--;
