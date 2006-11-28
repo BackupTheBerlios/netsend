@@ -245,6 +245,7 @@ struct opts {
 
 	int  verbose;
 	int  statistics;
+	int  mashine_parseable;
 	int  stat_unit;
 	int  stat_prefix;
 	char *me;
@@ -316,7 +317,9 @@ void print_bt(void);
 void * alloc(size_t);
 void * salloc(int, size_t);
 #define	zalloc(x) salloc(0, x)
-void print_analyse(FILE *);
+void gen_human_analyse(char *, unsigned int);
+void gen_mashine_analyse(char *, unsigned int);
+long sublong(long, long);
 
 
 enum where_send {

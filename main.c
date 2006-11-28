@@ -82,6 +82,7 @@ struct socket_options socket_options[] = {
 struct opts opts;
 struct net_stat net_stat;
 
+#define	MAX_STATLEN 4096
 
 int
 main(int argc, char *argv[])
@@ -121,7 +122,15 @@ main(int argc, char *argv[])
 	}
 
 	if (opts.statistics) {
-		print_analyse(stderr);
+		char buf[MAX_STATLEN];
+
+		if (opts.mashine_parseable)
+			gen_mashine_analyse(buf, MAX_STATLEN);
+		else
+			gen_human_analyse(buf, MAX_STATLEN);
+
+		fprintf(stderr, "%s", buf);
+		fflush(stderr);
 	}
 
 	return ret;

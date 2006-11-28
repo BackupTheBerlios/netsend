@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <sys/time.h>
 #include <sys/utsname.h>
@@ -62,29 +63,36 @@ struct statistic_map_t
 	{ "mtu:        ", "Maximum Transfer Unit:        " },
 
 #define	STAT_RX_CALLS 1
-	{ "rx-calls:   ", "Number of read calls:         " },
+	{ "rx-calls:    ", "Number of read calls:         " },
 #define	STAT_RX_BYTES 2
-	{ "rx-amount:  ", "Received data quantum:        " },
+	{ "rx-amount:   ", "Received data quantum:        " },
 #define	STAT_TX_CALLS 3
-	{ "tx-calls:   ", "Number of write calls:        " },
+	{ "tx-calls:    ", "Number of write calls:        " },
 #define	STAT_TX_BYTES 4
-	{ "tx-amount:  ", "Transmitted data quantum:     " },
+	{ "tx-amount:   ", "Transmitted data quantum:     " },
 
 #define	STAT_REAL_TIME 5
-	{ "real:       ", "Cumulative real time:         " },
+	{ "real:        ", "Cumulative real time:         " },
 #define	STAT_UTIME 6
-	{ "utime:      ", "Cumulative user space time:   " },
+	{ "utime:       ", "Cumulative user space time:   " },
 #define	STAT_STIME 7
-	{ "stime:      ", "Cumulative kernel space time: " },
+	{ "stime:       ", "Cumulative kernel space time: " },
 #define	STAT_CPU_TIME 8
-	{ "cpu:        ", "Cumulative us/ks time:        " },
+	{ "cpu:         ", "Cumulative us/ks time:        " },
 #define	STAT_CPU_CYCLES 9
-	{ "cpu-ticks:  ", "CPU ticks since programm start:" },
+	{ "cpu-ticks:   ", "CPU ticks since programm start:" },
 #define	STAT_THROUGH 10
-	{ "throughput: ", "Throughput:                   :" },
+	{ "throughput:  ", "Throughput:                    " },
+#define	STAT_SWAPS 11
+	{ "swaps:       ", "Times process swapped:         " },
+#define	STAT_MAXRSS 12
+	{ "maxrss:      ", "Resident set memory used:      " },
+#define	STAT_VCS 13
+	{ "voluntary cs:", "Voluntary context switches:    " },
+#define	STAT_NICECS 14
+	{ "nice cs:     ", "Nice context switches:         " },
 };
 
-#define	MAX_STATLEN 4096
 
 /* unit stuff */
 struct unit_map_t
@@ -160,19 +168,21 @@ unit_conv(char *buf, int buf_len, ssize_t bytes, int unit_scale)
 		unit_map[x].name_short)
 
 void
-print_analyse(FILE *out)
+gen_human_analyse(char *buf, unsigned int max_buf_len)
 {
-	int len = 0;
-	char buf[MAX_STATLEN], unit_buf[UNIT_MAX];
+	int len = 0, page_size;
+	char unit_buf[UNIT_MAX];
 	struct timeval tv_tmp;
 	struct utsname utsname;
 	double total_real, total_utime, total_stime, total_cpu;
 	double throughput;
 
+	page_size = getpagesize();
+
 	if (uname(&utsname))
 		*utsname.nodename = *utsname.release = *utsname.machine = 0;
 
-	len += DO_SNPRINTF(buf + len, sizeof buf - len,
+	len += DO_SNPRINTF(buf + len, max_buf_len - len,
 			"\n** %s statistics (%s | %s | %s) ** \n",
 			opts.workmode == MODE_TRANSMIT ? "tx" : "rx",
 			utsname.nodename, utsname.release, utsname.machine);
@@ -184,57 +194,57 @@ print_analyse(FILE *out)
 		/* display system call count */
 		switch (opts.io_call) {
 			case IO_SENDFILE: tx_call_str = "sendfile"; break;
-			case IO_MMAP: tx_call_str = "mmap"; break;
-			case IO_RW: tx_call_str = "write"; break;
-			default: tx_call_str = ""; break;
+			case IO_MMAP:     tx_call_str = "mmap"; break;
+			case IO_RW:       tx_call_str = "write"; break;
+			default:          tx_call_str = ""; break;
 		}
 
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %d (%s)\n",
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %d (%s)\n",
 				T2S(STAT_TX_CALLS),
 				net_stat.total_tx_calls, tx_call_str);
 
 		/* display data amount */
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd %s",
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %zd %s",
 				T2S(STAT_TX_BYTES), opts.stat_unit == BYTE_UNIT ?
 				net_stat.total_tx_bytes : net_stat.total_tx_bytes * 8,
 				opts.stat_unit == BYTE_UNIT ? "Byte" : "Bit");
 
 		if ( (net_stat.total_tx_bytes / UNIT_N2F(K_UNIT)) > 1) { /* display Kilo */
-			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%s",
+			len += DO_SNPRINTF(buf + len, max_buf_len - len, " (%s",
 					UNIT_CONV(net_stat.total_tx_bytes, K_UNIT));
 
 			if ( (net_stat.total_tx_bytes / UNIT_N2F(M_UNIT)) > 1) { /* display mega */
-				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %s",
+				len += DO_SNPRINTF(buf + len, max_buf_len - len, ", %s",
 						UNIT_CONV(net_stat.total_tx_bytes, M_UNIT));
 			}
-			len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")");
+			len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s", ")");
 		}
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", "\n"); /* newline */
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s", "\n"); /* newline */
 
 	} else { /* MODE_RECEIVE */
 
 		/* display system call count */
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %d (read)\n",
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %d (read)\n",
 				T2S(STAT_RX_CALLS),
 				net_stat.total_rx_calls);
 
 		/* display data amount */
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %zd %s",
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %zd %s",
 				T2S(STAT_RX_BYTES), opts.stat_unit == BYTE_UNIT ?
 				net_stat.total_tx_bytes : net_stat.total_tx_bytes * 8,
 				opts.stat_unit == BYTE_UNIT ? "Byte" : "Bit");
 
 		if ( (net_stat.total_rx_bytes / UNIT_N2F(K_UNIT)) > 1) { /* display kilo */
 
-			len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%s",
+			len += DO_SNPRINTF(buf + len, max_buf_len - len, " (%s",
 					UNIT_CONV(net_stat.total_rx_bytes, K_UNIT));
 
 			if ( (net_stat.total_rx_bytes / UNIT_N2F(M_UNIT)) > 1) { /* display mega */
-				len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %s",
+				len += DO_SNPRINTF(buf + len, max_buf_len - len, ", %s",
 						UNIT_CONV(net_stat.total_rx_bytes, M_UNIT));
 			}
 		}
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")\n"); /* newline */
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s", ")\n"); /* newline */
 	}
 
 	subtime(&net_stat.use_stat_end.time, &net_stat.use_stat_start.time, &tv_tmp);
@@ -243,7 +253,7 @@ print_analyse(FILE *out)
 		total_real = 0.00001;
 
 	/* real time */
-	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.4f sec\n",
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %.4f sec\n",
 			T2S(STAT_REAL_TIME), total_real);
 
 	/* user, system, cpu-time & cpu cycles */
@@ -255,18 +265,56 @@ print_analyse(FILE *out)
 	if (total_cpu <= 0.0)
 		total_cpu = 0.0001;
 
-	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.4f sec\n",
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %.4f sec\n",
 			T2S(STAT_UTIME), total_utime);
-	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.4f sec\n",
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %.4f sec\n",
 			T2S(STAT_STIME), total_stime);
-	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.4f sec (cpu/real: %.2f%%)\n",
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %.4f sec (cpu/real: %.2f%%)\n",
 			T2S(STAT_CPU_TIME), total_cpu, (total_cpu / total_real ) * 100);
 #ifdef HAVE_RDTSCLL
-	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %lld cycles\n",
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %lld cycles\n",
 			T2S(STAT_CPU_CYCLES),
 			tsc_diff(net_stat.use_stat_end.tsc, net_stat.use_stat_start.tsc));
 #endif
 
+	if (opts.verbose >= LOUDISH) {
+
+		long res;
+
+		/* test for signed long overflow in subtraction */
+		if (((net_stat.use_stat_end.ru.ru_nswap ^ net_stat.use_stat_start.ru.ru_nswap) &
+			((net_stat.use_stat_end.ru.ru_nswap - net_stat.use_stat_start.ru.ru_nswap) ^
+			 net_stat.use_stat_end.ru.ru_nswap)) >> (sizeof(long)*CHAR_BIT-1) ) {
+			err_sys("Overlow in long substraction");
+		}
+		res = net_stat.use_stat_end.ru.ru_nswap - net_stat.use_stat_start.ru.ru_nswap;
+
+		/* swaps */
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %ld \n",
+				T2S(STAT_SWAPS), res);
+
+		/* voluntary context switches */
+		res = sublong(net_stat.use_stat_end.ru.ru_nvcsw,
+				net_stat.use_stat_start.ru.ru_nvcsw);
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %ld\n",
+		T2S(STAT_VCS), res);
+
+		/* nice (involuntary) context switches */
+		res = sublong(net_stat.use_stat_end.ru.ru_nivcsw,
+				net_stat.use_stat_start.ru.ru_nivcsw);
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %ld\n",
+		T2S(STAT_NICECS), res);
+
+#if 0
+		/* ru_maxrss - bytes of resident set memory used */
+		res = sublong(net_stat.use_stat_end.ru.ru_maxrss,
+				net_stat.use_stat_start.ru.ru_maxrss);
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %ld bytes\n",
+		T2S(STAT_MAXRSS), res * page_size);
+#endif
+
+
+	}
 
 	/* throughput */
 	throughput = opts.workmode == MODE_TRANSMIT ?
@@ -274,29 +322,120 @@ print_analyse(FILE *out)
 		((double)net_stat.total_rx_bytes) / total_real;
 
 
-	len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s %.5f %s/sec",
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %.5f %s/sec",
 			T2S(STAT_THROUGH), throughput / UNIT_N2F(K_UNIT),
 		    UNIT_N2S(K_UNIT));
 
 	if ((throughput / UNIT_N2F(M_UNIT)) > 1) {
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, " (%.5f %s/sec",
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, " (%.5f %s/sec",
 				(throughput / UNIT_N2F(M_UNIT)), UNIT_N2S(M_UNIT));
 		if ((throughput / UNIT_N2F(G_UNIT)) > 1) {
-			len += DO_SNPRINTF(buf + len, sizeof buf - len, ", %.5f %s/sec",
+			len += DO_SNPRINTF(buf + len, max_buf_len - len, ", %.5f %s/sec",
 					(throughput / UNIT_N2F(G_UNIT)), UNIT_N2S(G_UNIT));
 		}
-		len += DO_SNPRINTF(buf + len, sizeof buf - len, "%s", ")\n"); /* newline */
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s", ")\n"); /* newline */
 	}
-
-	fprintf(out, "%s", buf);
-	fflush(out);
-
 }
 
 #undef T2S
-#undef DO_SNPRINTF
-#undef MAX_STATLEN
 
+void
+gen_mashine_analyse(char *buf, unsigned int max_buf_len)
+{
+	int len = 0, page_size; long res;
+	const char *call_str;
+	struct timeval tv_tmp;
+	double total_real, total_utime, total_stime, total_cpu;
+
+	page_size = getpagesize();
+
+	/* XXX:
+	** If you change the format or sequence
+	**  1) increment VERSIONSTRING
+	**  2) comment these in http://netsend.berlios.de/usag.html
+	*/
+
+
+	/* 1. versionstring */
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s ", VERSIONSTRING);
+
+	/* 2. workmode: rx || tx */
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s ",
+	(opts.workmode == MODE_TRANSMIT) ? "tx" : "rx");
+
+	/* 3. utilized io call */
+	if (opts.workmode == MODE_TRANSMIT) {
+		switch (opts.io_call) {
+			case IO_SENDFILE: call_str = "sendfile"; break;
+			case IO_MMAP:     call_str = "mmap"; break;
+			case IO_RW:       call_str = "write"; break;
+			default: err_msg_die(EXIT_FAILINT, "Programmed error"); break;
+		}
+	} else {
+		call_str = "read";
+	}
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s ", call_str);
+
+	/* 4. io-function call count */
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%d ",
+		(opts.workmode == MODE_TRANSMIT) ? net_stat.total_tx_calls :
+		 net_stat.total_rx_calls);
+
+	/* 5. byte transmitted/received */
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%zd ",
+		(opts.workmode == MODE_TRANSMIT) ? net_stat.total_tx_bytes :
+		 net_stat.total_rx_bytes);
+
+	/* 6. realtime */
+	subtime(&net_stat.use_stat_end.time, &net_stat.use_stat_start.time, &tv_tmp);
+	total_real = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	if (total_real <= 0.0)
+		total_real = 0.00001;
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%.4f ", total_real);
+
+	/* 7. user time */
+	subtime(&net_stat.use_stat_end.ru.ru_utime, &net_stat.use_stat_start.ru.ru_utime, &tv_tmp);
+	total_utime = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%.4f ", total_utime);
+
+	/* 8. system time */
+	subtime(&net_stat.use_stat_end.ru.ru_stime, &net_stat.use_stat_start.ru.ru_stime, &tv_tmp);
+	total_stime = tv_tmp.tv_sec + ((double) tv_tmp.tv_usec) / 1000000;
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%.4f ", total_stime);
+
+	/* 9. cpu-time */
+	total_cpu = total_utime + total_stime;
+	if (total_cpu <= 0.0)
+		total_cpu = 0.0001;
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%.4f ", total_cpu);
+
+	/* 10. swaps (see http://www.khmere.com/freebsd_book/html/ch07.html */
+	res = sublong(net_stat.use_stat_end.ru.ru_nswap, net_stat.use_stat_start.ru.ru_nswap);
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%ld ", res);
+
+	/* 11. voluntary context switches */
+	res = sublong(net_stat.use_stat_end.ru.ru_nvcsw,
+			net_stat.use_stat_start.ru.ru_nvcsw);
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%ld ", res);
+
+	/* 12. total number of context switches */
+	res = sublong(net_stat.use_stat_end.ru.ru_nivcsw,
+			net_stat.use_stat_start.ru.ru_nivcsw);
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%ld ", res);
+
+#if 0
+	/* 11. ru_maxrss - bytes of resident set memory used */
+	res = sublong(net_stat.use_stat_end.ru.ru_maxrss, net_stat.use_stat_start.ru.ru_maxrss);
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%ld ", res * page_size);
+#endif
+
+
+	/* trailing newline */
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s", "\n");
+
+}
+
+#undef DO_SNPRINTF
 
 /* Simple malloc wrapper - prevent error checking */
 void *
@@ -358,6 +497,15 @@ subtime(struct timeval *op1, struct timeval *op2, struct timeval *result)
 	result->tv_sec = (op1->tv_sec-op2->tv_sec) - borrow;
 
 	return sign;
+}
+
+long
+sublong(long a, long b)
+{
+	if (((a ^ b) & ((a - b) ^ a)) >> (sizeof(long)*CHAR_BIT-1) ) {
+		err_sys("Overlow in long substraction");
+	}
+	return a - b;
 }
 
 

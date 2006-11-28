@@ -112,6 +112,7 @@ usage(void)
 			"-8                       print statistic in bit instead of byte\n"
 			"-I                       print statistic values in si prefixes (10**n, default: 2**n)\n"
 			"-v                       make output verbose (vv even more verbose)\n"
+			"-M                       print statistic in a mashine parseable form\n"
 			"-V                       print version\n"
 			"-h                       print this help screen\n"
 			"*****************************************************\n"
@@ -146,6 +147,9 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			break;
 		case 'T':
 			opts.statistics++;
+			break;
+		case 'M':
+			opts.mashine_parseable++;
 			break;
 		case '8':
 			opts.stat_unit = BIT_UNIT;
