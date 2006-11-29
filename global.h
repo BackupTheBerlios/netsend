@@ -181,8 +181,7 @@ enum {
 
 /* supported posix_madvise / posix_fadvice hints */
 enum memaccess_advice {
-	MEMADV_NONE = 0,
-	MEMADV_NORMAL,
+	MEMADV_NORMAL = 0,
 	MEMADV_RANDOM,
 	MEMADV_SEQUENTIAL,
 	MEMADV_WILLNEED,
@@ -242,6 +241,7 @@ struct opts {
 	int change_congestion;
 	int congestion;
 	int mem_advice;
+	int change_mem_advise;
 
 	int  verbose;
 	int  statistics;

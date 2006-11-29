@@ -127,7 +127,7 @@ ss_rw(int file_fd, int connected_fd)
 	** STDIN(linebuffer, fullbuffer, ...)?  --HGN
 	*/
 
-	if (opts.mem_advice &&
+	if (opts.change_mem_advise &&
 		posix_fadvise(file_fd, 0, 0, get_mem_adv_f(opts.mem_advice))) {
 		err_sys("posix_fadvise");	/* do not exit */
 	}
@@ -183,7 +183,7 @@ ss_mmap(int file_fd, int connected_fd)
 				opts.infile, strerror(errno));
 	}
 
-	if (opts.mem_advice &&
+	if (opts.change_mem_advise &&
 		posix_madvise(mmap_buf, stat_buf.st_size, get_mem_adv_m(opts.mem_advice)))
 		err_sys("posix_madvise");	/* do not exit */
 
