@@ -40,6 +40,7 @@
 #include "global.h"
 
 extern struct net_stat net_stat;
+extern struct conf_map_t memadvice_map[];
 extern struct opts opts;
 
 /* abort if buffer is not large enough */
@@ -375,6 +376,22 @@ gen_mashine_analyse(char *buf, unsigned int max_buf_len)
 		call_str = "read";
 	}
 	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s ", call_str);
+
+	/* memory advise */
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s ",
+			opts.change_mem_advise ?
+			memadvice_map[opts.mem_advice].conf_string : "none");
+
+	/* buffer size (only digits that a regex can match this entry
+	** clean (\d+))
+	*/
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%d ",
+			opts.buffer_size ?
+			opts.buffer_size : 0);
+
+	/* nice level */
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%d ",
+			opts.nice == INT_MAX ? 0 : opts.nice);
 
 	/* 4. io-function call count */
 	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%d ",

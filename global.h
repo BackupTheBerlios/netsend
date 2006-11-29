@@ -120,7 +120,7 @@
 #define	VL_STRESSFUL(x)  (x >= 3)
 
 #define	PROGRAMNAME   "netsend"
-#define	VERSIONSTRING "0.01"
+#define	VERSIONSTRING "0.02"
 
 /* Default values */
 #define	DEFAULT_PORT    "6666"
