@@ -4,7 +4,6 @@ ifeq ($(shell test \! -f Make.Rules || echo yes),yes)
 		include Make.Rules
 endif
 
-DESTDIR=
 TARGET = netsend
 OBJECTS =    error.o    \
 						 file.o     \
@@ -20,6 +19,10 @@ OBJECTS =    error.o    \
 # of a function (counted in internal gcc instructions).
 # Default: 300
 CFLAGS += --param max-inline-insns-single=400
+
+# XXX: add path configure
+DESTDIR=/usr
+BINDIR=/bin
 
 all: config.h $(TARGET)
 
