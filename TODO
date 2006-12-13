@@ -7,6 +7,8 @@ o Extend the configure script to figure out
   sendfile with splice and to exclude dccp header
   values
 
+o add UDP-Lite support
+
 o Socket option processing
 
 	IP:

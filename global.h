@@ -105,6 +105,9 @@
 # define unlikely(x) __builtin_expect(!!(x), 0)
 #endif
 
+/* determine the size of an array */
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 /* Netsend return codes */
 #define	EXIT_OK       0
 #define	EXIT_FAILMEM  1
