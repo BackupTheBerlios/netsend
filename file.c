@@ -99,8 +99,11 @@ open_input_file(void)
 		exit(EXIT_FAILOPT);
 	}
 #endif
-
+#ifdef O_NOATIME
+	fd = open(opts.infile, O_RDONLY|O_NOATIME);
+#else
 	fd = open(opts.infile, O_RDONLY);
+#endif
 	if (fd == -1) {
 		err_msg("Can't open input file: %s", opts.infile);
 		exit(EXIT_FAILMISC);
