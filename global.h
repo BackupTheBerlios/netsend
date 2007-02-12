@@ -123,7 +123,7 @@
 #define	VL_STRESSFUL(x)  (x >= 3)
 
 #define	PROGRAMNAME   "netsend"
-#define	VERSIONSTRING "0.02"
+#define	VERSIONSTRING "002"
 
 /* Default values */
 #define	DEFAULT_PORT    "6666"
@@ -234,6 +234,65 @@ struct net_stat {
 #define	STAT_PREFIX_SI 1
 #define	STAT_PREFIX_BINARY 2
 enum workmode { MODE_NONE = 0, MODE_TRANSMIT, MODE_RECEIVE };
+
+
+/* protocol definitions */
+
+/* all values in network byte order */
+
+#define	NS_MAGIC 0x67
+
+
+#define	NSE_NXT_DATA   0x00
+#define	NSE_NXT_DIGEST 0x01
+#define	NSE_NXT_NONXT  0xff
+
+struct ns_hdr {
+	uint16_t magic;
+	uint32_t version;
+	uint32_t data_size; /* purely data, without netsend header */
+	uint16_t nse_nxt_hdr; /* NSE_NXT_DATA for no header */
+} __attribute__((packed));
+
+/*
+** netsend chaining header fields for ancillary information.
+** This is a similar mechanism like the ipv6 extension header.
+** This information can be used to exchange information like
+** data digest, buffersize, etc.
+** Like ipv6: each extension header appears only once. If a
+** header apears multiple times the last extension header has significance.
+** In contrast to ipv6, netsend headers have no order.
+*/
+
+
+/* ns_nxt_digest is the digest header extension
+** Currently netsend support following digest algorithms:
+**  o NULL   (0)
+**  o SHA    (20)
+**  o SHA256 (32)
+**  o SHA512 (64)
+*/
+
+struct ns_nxt_digest {
+	uint16_t  nse_nxt_hdr; /* next header */
+	uint16_t  nse_len; /* length in units of 4 octets (not including the first 4 octets) */
+	uint8_t  nse_dgst_type;
+	uint8_t  nse_dgst_len;
+	/* followed by digest data */
+} __attribute__((packed));
+
+
+/* this is a dummy extension header. it indicates that this
+** is the last extension header AND no more data is comming!
+*/
+
+struct ns_nxt_nonxt {
+	uint16_t  nse_nxt_hdr; /* next header */
+	uint16_t  nse_len; /* length in units of 4 octets (not including the first 4 octets) */
+} __attribute__((packed));
+
+
+/* command line arguments */
 
 struct opts {
 	int family;
@@ -379,12 +438,17 @@ void xgetaddrinfo(const char *, const char *,
 int get_sock_opts(int, struct net_stat *);
 void change_congestion(int fd);
 
+/* protocol.c */
+int send_ns_hdr(int, int);
+int read_ns_hdr(int );
+
 
 /* receive.c */
 void receive_mode(void);
 
 /* transmit.c */
 void transmit_mode(void);
+ssize_t write_len(int, const void *, size_t);
 
 
 

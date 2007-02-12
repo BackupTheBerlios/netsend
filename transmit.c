@@ -83,7 +83,7 @@ get_mem_adv_f(int adv)
 }
 
 
-static ssize_t
+ssize_t
 write_len(int fd, const void *buf, size_t len)
 {
 	const char *bufptr = buf;
@@ -536,6 +536,9 @@ transmit_mode(void)
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
 	connected_fd = instigate_ss();
+
+	/* construct and send netsend header to peer */
+	send_ns_hdr(connected_fd, file_fd);
 
 	do {
 

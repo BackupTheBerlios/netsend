@@ -12,6 +12,7 @@ OBJECTS =    error.o    \
 						 net.o      \
 						 receive.o  \
 						 transmit.o \
+						 protocol.o \
 						 xfuncs.o
 
 # Inline workaround:

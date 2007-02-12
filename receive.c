@@ -45,6 +45,7 @@ extern struct net_stat net_stat;
 extern struct conf_map_t io_call_map[];
 extern struct socket_options socket_options[];
 
+
 /* This is our inner receive function.
 ** It reads from a connected socket descriptor
 ** and write to the file descriptor
@@ -308,6 +309,8 @@ receive_mode(void)
 		msg(GENTLE, "accept from %s", peer);
 	}
 
+	/* read netsend header */
+	read_ns_hdr(opts.protocol == IPPROTO_TCP ? connected_fd : server_fd);
 
 	/* take the transmit start time for diff */
 	gettimeofday(&opts.starttime, NULL);
