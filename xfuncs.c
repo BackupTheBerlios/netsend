@@ -232,7 +232,7 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 		/* display data amount */
 		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s %zd %s",
 				T2S(STAT_RX_BYTES), opts.stat_unit == BYTE_UNIT ?
-				net_stat.total_tx_bytes : net_stat.total_tx_bytes * 8,
+				net_stat.total_rx_bytes : net_stat.total_rx_bytes * 8,
 				opts.stat_unit == BYTE_UNIT ? "Byte" : "Bit");
 
 		if ( (net_stat.total_rx_bytes / UNIT_N2F(K_UNIT)) > 1) { /* display kilo */

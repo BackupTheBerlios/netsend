@@ -326,8 +326,8 @@ long sublong(long, long);
 
 
 enum where_send {
-	TOUCH_BEFORE_SEND = 0,
-    TOUCH_AFTER_SEND
+	TOUCH_BEFORE_OP = 0,
+    TOUCH_AFTER_OP
 };
 #define TIME_GT(x,y) (x->tv_sec > y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec > y->tv_usec))
 #define TIME_LT(x,y) (x->tv_sec < y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec < y->tv_usec))
@@ -344,7 +344,7 @@ static inline void
 touch_use_stat(enum where_send where, struct use_stat *use_stat)
 {
 
-	if (where == TOUCH_BEFORE_SEND) {
+	if (where == TOUCH_BEFORE_OP) {
 		if (getrusage(RUSAGE_SELF, &use_stat->ru) < 0)
 			err_sys("Failure in getrusage()");
 		if (gettimeofday(&use_stat->time, NULL) < 0)
@@ -352,7 +352,7 @@ touch_use_stat(enum where_send where, struct use_stat *use_stat)
 #ifdef HAVE_RDTSCLL
 		rdtscll(use_stat->tsc);
 #endif
-	} else { /* TOUCH_AFTER_SEND */
+	} else { /* TOUCH_AFTER_OP */
 #ifdef HAVE_RDTSCLL
 		rdtscll(use_stat->tsc);
 #endif

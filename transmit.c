@@ -132,7 +132,7 @@ ss_rw(int file_fd, int connected_fd)
 		err_sys("posix_fadvise");	/* do not exit */
 	}
 
-	touch_use_stat(TOUCH_BEFORE_SEND, &net_stat.use_stat_start);
+	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
 
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
 		cnt_coll = write_len(connected_fd, buf, cnt);
@@ -150,7 +150,7 @@ ss_rw(int file_fd, int connected_fd)
 		}
 	}
 
-	touch_use_stat(TOUCH_AFTER_SEND, &net_stat.use_stat_end);
+	touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
 
 	free(buf);
 
@@ -175,7 +175,7 @@ ss_mmap(int file_fd, int connected_fd)
 		exit(EXIT_FAILMISC);
 	}
 
-	touch_use_stat(TOUCH_BEFORE_SEND, &net_stat.use_stat_start);
+	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
 
 	mmap_buf = mmap(NULL, stat_buf.st_size, PROT_READ, MAP_SHARED, file_fd, 0);
 	if (mmap_buf == MAP_FAILED) {
@@ -205,7 +205,7 @@ ss_mmap(int file_fd, int connected_fd)
 		written += rc;
 	}
 
-	touch_use_stat(TOUCH_AFTER_SEND, &net_stat.use_stat_end);
+	touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
 
 	if (stat_buf.st_size != written) {
 		fprintf(stderr, "ERROR: Can't flush buffer within write call: %s!\n",
@@ -245,7 +245,7 @@ ss_sendfile(int file_fd, int connected_fd)
 	write_cnt = opts.buffer_size ?
 		opts.buffer_size : stat_buf.st_size;
 
-	touch_use_stat(TOUCH_BEFORE_SEND, &net_stat.use_stat_start);
+	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
 
 	/* write chunked sized frames */
 	while (stat_buf.st_size - offset - 1 >= write_cnt) {
@@ -267,7 +267,7 @@ ss_sendfile(int file_fd, int connected_fd)
 		net_stat.total_tx_calls += 1;
 	}
 
-	touch_use_stat(TOUCH_AFTER_SEND, &net_stat.use_stat_end);
+	touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
 
 
 	if (offset != stat_buf.st_size) {

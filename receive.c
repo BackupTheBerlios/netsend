@@ -62,12 +62,16 @@ cs_read(int file_fd, int connected_fd)
 	/* allocate read buffer */
 	buf = alloc(buflen);
 
+	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
+
 	/* main client loop */
 	while ((rc = read(connected_fd, buf, buflen)) > 0) {
 		net_stat.total_rx_calls++;
 		net_stat.total_rx_bytes += rc;
 		write(file_fd, buf, rc); /* FIXME: to late and to drunken ... */
 	}
+
+	touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
 
 	return rc;
 }
