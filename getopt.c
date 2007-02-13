@@ -116,7 +116,7 @@ usage(void)
 			"-V                       print version\n"
 			"-h                       print this help screen\n"
 			"*****************************************************\n"
-			"Bugs, hints or else, feel free and mail to hagen@jauu.net\n"
+			"Bugs, hints or else, feel free and look at http://netsend.berlios.de\n"
 			"SEE MAN-PAGE FOR FURTHER INFORMATION\n", opts.me);
 }
 
@@ -201,6 +201,29 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			exit(EXIT_FAILOPT);
 			break;
 		case 'c':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(1);
+			}
+			for (i = 0; i <= CA_MAX; i++ ) {
+				if (!strncasecmp((*argv)[2],
+							congestion_map[i].conf_string,
+							max(strlen(congestion_map[i].conf_string),
+								strlen((*argv)[2]))))
+				{
+					opts.congestion = congestion_map[i].conf_code;
+					opts.change_congestion++;
+					(*argc)--;
+					(*argv)++;
+					return 0;
+				}
+			}
+			fprintf(stderr, "ERROR: Congestion algorithm %s not supported!\n",
+					(*argv)[2]);
+			exit(EXIT_FAILOPT);
+			break;
+		case 'X':
 			if (((*opt_str)[2])  || ((*argc) <= 2)) {
 				fprintf(stderr, "option error (%c:%d)\n",
 						(*opt_str)[2], (*argc));

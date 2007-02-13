@@ -389,7 +389,9 @@ gen_mashine_analyse(char *buf, unsigned int max_buf_len)
 			opts.buffer_size ?
 			opts.buffer_size : 0);
 
-	/* nice level */
+	/* nice level
+	** FIXME: don't take opts.nice level, call getnice()
+	*/
 	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%d ",
 			opts.nice == INT_MAX ? 0 : opts.nice);
 

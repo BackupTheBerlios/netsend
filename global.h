@@ -109,12 +109,13 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 /* Netsend return codes */
-#define	EXIT_OK       0
-#define	EXIT_FAILMEM  1
-#define	EXIT_FAILOPT  2
-#define	EXIT_FAILMISC 3
-#define	EXIT_FAILNET  4
-#define	EXIT_FAILINT  5 /* INTernal error */
+#define	EXIT_OK         0
+#define	EXIT_FAILMEM    1
+#define	EXIT_FAILOPT    2
+#define	EXIT_FAILMISC   3
+#define	EXIT_FAILNET    4
+#define	EXIT_FAILHEADER 6
+#define	EXIT_FAILINT    7 /* INTernal error */
 
 /* Verbose levels */
 #define	VL_QUITSCENT(x)  (x)
@@ -438,10 +439,9 @@ void xgetaddrinfo(const char *, const char *,
 int get_sock_opts(int, struct net_stat *);
 void change_congestion(int fd);
 
-/* protocol.c */
+/* ns_hdr.c */
 int send_ns_hdr(int, int);
 int read_ns_hdr(int );
-
 
 /* receive.c */
 void receive_mode(void);

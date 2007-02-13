@@ -68,7 +68,7 @@ send_ns_hdr(int connected_fd, int file_fd)
 
 	len = write_len(connected_fd, &ns_hdr, sizeof(struct ns_hdr));
 	if (len != sizeof(struct ns_hdr))
-		err_msg_die(EXIT_FAILNET, "Can't send netsend header!\n");
+		err_msg_die(EXIT_FAILHEADER, "Can't send netsend header!\n");
 
 	/* XXX: add shasum next header if opts.sha, modify nse_nxt_hdr processing */
 
@@ -88,34 +88,42 @@ read_ns_hdr(int peer_fd)
 
 	ptr = (unsigned char *) &ns_hdr;
 
+	msg(STRESSFUL, "fetch general header (%d byte)", sizeof(struct ns_hdr));
+
 	/* read minimal ns header */
 	while ((rc += read(peer_fd, &ptr[rc], to_read)) > 0) {
 		to_read -= rc;
 	}
 
-	/* ns header in, sanity checks and
-	** look if peer specified extension
-	** header */
+	/* ns header is in -> sanity checks and look if peer specified extension header */
 	if (ntohs(ns_hdr.magic) != NS_MAGIC) {
-		err_msg_die(EXIT_FAILMISC, "Netsend received an corrupted header"
+		err_msg_die(EXIT_FAILHEADER, "received an corrupted header"
 				"(should %d but is %d)!\n", NS_MAGIC, ntohs(ns_hdr.magic));
 	}
+
+	msg(STRESSFUL, "header info (magic: %d, version: %d, data_size: %d)",
+			ntohs(ns_hdr.magic), ntohl(ns_hdr.version), ntohl(ns_hdr.data_size));
 
 	extension_type = ntohs(ns_hdr.nse_nxt_hdr);
 
 	switch (extension_type) {
 
 		case NSE_NXT_DATA:
+			msg(STRESSFUL, "next extension header: %s", "NSE_NXT_DATA");
+			return 0;
+
 		case NSE_NXT_NONXT:
+			msg(STRESSFUL, "next extension header: %s", "NSE_NXT_NONXT");
 			return 0;
 			break;
 
 		case NSE_NXT_DIGEST:
+			msg(STRESSFUL, "next extension header: %s", "NSE_NXT_DIGEST");
 			err_msg("Not implementet yet: NSE_NXT_DIGEST\n");
 			break;
 
 		default:
-			err_msg_die(EXIT_FAILINT, "Received an unknown extension type (%d)!\n",
+			err_msg_die(EXIT_FAILHEADER, "Received an unknown extension type (%d)!\n",
 					extension_type);
 			break;
 	}
@@ -125,5 +133,5 @@ read_ns_hdr(int peer_fd)
 
 
 
-/* vim:set ts=4 sw=4 tw=78 noet: */
+/* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */
 
