@@ -72,12 +72,12 @@ get_tcp_sock_opts(int fd, struct net_stat *ns)
 	** if (!val && ((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_LISTEN)))
 	**     val = tp->rx_opt.user_mss;
 	*/
-	len = sizeof(ns->mss);
-	ret = getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, &ns->mss, &len);
-	if ((ret == -1) || (ns->mss <= 0)) {
+	len = sizeof(ns->sock_stat.mss);
+	ret = getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, &ns->sock_stat.mss, &len);
+	if ((ret == -1) || (ns->sock_stat.mss <= 0)) {
 		fprintf(stderr, "Can't determine mss for socket (mss: %d): %s "
-				"(fall back to 1500 bytes)\n", ns->mss, strerror(errno));
-		ns->mss = 1500;
+				"(fall back to 1500 bytes)\n", ns->sock_stat.mss, strerror(errno));
+		ns->sock_stat.mss = 1500;
 	}
 
 	return 0;

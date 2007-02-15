@@ -214,9 +214,16 @@ struct use_stat {
 #endif
 };
 
+struct sock_stat {
+	/* tcp attributes */
+	uint16_t mss;
+	int keep_alive;
+	/* ip attributes */
+};
+
 struct net_stat {
-	int  mss;
-	int  keep_alive;
+
+	struct sock_stat sock_stat;
 
 	unsigned int total_rx_calls;
 	ssize_t      total_rx_bytes;
@@ -250,9 +257,10 @@ enum workmode { MODE_NONE = 0, MODE_TRANSMIT, MODE_RECEIVE };
 
 struct ns_hdr {
 	uint16_t magic;
-	uint32_t version;
+	uint16_t version;
 	uint32_t data_size; /* purely data, without netsend header */
 	uint16_t nse_nxt_hdr; /* NSE_NXT_DATA for no header */
+	uint16_t unused;
 } __attribute__((packed));
 
 /*
@@ -295,6 +303,9 @@ struct ns_nxt_nonxt {
 
 /* command line arguments */
 
+#define	HDR_MSK_SOCKOPT (1 << 0)
+#define HDR_MSK_DIGEST  (1 << 1)
+
 struct opts {
 	int family;
 	int protocol;
@@ -305,6 +316,8 @@ struct opts {
 	int congestion;
 	int mem_advice;
 	int change_mem_advise;
+
+	long ext_hdr_mask;
 
 	int  verbose;
 	int  statistics;
@@ -440,8 +453,8 @@ int get_sock_opts(int, struct net_stat *);
 void change_congestion(int fd);
 
 /* ns_hdr.c */
-int send_ns_hdr(int, int);
-int read_ns_hdr(int );
+int meta_exchange_snd(int, int);
+int meta_exchange_rcv(int );
 
 /* receive.c */
 void receive_mode(void);

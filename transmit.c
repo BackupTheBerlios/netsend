@@ -537,39 +537,36 @@ transmit_mode(void)
 	file_fd = open_input_file();
 	connected_fd = instigate_ss();
 
+	/* fetch sockopt before the first byte  */
+	get_sock_opts(connected_fd, &net_stat);
+
 	/* construct and send netsend header to peer */
-	send_ns_hdr(connected_fd, file_fd);
+	meta_exchange_snd(connected_fd, file_fd);
 
-	do {
+	/* take the transmit start time for diff */
+	gettimeofday(&opts.starttime, NULL);
 
-		/* fetch sockopt before the first byte  */
-		get_sock_opts(connected_fd, &net_stat);
+	switch (opts.io_call) {
+		case IO_SENDFILE:
+			ss_sendfile(file_fd, connected_fd);
+			break;
+		case IO_MMAP:
+			ss_mmap(file_fd, connected_fd);
+			break;
+		case IO_RW:
+			ss_rw(file_fd, connected_fd);
+			break;
+		default:
+			err_msg("Programmed Failure");
+			exit(EXIT_FAILMISC);
+			break;
+	}
 
-		/* take the transmit start time for diff */
-		gettimeofday(&opts.starttime, NULL);
+	gettimeofday(&opts.endtime, NULL);
 
-		switch (opts.io_call) {
-			case IO_SENDFILE:
-				ss_sendfile(file_fd, connected_fd);
-				break;
-			case IO_MMAP:
-				ss_mmap(file_fd, connected_fd);
-				break;
-			case IO_RW:
-				ss_rw(file_fd, connected_fd);
-				break;
-			default:
-				err_msg("Programmed Failure");
-				exit(EXIT_FAILMISC);
-				break;
-		}
+	/* if we spawn a child - reaping it here */
+	waitpid(-1, &child_status, 0);
 
-		gettimeofday(&opts.endtime, NULL);
-
-		/* if we spawn a child - reaping it here */
-		waitpid(-1, &child_status, 0);
-
-	} while (0); /* XXX: Further improvement: iterating server ;-) */
 }
 
 

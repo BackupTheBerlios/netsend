@@ -310,7 +310,7 @@ receive_mode(void)
 	}
 
 	/* read netsend header */
-	read_ns_hdr(opts.protocol == IPPROTO_TCP ? connected_fd : server_fd);
+	meta_exchange_rcv(opts.protocol == IPPROTO_TCP ? connected_fd : server_fd);
 
 	/* take the transmit start time for diff */
 	gettimeofday(&opts.starttime, NULL);

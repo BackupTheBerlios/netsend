@@ -40,7 +40,7 @@
 extern struct opts opts;
 
 int
-send_ns_hdr(int connected_fd, int file_fd)
+meta_exchange_snd(int connected_fd, int file_fd)
 {
 	int ret = 0;
 	ssize_t len;
@@ -61,7 +61,8 @@ send_ns_hdr(int connected_fd, int file_fd)
 
 
 	ns_hdr.magic = htons(NS_MAGIC);
-	ns_hdr.version = htonl(strtol(VERSIONSTRING, (char **)NULL, 10));
+	/* FIXME: handle overflow */
+	ns_hdr.version = htons((uint16_t) strtol(VERSIONSTRING, (char **)NULL, 10));
 	ns_hdr.data_size = htonl(file_size);
 
 	ns_hdr.nse_nxt_hdr = htons(NSE_NXT_DATA);
@@ -76,9 +77,10 @@ send_ns_hdr(int connected_fd, int file_fd)
 }
 
 int
-read_ns_hdr(int peer_fd)
+meta_exchange_rcv(int peer_fd)
 {
 	int ret = 0;
+	int invalid_ext_thresh = 8;
 	int extension_type;
 	unsigned char *ptr;
 	ssize_t rc = 0, to_read = sizeof(struct ns_hdr);
@@ -102,31 +104,47 @@ read_ns_hdr(int peer_fd)
 	}
 
 	msg(STRESSFUL, "header info (magic: %d, version: %d, data_size: %d)",
-			ntohs(ns_hdr.magic), ntohl(ns_hdr.version), ntohl(ns_hdr.data_size));
+			ntohs(ns_hdr.magic), ntohs(ns_hdr.version), ntohl(ns_hdr.data_size));
 
-	extension_type = ntohs(ns_hdr.nse_nxt_hdr);
+	if (ntohs(ns_hdr.nse_nxt_hdr) == NSE_NXT_DATA)
+		return 0;
 
-	switch (extension_type) {
+	while (invalid_ext_thresh > 0) {
 
-		case NSE_NXT_DATA:
-			msg(STRESSFUL, "next extension header: %s", "NSE_NXT_DATA");
-			return 0;
+		uint16_t common_ext_head[2];
+		rc = 0, to_read = sizeof(uint16_t) * 2;
 
-		case NSE_NXT_NONXT:
-			msg(STRESSFUL, "next extension header: %s", "NSE_NXT_NONXT");
-			return 0;
-			break;
+		/* read first 4 octects of extension header */
+		while ((rc += read(peer_fd, &common_ext_head[rc], to_read)) > 0) {
+			to_read -= rc;
+		}
 
-		case NSE_NXT_DIGEST:
-			msg(STRESSFUL, "next extension header: %s", "NSE_NXT_DIGEST");
-			err_msg("Not implementet yet: NSE_NXT_DIGEST\n");
-			break;
+		extension_type = ntohs(common_ext_head[0]);
 
-		default:
-			err_msg_die(EXIT_FAILHEADER, "Received an unknown extension type (%d)!\n",
-					extension_type);
-			break;
-	}
+
+		switch (extension_type) {
+
+			case NSE_NXT_DATA:
+				msg(STRESSFUL, "next extension header: %s", "NSE_NXT_DATA");
+				return 0;
+
+			case NSE_NXT_NONXT:
+				msg(STRESSFUL, "next extension header: %s", "NSE_NXT_NONXT");
+				return 0;
+				break;
+
+			case NSE_NXT_DIGEST:
+				msg(STRESSFUL, "next extension header: %s", "NSE_NXT_DIGEST");
+				err_msg("Not implementet yet: NSE_NXT_DIGEST\n");
+				break;
+
+			default:
+				invalid_ext_thresh--;
+				err_msg("received an unknown extension type (%d)!\n", extension_type);
+				/* read extension header to /dev/null/ */
+				break;
+		}
+	};
 
 	return ret;
 }
