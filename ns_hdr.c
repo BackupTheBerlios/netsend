@@ -76,6 +76,31 @@ meta_exchange_snd(int connected_fd, int file_fd)
 	return ret;
 }
 
+
+/* read exactly buflen bytes; only return on fatal error */
+static ssize_t read_len(int fd, void *buf, size_t buflen)
+{
+	char *bufptr = buf;
+	ssize_t total = 0;
+	do {
+		ssize_t ret = read(fd, bufptr, buflen);
+		switch (ret) {
+		case -1:
+			if (errno == EINTR)
+			continue;
+			/* fallthru */
+		case 0: goto out;
+		}
+
+		total += ret;
+		bufptr += ret;
+		buflen -= ret;
+	} while (buflen > 0);
+ out:
+	return total > 0 ? total : -1;
+}
+
+
 int
 meta_exchange_rcv(int peer_fd)
 {
@@ -93,9 +118,8 @@ meta_exchange_rcv(int peer_fd)
 	msg(STRESSFUL, "fetch general header (%d byte)", sizeof(struct ns_hdr));
 
 	/* read minimal ns header */
-	while ((rc += read(peer_fd, &ptr[rc], to_read)) > 0) {
-		to_read -= rc;
-	}
+	if (read_len(peer_fd, &ptr[rc], to_read) != to_read)
+		return -1;
 
 	/* ns header is in -> sanity checks and look if peer specified extension header */
 	if (ntohs(ns_hdr.magic) != NS_MAGIC) {
@@ -115,12 +139,10 @@ meta_exchange_rcv(int peer_fd)
 		rc = 0, to_read = sizeof(uint16_t) * 2;
 
 		/* read first 4 octects of extension header */
-		while ((rc += read(peer_fd, &common_ext_head[rc], to_read)) > 0) {
-			to_read -= rc;
-		}
+		if (read_len(peer_fd, &common_ext_head[rc], to_read) != to_read)
+			return -1;
 
 		extension_type = ntohs(common_ext_head[0]);
-
 
 		switch (extension_type) {
 
