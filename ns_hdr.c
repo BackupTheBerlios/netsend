@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
+#include <signal.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -140,11 +141,29 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 			return -1;
 
 		ns_rtt_reply = (struct ns_rtt *) reply_buf;
+
+		if (ntohs(ns_rtt_reply->ident) != (getpid() & 0xffff))
+			err_msg("received a unknown rtt probe reply (ident  should: %d is: %d)",
+					ntohs(ns_rtt_reply->ident),  (getpid() & 0xffff));
 		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d)",
 				ntohs(ns_rtt_reply->seq_no), to_read);
 	}
 
 	return 0;
+}
+
+
+#define	TIMEOUT_SEC 10
+
+static void
+timout_handler(int sig_no)
+{
+	if (sig_no != SIGALRM)
+		err_msg_die(EXIT_FAILINT, "Programmed error (received an unknow signal)");
+
+	alarm(TIMEOUT_SEC);
+
+	msg(STRESSFUL, "timout occure while wait for rtt probe response");
 }
 
 
@@ -186,7 +205,21 @@ meta_exchange_snd(int connected_fd, int file_fd)
 
 	/* FIXME: add a commandline argument */
 	if (1) {
+
+		struct sigaction sa;
+
+		/* initialize signalhandler for timeout handling */
+		sigemptyset(&sa.sa_mask);
+		sa.sa_flags = SA_INTERRUPT;	/* don't restart system calls */
+		sa.sa_handler = timout_handler;
+		if (sigaction(SIGALRM, &sa, NULL) != 0)
+			err_sys("Can't add signal handler");
+
+		alarm(TIMEOUT_SEC);
+
 		probe_rtt(connected_fd, NSE_NXT_DATA, 10, 500);
+
+		alarm(0);
 	}
 
 	/* XXX: add shasum next header if opts.sha, modify nse_nxt_hdr processing */
