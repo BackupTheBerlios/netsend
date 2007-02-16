@@ -251,9 +251,10 @@ enum workmode { MODE_NONE = 0, MODE_TRANSMIT, MODE_RECEIVE };
 #define	NS_MAGIC 0x67
 
 
-#define	NSE_NXT_DATA   0x00
-#define	NSE_NXT_DIGEST 0x01
-#define	NSE_NXT_NONXT  0xff
+#define	NSE_NXT_DATA   (0)
+#define	NSE_NXT_DIGEST (1)
+#define	NSE_NXT_RTT    (2)
+#define	NSE_NXT_NONXT  (3)
 
 struct ns_hdr {
 	uint16_t magic;
@@ -298,6 +299,23 @@ struct ns_nxt_digest {
 struct ns_nxt_nonxt {
 	uint16_t  nse_nxt_hdr; /* next header */
 	uint16_t  nse_len; /* length in units of 4 octets (not including the first 4 octets) */
+	uint32_t  unused;
+} __attribute__((packed));
+
+
+/* rtt packet */
+
+enum ns_rtt_type { RTT_REQUEST_TYPE = 0, RTT_REPLY_TYPE };
+
+struct ns_rtt {
+	uint16_t  nse_nxt_hdr; /* next header */
+	uint16_t  nse_len; /* length in units of 4 octets (not including the first 4 octets) */
+	uint16_t  type; /* on of ns_rtt_type */
+	uint16_t  unused; /* checksum */
+	uint16_t  ident; /* packetstream identifier */
+	uint16_t  seq_no;
+	uint32_t  timestamp;
+	/* variable data */
 } __attribute__((packed));
 
 

@@ -28,16 +28,125 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <time.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+
 #include <arpa/inet.h>
 
 #include "global.h"
 #include "debug.h"
 
 extern struct opts opts;
+
+static ssize_t
+writen(int fd, const void *buf, size_t len)
+{
+	const char *bufptr = buf;
+	ssize_t total = 0;
+	do {
+		ssize_t written = write(fd, bufptr, len);
+		if (written < 0) {
+			if (errno == EINTR)
+				continue;
+			break;
+		}
+		total += written;
+		bufptr += written;
+		len -= written;
+	} while (len > 0);
+
+	return total > 0 ? total : -1;
+}
+
+/* read exactly buflen bytes; only return on fatal error */
+static ssize_t readn(int fd, void *buf, size_t buflen)
+{
+	char *bufptr = buf;
+	ssize_t total = 0;
+	do {
+		ssize_t ret = read(fd, bufptr, buflen);
+		switch (ret) {
+		case -1:
+			if (errno == EINTR)
+			continue;
+			/* fallthru */
+		case 0: goto out;
+		}
+
+		total += ret;
+		bufptr += ret;
+		buflen -= ret;
+	} while (buflen > 0);
+out:
+	return total > 0 ? total : -1;
+}
+
+/* This is the plan:
+** send n rtt packets into the wire and wait until all n reply packets
+** arrived. If a timeout occur we count this packet as lost
+*/
+static int
+probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
+{
+	uint16_t seq = 0; int i, current_next_hdr;
+	uint16_t packet_len; ssize_t to_write;
+	char rtt_buf[backing_data_size + sizeof(struct ns_rtt)];
+	struct ns_rtt *ns_rtt = (struct ns_rtt *) rtt_buf;
+	char *data_ptr = rtt_buf + sizeof(struct ns_rtt);
+
+	if (probe_no <= 0)
+		err_msg_die(EXIT_FAILINT, "Programmed error");
+
+	memset(ns_rtt, 0, sizeof(struct ns_rtt));
+	memset(data_ptr, 'A', backing_data_size);
+
+	/* packet backing data MUST a multiple of four */
+	packet_len = ((uint16_t)(backing_data_size / 4)) * 4;
+	to_write = packet_len + sizeof(struct ns_rtt);
+
+	/* we announce packetsize in 4 byte slices (32bit)
+	** minus nse_nxt_hdr and nse_len header (4 byte)
+	*/
+	ns_rtt->nse_len = htons((to_write - 4) / 4);
+
+	ns_rtt->ident = htons(getpid() & 0xffff);
+
+	current_next_hdr = NSE_NXT_RTT;
+
+	for (i = 0; i < probe_no; ) {
+
+		char reply_buf[to_write];
+		struct ns_rtt *ns_rtt_reply;
+		ssize_t to_read = to_write;
+
+		if (++i >= probe_no)
+			current_next_hdr = next_hdr;
+
+		ns_rtt->nse_nxt_hdr = htons(current_next_hdr);
+		ns_rtt->type = (htons((uint16_t)RTT_REQUEST_TYPE));
+		ns_rtt->seq_no = htons(seq++);
+		ns_rtt->timestamp = htonl(666); /* gettimeofday() */
+
+		/* transmitt rtt probe ... */
+		if (writen(peer_fd, ns_rtt, to_write) != to_write)
+			err_msg_die(EXIT_FAILHEADER, "Can't send rtt extension header!\n");
+
+		/* ... and receive probe */
+		if (readn(peer_fd, reply_buf, to_read) != to_read)
+			return -1;
+
+		ns_rtt_reply = (struct ns_rtt *) reply_buf;
+		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d)",
+				ntohs(ns_rtt_reply->seq_no), to_read);
+	}
+
+	return 0;
+}
+
 
 int
 meta_exchange_snd(int connected_fd, int file_fd)
@@ -65,48 +174,81 @@ meta_exchange_snd(int connected_fd, int file_fd)
 	ns_hdr.version = htons((uint16_t) strtol(VERSIONSTRING, (char **)NULL, 10));
 	ns_hdr.data_size = htonl(file_size);
 
-	ns_hdr.nse_nxt_hdr = htons(NSE_NXT_DATA);
 
-	len = write_len(connected_fd, &ns_hdr, sizeof(struct ns_hdr));
-	if (len != sizeof(struct ns_hdr))
+	/* FIXME: the code till the end in this function is alpha, there need some
+	** glue around it like a nice next header handling
+	*/
+	ns_hdr.nse_nxt_hdr = htons(NSE_NXT_RTT);
+
+	len = sizeof(struct ns_hdr);
+	if (writen(connected_fd, &ns_hdr, len) != len)
 		err_msg_die(EXIT_FAILHEADER, "Can't send netsend header!\n");
+
+	/* FIXME: add a commandline argument */
+	if (1) {
+		probe_rtt(connected_fd, NSE_NXT_DATA, 10, 500);
+	}
 
 	/* XXX: add shasum next header if opts.sha, modify nse_nxt_hdr processing */
 
 	return ret;
 }
 
-
-/* read exactly buflen bytes; only return on fatal error */
-static ssize_t read_len(int fd, void *buf, size_t buflen)
+/* probe_rtt read a rtt probe packet, set nse_nxt_hdr to zero,
+** nse_len to the current packet size and send it back to origin
+*/
+static int
+process_rtt(int peer_fd, uint16_t nse_len)
 {
-	char *bufptr = buf;
-	ssize_t total = 0;
-	do {
-		ssize_t ret = read(fd, bufptr, buflen);
-		switch (ret) {
-		case -1:
-			if (errno == EINTR)
-			continue;
-			/* fallthru */
-		case 0: goto out;
-		}
+	int ret = 0; uint16_t *intptr;
+	struct ns_rtt *ns_rtt_ptr;
+	char buf[nse_len * 4 + 4];
+	ssize_t to_read = nse_len * 4;
 
-		total += ret;
-		bufptr += ret;
-		buflen -= ret;
-	} while (buflen > 0);
- out:
-	return total > 0 ? total : -1;
+
+	if (readn(peer_fd, buf + 4, to_read) != to_read)
+		return -1;
+
+	ns_rtt_ptr = (struct ns_rtt *) buf;
+
+	msg(STRESSFUL, "process rtt probe (sequence: %d, type: %d packet_size: %d)",
+			ntohs(ns_rtt_ptr->seq_no), ntohs(ns_rtt_ptr->type), to_read);
+
+	ns_rtt_ptr->type = htons(RTT_REPLY_TYPE);
+
+	intptr = (uint16_t *)buf;
+	*intptr = 0;
+
+	intptr = (uint16_t *)buf + sizeof(uint16_t);
+	*intptr = htons(nse_len);
+
+	if (writen(peer_fd, buf, to_read + 4) != to_read + 4)
+		err_msg_die(EXIT_FAILHEADER, "Can't reply to rtt probe!\n");
+
+	return ret;
 }
 
+static int
+process_nonxt(int peer_fd, uint16_t nse_len)
+{
+	char buf[nse_len];
+	ssize_t to_read = nse_len;
 
+	if (readn(peer_fd, buf, to_read) != to_read)
+		return -1;
+
+	return 0;
+}
+
+#define	INVALID_EXT_TRESH_NO 8
+
+/* return -1 if a failure occure, zero apart from that */
 int
 meta_exchange_rcv(int peer_fd)
 {
-	int ret = 0;
-	int invalid_ext_thresh = 8;
-	int extension_type;
+	int ret;
+	int invalid_ext_seen = 0;
+	uint16_t extension_type, extension_size;
 	unsigned char *ptr;
 	ssize_t rc = 0, to_read = sizeof(struct ns_hdr);
 	struct ns_hdr ns_hdr;
@@ -118,7 +260,7 @@ meta_exchange_rcv(int peer_fd)
 	msg(STRESSFUL, "fetch general header (%d byte)", sizeof(struct ns_hdr));
 
 	/* read minimal ns header */
-	if (read_len(peer_fd, &ptr[rc], to_read) != to_read)
+	if (readn(peer_fd, &ptr[rc], to_read) != to_read)
 		return -1;
 
 	/* ns header is in -> sanity checks and look if peer specified extension header */
@@ -130,29 +272,35 @@ meta_exchange_rcv(int peer_fd)
 	msg(STRESSFUL, "header info (magic: %d, version: %d, data_size: %d)",
 			ntohs(ns_hdr.magic), ntohs(ns_hdr.version), ntohl(ns_hdr.data_size));
 
-	if (ntohs(ns_hdr.nse_nxt_hdr) == NSE_NXT_DATA)
+
+	extension_type = ntohs(ns_hdr.nse_nxt_hdr);
+
+	if (extension_type == NSE_NXT_DATA) {
+		msg(STRESSFUL, "end of extension header processing (NSE_NXT_DATA, no extension header)");
 		return 0;
+	}
 
-	while (invalid_ext_thresh > 0) {
+	while (invalid_ext_seen < INVALID_EXT_TRESH_NO) {
 
+		/* FIXME: define some header size macros */
 		uint16_t common_ext_head[2];
-		rc = 0, to_read = sizeof(uint16_t) * 2;
+		to_read = sizeof(uint16_t) * 2;
 
-		/* read first 4 octects of extension header */
-		if (read_len(peer_fd, &common_ext_head[rc], to_read) != to_read)
+		/* read first 4 octets of extension header */
+		if (readn(peer_fd, common_ext_head, to_read) != to_read)
 			return -1;
 
-		extension_type = ntohs(common_ext_head[0]);
+		extension_size = ntohs(common_ext_head[1]);
 
 		switch (extension_type) {
 
 			case NSE_NXT_DATA:
-				msg(STRESSFUL, "next extension header: %s", "NSE_NXT_DATA");
+				msg(STRESSFUL, "end of extension header processing (NSE_NXT_DATA)");
 				return 0;
 
 			case NSE_NXT_NONXT:
-				msg(STRESSFUL, "next extension header: %s", "NSE_NXT_NONXT");
-				return 0;
+				msg(STRESSFUL, "end of extension header processing (NSE_NXT_NONXT)");
+				return process_nonxt(peer_fd, extension_size);
 				break;
 
 			case NSE_NXT_DIGEST:
@@ -160,16 +308,32 @@ meta_exchange_rcv(int peer_fd)
 				err_msg("Not implementet yet: NSE_NXT_DIGEST\n");
 				break;
 
+			case NSE_NXT_RTT:
+				msg(STRESSFUL, "next extension header: %s", "NSE_NXT_RTT");
+				ret = process_rtt(peer_fd, extension_size);
+				if (ret == -1)
+					return -1;
+				break;
+
 			default:
-				invalid_ext_thresh--;
+				++invalid_ext_seen;
 				err_msg("received an unknown extension type (%d)!\n", extension_type);
-				/* read extension header to /dev/null/ */
+				ret = process_nonxt(peer_fd, extension_size);
+				if (ret == -1)
+					return -1;
 				break;
 		}
+
+
+		extension_type = ntohs(common_ext_head[0]);
+
 	};
 
-	return ret;
+	/* failure if we reach here (failure in previous while loop */
+	return -1;
 }
+
+#undef INVALID_EXT_TRESH_NO
 
 
 
