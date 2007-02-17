@@ -36,6 +36,9 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+
 #include <arpa/inet.h>
 
 #include "global.h"
@@ -226,6 +229,7 @@ meta_exchange_snd(int connected_fd, int file_fd)
 	/* FIXME: add a commandline argument */
 	if (1) {
 
+		int on = 1, flag_old; socklen_t flag_size;
 		struct sigaction sa;
 
 		/* initialize signalhandler for timeout handling */
@@ -235,9 +239,27 @@ meta_exchange_snd(int connected_fd, int file_fd)
 		if (sigaction(SIGALRM, &sa, NULL) != 0)
 			err_sys("Can't add signal handler");
 
+		/* set TCP_NODELAY so tcp writes dont get buffered */
+		if (opts.protocol == IPPROTO_TCP) {
+			if (getsockopt(connected_fd, IPPROTO_TCP, TCP_NODELAY,
+						(char *)&on, &flag_size) < 0)
+				err_sys_die(EXIT_FAILMISC, "Can't get TCP_NODELAY");
+			if (setsockopt(connected_fd, IPPROTO_TCP, TCP_NODELAY,
+						(char *)&on, sizeof(on)) < 0)
+				err_sys_die(EXIT_FAILMISC, "Can't set TCP_NODELAY");
+
+		}
+
 		alarm(TIMEOUT_SEC);
 		probe_rtt(connected_fd, NSE_NXT_DATA, 5, RTT_PAYLOAD_SIZE);
 		alarm(0);
+
+		if (opts.protocol == IPPROTO_TCP) {
+			if (setsockopt(connected_fd, IPPROTO_TCP, TCP_NODELAY,
+						(char *)&flag_old, sizeof(flag_old)) < 0)
+				err_sys_die(EXIT_FAILMISC, "Can't set TCP_NODELAY");
+
+		}
 	}
 
 	/* XXX: add shasum next header if opts.sha, modify nse_nxt_hdr processing */
