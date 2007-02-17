@@ -123,6 +123,7 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 		char reply_buf[to_write];
 		struct ns_rtt *ns_rtt_reply;
 		ssize_t to_read = to_write;
+		struct timeval tv, tv_tmp, tv_res;
 
 		if (++i >= probe_no)
 			current_next_hdr = next_hdr;
@@ -130,7 +131,13 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 		ns_rtt->nse_nxt_hdr = htons(current_next_hdr);
 		ns_rtt->type = (htons((uint16_t)RTT_REQUEST_TYPE));
 		ns_rtt->seq_no = htons(seq++);
-		ns_rtt->timestamp = htonl(666); /* gettimeofday() */
+
+		/* set timeval for packet */
+		if (gettimeofday(&tv, NULL) != 0)
+			err_sys("Can't call gettimeofday");
+
+		ns_rtt->sec = htonl(tv.tv_sec);
+		ns_rtt->usec = htonl(tv.tv_usec);
 
 		/* transmitt rtt probe ... */
 		if (writen(peer_fd, ns_rtt, to_write) != to_write)
@@ -140,13 +147,23 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 		if (readn(peer_fd, reply_buf, to_read) != to_read)
 			return -1;
 
+		if (gettimeofday(&tv, NULL) != 0)
+			err_sys("Can't call gettimeofday");
+
 		ns_rtt_reply = (struct ns_rtt *) reply_buf;
 
+		tv_tmp.tv_sec = ntohl(ns_rtt_reply->sec);
+		tv_tmp.tv_usec = ntohl(ns_rtt_reply->usec);
+
+		subtime(&tv_tmp, &tv, &tv_res);
+
+		/* sanity check (ident) */
 		if (ntohs(ns_rtt_reply->ident) != (getpid() & 0xffff))
 			err_msg("received a unknown rtt probe reply (ident  should: %d is: %d)",
 					ntohs(ns_rtt_reply->ident),  (getpid() & 0xffff));
-		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d)",
-				ntohs(ns_rtt_reply->seq_no), to_read);
+
+		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt difference: %ldus)",
+				ntohs(ns_rtt_reply->seq_no), to_read, tv_res.tv_usec + tv_res.tv_sec * 1000000);
 	}
 
 	return 0;
@@ -165,6 +182,9 @@ timout_handler(int sig_no)
 
 	msg(STRESSFUL, "timout occure while wait for rtt probe response");
 }
+
+#define	RTT_PAYLOAD_SIZE 500
+#define	RTT_NO_PROBES 5
 
 
 int
@@ -216,9 +236,7 @@ meta_exchange_snd(int connected_fd, int file_fd)
 			err_sys("Can't add signal handler");
 
 		alarm(TIMEOUT_SEC);
-
-		probe_rtt(connected_fd, NSE_NXT_DATA, 10, 500);
-
+		probe_rtt(connected_fd, NSE_NXT_DATA, 5, RTT_PAYLOAD_SIZE);
 		alarm(0);
 	}
 

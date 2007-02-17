@@ -314,7 +314,8 @@ struct ns_rtt {
 	uint16_t  unused; /* checksum */
 	uint16_t  ident; /* packetstream identifier */
 	uint16_t  seq_no;
-	uint32_t  timestamp;
+	uint32_t  sec;
+	uint32_t  usec;
 	/* variable data */
 } __attribute__((packed));
 

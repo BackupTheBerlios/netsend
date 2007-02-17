@@ -109,29 +109,29 @@ struct unit_map_t
 #define KiB 1
 	{ "KiB",   "kibibyte", 1024 },
 #define	Kibit 2
-	{ "Kibit", "kibit",    1016 },
+	{ "Kibit", "kibit",    128 },
 #define	MiB 3
 	{ "MiB",   "mebibyte", 1048576},
 #define	Mibit 4
-	{ "Mibit", "mebibit",  1048568},
+	{ "Mibit", "mebibit",  131072},
 #define	GiB 5
 	{ "GiB",   "gibibyte", 1073741824LL},
 #define	Gibit 6
-	{ "Gibit", "gibibit",  1073741816LL},
+	{ "Gibit", "gibibit",  134217728LL},
 
 	/* 10**n (SI prefixes) */
 #define	kB 7
 	{ "kB",    "kilobyte", 1000 },
 #define	kb 8
-	{ "kbit",  "kilobit",  992 },
+	{ "kbit",  "kilobit",  125 },
 #define	MB 9
 	{ "MB",    "megabyte", 1000000 },
 #define	Mb 10
-	{ "Mbit",  "megabit",  999992 },
+	{ "Mbit",  "megabit",  125000 },
 #define	GB 11
 	{ "GB",    "gigabyte", 1000000000LL },
 #define	Gb 12
-	{ "Gbit",  "gigabit",  999999992LL },
+	{ "Gbit",  "gigabit",  125000000LL },
 };
 
 #define	K_UNIT ( (opts.stat_prefix == STAT_PREFIX_SI) ? \
@@ -317,7 +317,7 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 
 	}
 
-	/* throughput */
+	/* throughput (bytes/s)*/
 	throughput = opts.workmode == MODE_TRANSMIT ?
 		((double)net_stat.total_tx_bytes) / total_real :
 		((double)net_stat.total_rx_bytes) / total_real;
@@ -330,7 +330,7 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 	if ((throughput / UNIT_N2F(M_UNIT)) > 1) {
 		len += DO_SNPRINTF(buf + len, max_buf_len - len, " (%.5f %s/sec",
 				(throughput / UNIT_N2F(M_UNIT)), UNIT_N2S(M_UNIT));
-		if ((throughput / UNIT_N2F(G_UNIT)) > 1) {
+		if ((throughput / UNIT_N2F(G_UNIT)) >= 1) {
 			len += DO_SNPRINTF(buf + len, max_buf_len - len, ", %.5f %s/sec",
 					(throughput / UNIT_N2F(G_UNIT)), UNIT_N2S(G_UNIT));
 		}
@@ -521,7 +521,7 @@ subtime(struct timeval *op1, struct timeval *op2, struct timeval *result)
 long
 sublong(long a, long b)
 {
-	if (((a ^ b) & ((a - b) ^ a)) >> (sizeof(long)*CHAR_BIT-1) ) {
+	if (((a ^ b) & ((a - b) ^ a)) >> ( sizeof(long) * CHAR_BIT - 1) ) {
 		err_sys("Overlow in long substraction");
 	}
 	return a - b;
