@@ -93,7 +93,7 @@ out:
 static int
 probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 {
-	uint16_t seq = 0; int i, current_next_hdr;
+	int i, current_next_hdr;
 	uint16_t packet_len; ssize_t to_write;
 	char rtt_buf[backing_data_size + sizeof(struct ns_rtt)];
 	struct ns_rtt *ns_rtt = (struct ns_rtt *) rtt_buf;
@@ -130,7 +130,7 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 
 		ns_rtt->nse_nxt_hdr = htons(current_next_hdr);
 		ns_rtt->type = (htons((uint16_t)RTT_REQUEST_TYPE));
-		ns_rtt->seq_no = htons(seq++);
+		ns_rtt->seq_no = htons(i);
 
 		/* set timeval for packet */
 		if (gettimeofday(&tv, NULL) != 0)
@@ -162,8 +162,8 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 			err_msg("received a unknown rtt probe reply (ident  should: %d is: %d)",
 					ntohs(ns_rtt_reply->ident),  (getpid() & 0xffff));
 
-		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt difference: %ldus)",
-				ntohs(ns_rtt_reply->seq_no), to_read, tv_res.tv_usec + tv_res.tv_sec * 1000000);
+		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt difference: %ldms)",
+				ntohs(ns_rtt_reply->seq_no), to_read, tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000);
 	}
 
 	return 0;
