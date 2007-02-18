@@ -313,7 +313,7 @@ struct ns_nxt_nonxt {
 
 enum ns_rtt_type { RTT_REQUEST_TYPE = 0, RTT_REPLY_TYPE };
 
-struct ns_rtt {
+struct ns_rtt_probe {
 	uint16_t  nse_nxt_hdr; /* next header */
 	uint16_t  nse_len; /* length in units of 4 octets (not including the first 4 octets) */
 	uint16_t  type; /* on of ns_rtt_type */

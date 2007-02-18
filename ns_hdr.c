@@ -98,26 +98,26 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 {
 	int i, avg_rtt_ms = 0, current_next_hdr;
 	uint16_t packet_len; ssize_t to_write;
-	char rtt_buf[backing_data_size + sizeof(struct ns_rtt)];
-	struct ns_rtt *ns_rtt = (struct ns_rtt *) rtt_buf;
-	char *data_ptr = rtt_buf + sizeof(struct ns_rtt);
+	char rtt_buf[backing_data_size + sizeof(struct ns_rtt_probe)];
+	struct ns_rtt_probe *ns_rtt_probe = (struct ns_rtt_probe *) rtt_buf;
+	char *data_ptr = rtt_buf + sizeof(struct ns_rtt_probe);
 
 	if (probe_no <= 0)
 		err_msg_die(EXIT_FAILINT, "Programmed error");
 
-	memset(ns_rtt, 0, sizeof(struct ns_rtt));
+	memset(ns_rtt_probe, 0, sizeof(struct ns_rtt_probe));
 	memset(data_ptr, 'A', backing_data_size);
 
 	/* packet backing data MUST a multiple of four */
 	packet_len = ((uint16_t)(backing_data_size / 4)) * 4;
-	to_write = packet_len + sizeof(struct ns_rtt);
+	to_write = packet_len + sizeof(struct ns_rtt_probe);
 
 	/* we announce packetsize in 4 byte slices (32bit)
 	** minus nse_nxt_hdr and nse_len header (4 byte)
 	*/
-	ns_rtt->nse_len = htons((to_write - 4) / 4);
+	ns_rtt_probe->nse_len = htons((to_write - 4) / 4);
 
-	ns_rtt->ident = htons(getpid() & 0xffff);
+	ns_rtt_probe->ident = htons(getpid() & 0xffff);
 
 	current_next_hdr = NSE_NXT_RTT;
 
@@ -130,26 +130,26 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 	for (i = 0; i <= probe_no; ) {
 
 		char reply_buf[to_write];
-		struct ns_rtt *ns_rtt_reply;
+		struct ns_rtt_probe *ns_rtt_reply;
 		ssize_t to_read = to_write;
 		struct timeval tv, tv_tmp, tv_res;
 
 		if (i++ >= probe_no)
 			current_next_hdr = next_hdr;
 
-		ns_rtt->nse_nxt_hdr = htons(current_next_hdr);
-		ns_rtt->type = (htons((uint16_t)RTT_REQUEST_TYPE));
-		ns_rtt->seq_no = htons(i);
+		ns_rtt_probe->nse_nxt_hdr = htons(current_next_hdr);
+		ns_rtt_probe->type = (htons((uint16_t)RTT_REQUEST_TYPE));
+		ns_rtt_probe->seq_no = htons(i);
 
 		/* set timeval for packet */
 		if (gettimeofday(&tv, NULL) != 0)
 			err_sys("Can't call gettimeofday");
 
-		ns_rtt->sec = htonl(tv.tv_sec);
-		ns_rtt->usec = htonl(tv.tv_usec);
+		ns_rtt_probe->sec = htonl(tv.tv_sec);
+		ns_rtt_probe->usec = htonl(tv.tv_usec);
 
 		/* transmitt rtt probe ... */
-		if (writen(peer_fd, ns_rtt, to_write) != to_write)
+		if (writen(peer_fd, ns_rtt_probe, to_write) != to_write)
 			err_msg_die(EXIT_FAILHEADER, "Can't send rtt extension header!\n");
 
 		/* ... and receive probe */
@@ -159,7 +159,7 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 		if (gettimeofday(&tv, NULL) != 0)
 			err_sys("Can't call gettimeofday");
 
-		ns_rtt_reply = (struct ns_rtt *) reply_buf;
+		ns_rtt_reply = (struct ns_rtt_probe *) reply_buf;
 
 		tv_tmp.tv_sec = ntohl(ns_rtt_reply->sec);
 		tv_tmp.tv_usec = ntohl(ns_rtt_reply->usec);
@@ -291,7 +291,7 @@ static int
 process_rtt(int peer_fd, uint16_t nse_len)
 {
 	int ret = 0; uint16_t *intptr;
-	struct ns_rtt *ns_rtt_ptr;
+	struct ns_rtt_probe *ns_rtt_probe_ptr;
 	char buf[nse_len * 4 + 4];
 	ssize_t to_read = nse_len * 4;
 
@@ -299,12 +299,12 @@ process_rtt(int peer_fd, uint16_t nse_len)
 	if (readn(peer_fd, buf + 4, to_read) != to_read)
 		return -1;
 
-	ns_rtt_ptr = (struct ns_rtt *) buf;
+	ns_rtt_probe_ptr = (struct ns_rtt_probe *) buf;
 
 	msg(STRESSFUL, "process rtt probe (sequence: %d, type: %d packet_size: %d)",
-			ntohs(ns_rtt_ptr->seq_no), ntohs(ns_rtt_ptr->type), to_read);
+			ntohs(ns_rtt_probe_ptr->seq_no), ntohs(ns_rtt_probe_ptr->type), to_read);
 
-	ns_rtt_ptr->type = htons(RTT_REPLY_TYPE);
+	ns_rtt_probe_ptr->type = htons(RTT_REPLY_TYPE);
 
 	intptr = (uint16_t *)buf;
 	*intptr = 0;
