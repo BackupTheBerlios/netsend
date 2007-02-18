@@ -178,7 +178,7 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 			continue;
 
 		/* calculate average, variance, ... */
-		avg_rtt_ms = (avg_rtt_ms * (i - 1) * (tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000)) / i;
+		avg_rtt_ms = ((avg_rtt_ms * (i - 2)) + (tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000)) / (i - 1);
 
 
 		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt difference: %ldms, avg %dms)",
