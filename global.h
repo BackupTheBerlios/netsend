@@ -223,6 +223,12 @@ struct sock_stat {
 
 struct net_stat {
 
+	struct rtt_probe {
+		uint32_t sec;
+		uint32_t usec;
+		uint32_t variance;
+	} rtt_probe;
+
 	struct sock_stat sock_stat;
 
 	unsigned int total_rx_calls;

@@ -102,9 +102,6 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 	struct ns_rtt *ns_rtt = (struct ns_rtt *) rtt_buf;
 	char *data_ptr = rtt_buf + sizeof(struct ns_rtt);
 
-	if (probe_no <= 0)
-		err_msg_die(EXIT_FAILINT, "Programmed error");
-
 	memset(ns_rtt, 0, sizeof(struct ns_rtt));
 	memset(data_ptr, 'A', backing_data_size);
 
@@ -121,7 +118,15 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 
 	current_next_hdr = NSE_NXT_RTT;
 
-	for (i = 0; i < probe_no; ) {
+	/* FIXME:
+	** The first rtt probe packet had nearly a rtt of additional
+	** 200ms. So we ignore the first packet silently and calculate
+	** rtt and variation. I think this increased measurement is caused
+	** by "cold code paths"[TM], but these is to validate. Two changes:
+	** 1) substitute < with <= in the for loop;
+	** 2) add continue statement
+	*/
+	for (i = 0; i <= probe_no; ) {
 
 		char reply_buf[to_write];
 		struct ns_rtt *ns_rtt_reply;
@@ -159,6 +164,9 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 		tv_tmp.tv_usec = ntohl(ns_rtt_reply->usec);
 
 		subtime(&tv_tmp, &tv, &tv_res);
+
+		if (i == 0)
+			continue;
 
 		/* sanity check (ident) */
 		if (ntohs(ns_rtt_reply->ident) != (getpid() & 0xffff))
