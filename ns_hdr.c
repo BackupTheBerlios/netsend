@@ -125,9 +125,7 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 	** The first rtt probe packet had nearly a rtt of additional
 	** 200ms. So we ignore the first packet silently and calculate
 	** rtt and variation. I think this increased measurement is caused
-	** by "cold code paths"[TM], but these is to validate. Two changes:
-	** 1) substitute < with <= in the for loop;
-	** 2) add continue statement
+	** by "cold code paths"[TM], but these is to validate.
 	*/
 	for (i = 0; i <= probe_no; ) {
 
@@ -136,7 +134,7 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 		ssize_t to_read = to_write;
 		struct timeval tv, tv_tmp, tv_res;
 
-		if (++i >= probe_no)
+		if (i++ >= probe_no)
 			current_next_hdr = next_hdr;
 
 		ns_rtt->nse_nxt_hdr = htons(current_next_hdr);
