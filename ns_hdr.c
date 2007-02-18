@@ -96,7 +96,7 @@ out:
 static int
 probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 {
-	int i, current_next_hdr;
+	int i, avg_rtt_ms = 0, current_next_hdr;
 	uint16_t packet_len; ssize_t to_write;
 	char rtt_buf[backing_data_size + sizeof(struct ns_rtt)];
 	struct ns_rtt *ns_rtt = (struct ns_rtt *) rtt_buf;
@@ -171,11 +171,18 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 			err_msg("received a unknown rtt probe reply (ident  should: %d is: %d)",
 					ntohs(ns_rtt_reply->ident),  (getpid() & 0xffff));
 
+		/* XXX: if you change something here, then check all counter
+		** variables, etc
+		*/
 		if (i == 1)
 			continue;
 
-			msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt difference: %ldms)",
-					ntohs(ns_rtt_reply->seq_no), to_read, tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000);
+		/* calculate average, variance, ... */
+		avg_rtt_ms = (avg_rtt_ms * (i - 1) * (tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000)) / i;
+
+
+		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt difference: %ldms, avg %dms)",
+				ntohs(ns_rtt_reply->seq_no), to_read, tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000, avg_rtt_ms);
 	}
 
 	return 0;
