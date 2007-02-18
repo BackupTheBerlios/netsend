@@ -102,6 +102,9 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 	struct ns_rtt *ns_rtt = (struct ns_rtt *) rtt_buf;
 	char *data_ptr = rtt_buf + sizeof(struct ns_rtt);
 
+	if (probe_no <= 0)
+		err_msg_die(EXIT_FAILINT, "Programmed error");
+
 	memset(ns_rtt, 0, sizeof(struct ns_rtt));
 	memset(data_ptr, 'A', backing_data_size);
 
@@ -165,16 +168,16 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 
 		subtime(&tv_tmp, &tv, &tv_res);
 
-		if (i == 0)
-			continue;
-
 		/* sanity check (ident) */
 		if (ntohs(ns_rtt_reply->ident) != (getpid() & 0xffff))
 			err_msg("received a unknown rtt probe reply (ident  should: %d is: %d)",
 					ntohs(ns_rtt_reply->ident),  (getpid() & 0xffff));
 
-		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt difference: %ldms)",
-				ntohs(ns_rtt_reply->seq_no), to_read, tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000);
+		if (i != 1) {
+
+			msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt difference: %ldms)",
+					ntohs(ns_rtt_reply->seq_no), to_read, tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000);
+		}
 	}
 
 	return 0;
