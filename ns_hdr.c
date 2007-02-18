@@ -198,6 +198,7 @@ meta_exchange_snd(int connected_fd, int file_fd)
 	ssize_t file_size;
 	struct ns_hdr ns_hdr;
 	struct stat stat_buf;
+	int perform_rtt;
 
 	memset(&ns_hdr, 0, sizeof(struct ns_hdr));
 
@@ -212,22 +213,21 @@ meta_exchange_snd(int connected_fd, int file_fd)
 
 
 	ns_hdr.magic = htons(NS_MAGIC);
-	/* FIXME: handle overflow */
+	/* FIXME: catch overflow */
 	ns_hdr.version = htons((uint16_t) strtol(VERSIONSTRING, (char **)NULL, 10));
 	ns_hdr.data_size = htonl(file_size);
 
+	perform_rtt = (opts.rtt_probe_opt.iterations > 0) ? 1 : 0;
 
-	/* FIXME: the code till the end in this function is alpha, there need some
-	** glue around it like a nice next header handling
-	*/
-	ns_hdr.nse_nxt_hdr = htons(NSE_NXT_RTT);
+
+	ns_hdr.nse_nxt_hdr = perform_rtt ? htons(NSE_NXT_RTT) : htons(NSE_NXT_DATA);
 
 	len = sizeof(struct ns_hdr);
 	if (writen(connected_fd, &ns_hdr, len) != len)
 		err_msg_die(EXIT_FAILHEADER, "Can't send netsend header!\n");
 
-	/* FIXME: add a commandline argument */
-	if (1) {
+	/* probe for effective round trip time */
+	if (opts.rtt_probe_opt.iterations > 0) {
 
 		int on = 1, flag_old; socklen_t flag_size;
 		struct sigaction sa;
@@ -251,13 +251,14 @@ meta_exchange_snd(int connected_fd, int file_fd)
 		}
 
 		alarm(TIMEOUT_SEC);
-		probe_rtt(connected_fd, NSE_NXT_DATA, 5, RTT_PAYLOAD_SIZE);
+		probe_rtt(connected_fd, NSE_NXT_DATA,
+				opts.rtt_probe_opt.iterations, opts.rtt_probe_opt.data_size);
 		alarm(0);
 
 		if (opts.protocol == IPPROTO_TCP) {
 			if (setsockopt(connected_fd, IPPROTO_TCP, TCP_NODELAY,
 						(char *)&flag_old, sizeof(flag_old)) < 0)
-				err_sys_die(EXIT_FAILMISC, "Can't set TCP_NODELAY");
+				err_sys_die(EXIT_FAILMISC, "Can't restore TCP_NODELAY");
 
 		}
 	}

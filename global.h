@@ -367,6 +367,13 @@ struct opts {
 	int sched_policy;
 	int priority;
 	int nice;
+
+	/* this stores option for the rtt probe commandline option '-R' */
+	struct rtt_probe_opt {
+		int iterations;
+		int data_size;
+		int force_ms;
+	} rtt_probe_opt;
 };
 
 /* error handling macros */

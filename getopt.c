@@ -121,6 +121,68 @@ usage(void)
 }
 
 
+static int
+parse_rtt_string(char *rtt_cmd)
+{
+	char *string, *tok;
+
+	for (string = rtt_cmd; ; string = NULL) {
+		tok = strtok(string, ",");
+		if (tok == NULL)
+			break;
+
+		if (*(tok + strlen(tok) - 1) == 'n') {
+			char no[strlen(tok)];
+			int len = strlen(tok);
+
+			memcpy(no, tok, len - 1);
+			no[len] = '0';
+			opts.rtt_probe_opt.iterations = strtol(no, (char **)NULL, 10);
+			if (opts.rtt_probe_opt.iterations <= 0 ||
+					opts.rtt_probe_opt.iterations > 100) {
+				fprintf(stderr, "You want %d rtt probe iterations - that's not sensible! "
+						"Valid range is between 1 and 100 probe iterations\n", opts.rtt_probe_opt.iterations);
+				return -1;
+
+			}
+		} else if (*(tok + strlen(tok) - 1) == 'd') {
+			char no[strlen(tok)];
+			int len = strlen(tok);
+
+			memcpy(no, tok, len - 1);
+			no[len] = '0';
+
+			opts.rtt_probe_opt.data_size = strtol(no, (char **)NULL, 10);
+			if (opts.rtt_probe_opt.data_size <= 0) {
+				fprintf(stderr, "%d not a valid data size for our rtt probe\n",
+						opts.rtt_probe_opt.data_size);
+				return -1;
+			}
+
+		} else if (*(tok + strlen(tok) - 1) == 'f') {
+			char no[strlen(tok)];
+			int len = strlen(tok);
+
+			memcpy(no, tok, len - 1);
+			no[len] = '0';
+
+			opts.rtt_probe_opt.force_ms = strtol(no, (char **)NULL, 10);
+			if (opts.rtt_probe_opt.force_ms < 0) {
+				fprintf(stderr, "%dms are nonsensical for a rtt\n",
+						opts.rtt_probe_opt.force_ms);
+				return -1;
+			}
+
+		} else {
+			fprintf(stderr, "short rtt option %s in %s not supported\n", tok, rtt_cmd);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+
 /* parse_short_opt is a helper function who
 ** parse the particular options
 */
@@ -222,6 +284,21 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			fprintf(stderr, "ERROR: Congestion algorithm %s not supported!\n",
 					(*argv)[2]);
 			exit(EXIT_FAILOPT);
+			break;
+		case 'R':
+			if (((*opt_str)[2])  || ((*argc) <= 2)) {
+				fprintf(stderr, "option error (%c:%d)\n",
+						(*opt_str)[2], (*argc));
+				exit(1);
+			}
+			if (parse_rtt_string((*argv)[2]) < 0) {
+				fprintf(stderr, "ERROR: Failure in rtt probe string %s !\n",
+						(*argv)[2]);
+				exit(EXIT_FAILOPT);
+			}
+			(*argc)--;
+			(*argv)++;
+			return 0;
 			break;
 		case 'X':
 			if (((*opt_str)[2])  || ((*argc) <= 2)) {
@@ -503,6 +580,11 @@ parse_opts(int argc, char *argv[])
 	opts.stat_unit   = BYTE_UNIT;
 	opts.stat_prefix = STAT_PREFIX_BINARY;
 	opts.buffer_size = 0; /* we use default values (sendfile(): unlimited) */
+
+	/* default behaviour is to probe the rtt: 10 times with a 500 payload packet */
+	opts.rtt_probe_opt.iterations = 10;
+	opts.rtt_probe_opt.data_size = 500;
+	opts.rtt_probe_opt.force_ms = 0;
 
 	/* if opts.nice is equal INT_MAX nobody change something - hopefully */
 	opts.nice = INT_MAX;
