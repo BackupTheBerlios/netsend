@@ -171,11 +171,11 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 			err_msg("received a unknown rtt probe reply (ident  should: %d is: %d)",
 					ntohs(ns_rtt_reply->ident),  (getpid() & 0xffff));
 
-		if (i != 1) {
+		if (i == 1)
+			continue;
 
 			msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt difference: %ldms)",
 					ntohs(ns_rtt_reply->seq_no), to_read, tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000);
-		}
 	}
 
 	return 0;
