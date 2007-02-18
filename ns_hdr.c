@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <signal.h>
+#include <math.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -45,6 +46,7 @@
 #include "debug.h"
 
 extern struct opts opts;
+extern struct net_stat net_stat;
 
 static ssize_t
 writen(int fd, const void *buf, size_t len)
@@ -96,7 +98,8 @@ out:
 static int
 probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 {
-	int i, avg_rtt_ms = 0, current_next_hdr;
+	int i, j, current_next_hdr;
+	double rtt_ms[probe_no + 1], variance_tmp = 0;
 	uint16_t packet_len; ssize_t to_write;
 	char rtt_buf[backing_data_size + sizeof(struct ns_rtt_probe)];
 	struct ns_rtt_probe *ns_rtt_probe = (struct ns_rtt_probe *) rtt_buf;
@@ -119,7 +122,7 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 
 	ns_rtt_probe->ident = htons(getpid() & 0xffff);
 
-	current_next_hdr = NSE_NXT_RTT;
+	current_next_hdr = NSE_NXT_RTT_PROBE;
 
 	/* FIXME:
 	** The first rtt probe packet had nearly a rtt of additional
@@ -177,13 +180,28 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 		if (i == 1)
 			continue;
 
-		/* calculate average, variance, ... */
-		avg_rtt_ms = ((avg_rtt_ms * (i - 2)) + (tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000)) / (i - 1);
 
+		rtt_ms[i - 2] = (tv_res.tv_sec * 1000) + ((double)tv_res.tv_usec / 1000);
 
-		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt difference: %ldms, avg %dms)",
-				ntohs(ns_rtt_reply->seq_no), to_read, tv_res.tv_usec / 1000 + tv_res.tv_sec * 1000, avg_rtt_ms);
+		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt: %.5fms)",
+				ntohs(ns_rtt_reply->seq_no), to_read, rtt_ms[i - 2]);
+
 	}
+
+	/* average */
+	for (j = 0; j < probe_no; j++)
+		net_stat.rtt_probe.usec += rtt_ms[j];
+
+	net_stat.rtt_probe.usec /= --j;
+
+	/* ... covariance and standard deviation */
+	for (j = 0; j < probe_no; j++)
+		variance_tmp += pow(rtt_ms[j] - net_stat.rtt_probe.usec, 2);
+
+	variance_tmp /= --j;
+
+	msg(LOUDISH, "average rtt: %fms, covariance: %fms, standard deviation %fms",
+			net_stat.rtt_probe.usec, variance_tmp, sqrt(variance_tmp));
 
 	return 0;
 }
@@ -236,7 +254,7 @@ meta_exchange_snd(int connected_fd, int file_fd)
 	perform_rtt = (opts.rtt_probe_opt.iterations > 0) ? 1 : 0;
 
 
-	ns_hdr.nse_nxt_hdr = perform_rtt ? htons(NSE_NXT_RTT) : htons(NSE_NXT_DATA);
+	ns_hdr.nse_nxt_hdr = perform_rtt ? htons(NSE_NXT_RTT_PROBE) : htons(NSE_NXT_DATA);
 
 	len = sizeof(struct ns_hdr);
 	if (writen(connected_fd, &ns_hdr, len) != len)
@@ -277,6 +295,9 @@ meta_exchange_snd(int connected_fd, int file_fd)
 				err_sys_die(EXIT_FAILMISC, "Can't restore TCP_NODELAY");
 
 		}
+
+		/* transmitt our rtt probe results to our peer */
+
 	}
 
 	/* XXX: add shasum next header if opts.sha, modify nse_nxt_hdr processing */
@@ -288,7 +309,7 @@ meta_exchange_snd(int connected_fd, int file_fd)
 ** nse_len to the current packet size and send it back to origin
 */
 static int
-process_rtt(int peer_fd, uint16_t nse_len)
+process_rtt_probe(int peer_fd, uint16_t nse_len)
 {
 	int ret = 0; uint16_t *intptr;
 	struct ns_rtt_probe *ns_rtt_probe_ptr;
@@ -317,6 +338,24 @@ process_rtt(int peer_fd, uint16_t nse_len)
 
 	return ret;
 }
+
+
+static int
+process_rtt_info(int peer_fd, uint16_t nse_len)
+{
+	char buf[nse_len * 4 + sizeof(uint16_t) * 2];
+	ssize_t to_read = nse_len * 4;
+	struct ns_rtt_info *ns_rtt_info;
+
+	if (readn(peer_fd, buf + sizeof(uint16_t) * 2, to_read) != to_read)
+		return -1;
+
+	ns_rtt_info = (struct ns_rtt_info *)buf;
+
+
+	return 0;
+}
+
 
 static int
 process_nonxt(int peer_fd, uint16_t nse_len)
@@ -398,9 +437,16 @@ meta_exchange_rcv(int peer_fd)
 				err_msg("Not implementet yet: NSE_NXT_DIGEST\n");
 				break;
 
-			case NSE_NXT_RTT:
-				msg(STRESSFUL, "next extension header: %s", "NSE_NXT_RTT");
-				ret = process_rtt(peer_fd, extension_size);
+			case NSE_NXT_RTT_PROBE:
+				msg(STRESSFUL, "next extension header: %s", "NSE_NXT_RTT_PROBE");
+				ret = process_rtt_probe(peer_fd, extension_size);
+				if (ret == -1)
+					return -1;
+				break;
+
+			case NSE_NXT_RTT_INFO:
+				msg(STRESSFUL, "next extension header: %s", "NSE_NXT_RTT_INFO");
+				ret = process_rtt_info(peer_fd, extension_size);
 				if (ret == -1)
 					return -1;
 				break;

@@ -224,9 +224,8 @@ struct sock_stat {
 struct net_stat {
 
 	struct rtt_probe {
-		uint32_t sec;
-		uint32_t usec;
-		uint32_t variance;
+		double usec;
+		double variance;
 	} rtt_probe;
 
 	struct sock_stat sock_stat;
@@ -257,10 +256,11 @@ enum workmode { MODE_NONE = 0, MODE_TRANSMIT, MODE_RECEIVE };
 #define	NS_MAGIC 0x67
 
 
-#define	NSE_NXT_DATA   (0)
-#define	NSE_NXT_DIGEST (1)
-#define	NSE_NXT_RTT    (2)
-#define	NSE_NXT_NONXT  (3)
+#define	NSE_NXT_DATA         0
+#define	NSE_NXT_DIGEST       1
+#define	NSE_NXT_RTT_PROBE    2
+#define	NSE_NXT_NONXT        3
+#define	NSE_NXT_RTT_INFO     4
 
 struct ns_hdr {
 	uint16_t magic;
@@ -323,6 +323,13 @@ struct ns_rtt_probe {
 	uint32_t  sec;
 	uint32_t  usec;
 	/* variable data */
+} __attribute__((packed));
+
+struct ns_rtt_info {
+	uint16_t  nse_nxt_hdr; /* next header */
+	uint16_t  nse_len; /* ... you know */
+	uint32_t  sec;
+	uint32_t  usec;
 } __attribute__((packed));
 
 

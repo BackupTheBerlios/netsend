@@ -15,6 +15,8 @@ OBJECTS =    error.o    \
 						 ns_hdr.o   \
 						 xfuncs.o
 
+LIBS = -lm
+
 # Inline workaround:
 # max-inline-insns-single specified the maximum size
 # of a function (counted in internal gcc instructions).
@@ -40,7 +42,7 @@ config.h:
 	@bash configure
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJECTS)
+	$(CC) $(LIBS) $(CFLAGS) -o $(TARGET) $(OBJECTS)
 
 %.o: %.c global.h Makefile
 	$(CC) $(CFLAGS) -c  $< -o $@
