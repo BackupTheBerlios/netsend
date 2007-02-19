@@ -287,7 +287,7 @@ meta_exchange_snd(int connected_fd, int file_fd)
 	/* probe for effective round trip time */
 	if (opts.rtt_probe_opt.iterations > 0) {
 
-		int on = 1, flag_old; socklen_t flag_size;
+		int flag_old;
 		struct sigaction sa;
 
 		/* initialize signalhandler for timeout handling */
@@ -299,13 +299,9 @@ meta_exchange_snd(int connected_fd, int file_fd)
 
 		/* set TCP_NODELAY so tcp writes dont get buffered */
 		if (opts.protocol == IPPROTO_TCP) {
-			if (getsockopt(connected_fd, IPPROTO_TCP, TCP_NODELAY,
-						(char *)&on, &flag_size) < 0)
-				err_sys_die(EXIT_FAILMISC, "Can't get TCP_NODELAY");
-			if (setsockopt(connected_fd, IPPROTO_TCP, TCP_NODELAY,
-						(char *)&on, sizeof(on)) < 0)
-				err_sys_die(EXIT_FAILMISC, "Can't set TCP_NODELAY");
-
+			if ((flag_old = set_nodelay(connected_fd, 1)) < 0) {
+				err_sys("Can't set TCP_NODELAY for socket");
+			}
 		}
 
 		alarm(TIMEOUT_SEC);
@@ -313,11 +309,11 @@ meta_exchange_snd(int connected_fd, int file_fd)
 				opts.rtt_probe_opt.iterations, opts.rtt_probe_opt.data_size);
 		alarm(0);
 
+		/* and restore TCP_NOPUSH */
 		if (opts.protocol == IPPROTO_TCP) {
-			if (setsockopt(connected_fd, IPPROTO_TCP, TCP_NODELAY,
-						(char *)&flag_old, sizeof(flag_old)) < 0)
-				err_sys_die(EXIT_FAILMISC, "Can't restore TCP_NODELAY");
-
+			if ((set_nodelay(connected_fd, flag_old)) < 0) {
+				err_sys("Can't set TCP_NODELAY for socket");
+			}
 		}
 
 		/* transmitt our rtt probe results to our peer */

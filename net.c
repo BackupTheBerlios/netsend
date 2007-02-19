@@ -49,6 +49,26 @@ xgetaddrinfo(const char *node, const char *service,
 	}
 }
 
+/* set TCP_NODELAY opption on socket
+** return the previous value (0, 1) or
+** -1 if a error occur
+*/
+int
+set_nodelay(int fd, int flag)
+{
+	int ret; socklen_t ret_size;
+
+	if (getsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&ret, &ret_size) < 0) {
+		return -1;
+	}
+
+	if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(flag)) < 0) {
+		return -1;
+	}
+
+	return ret;
+}
+
 
 static int
 get_ip_sock_opts(int fd, struct net_stat *ns)

@@ -493,6 +493,7 @@ void xgetaddrinfo(const char *, const char *,
 		struct addrinfo *, struct addrinfo **);
 int get_sock_opts(int, struct net_stat *);
 void change_congestion(int fd);
+int set_nodelay(int, int);
 
 /* ns_hdr.c */
 int meta_exchange_snd(int, int);
