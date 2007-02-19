@@ -158,7 +158,20 @@ parse_rtt_string(char *rtt_cmd)
 						opts.rtt_probe_opt.data_size);
 				return -1;
 			}
+		} else if (*(tok + strlen(tok) - 1) == 'm') {
+			char no[strlen(tok)];
+			int len = strlen(tok);
 
+			memcpy(no, tok, len - 1);
+			no[len] = '0';
+
+			opts.rtt_probe_opt.deviation_filter = strtol(no, (char **)NULL, 10);
+			if (opts.rtt_probe_opt.deviation_filter < 0 ||
+				opts.rtt_probe_opt.deviation_filter > 50) {
+				fprintf(stderr, "%dms are nonsensical for the filter multiplier (default is %d)\n",
+						opts.rtt_probe_opt.force_ms, DEFAULT_RTT_FILTER);
+				return -1;
+			}
 		} else if (*(tok + strlen(tok) - 1) == 'f') {
 			char no[strlen(tok)];
 			int len = strlen(tok);
@@ -585,6 +598,8 @@ parse_opts(int argc, char *argv[])
 	opts.rtt_probe_opt.iterations = 10;
 	opts.rtt_probe_opt.data_size = 500;
 	opts.rtt_probe_opt.force_ms = 0;
+	/* our threshold filter */
+	opts.rtt_probe_opt.deviation_filter = DEFAULT_RTT_FILTER;
 
 	/* if opts.nice is equal INT_MAX nobody change something - hopefully */
 	opts.nice = INT_MAX;

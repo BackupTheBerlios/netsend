@@ -1,0 +1,72 @@
+=head1 NAME
+
+netsend - a speedy filetransfer and network diagnostic program
+
+=head1 SYNOPSIS
+
+netsend
+
+=head1 DESCRIPTION
+
+
+=head1 OPTIONS
+
+  <-h> display a short help text
+
+  -D<Nn,Nd,Nm,Nf>
+
+    Round trip probes options:
+
+    Nn - Number of iterations of round trip probes. Default is to perform 10 attempts.
+         Don't set to less then 5 because measurement results will not very predicating.
+
+    Nd - Size of rtt payload. This is the number of bytes piggybacking (plus the
+         netsend rtt header). Default is 500 byte, maybe your mtu minus netsend header
+         minus protocol header (tcp, udp) will better fit for your needs.
+
+    Nm - for the round trip time probes netsend calculates a deviation. With this
+         flag you can adjust the filter. Default is 4. Lower values drain more probes
+         out, so be carefully with this option.
+
+         For example: if you have measured rtt probes of 4, 5, 5, 6 and 15 ms. The
+         average is 7. Covariance is 16.4 and deviation is 4.04. If you select 2 here as
+         the multiplier, then you filter all rtt probes with higher values then 8.08 (for 
+         this example you filer 15ms out).
+
+         This will help to discard some nonesense probes who are evoked through cold code
+         paths (cache misses, page faults, ...) or network anomalies. Use this option
+         carefully!
+
+    Nf - forces to don't perform rtt probes but take N milliseconds as average value. With
+         this option you can figure out the behaviour of satelite links (e.g you say -D500f)
+
+
+
+=head1 EXAMPLES
+
+
+  netsend -r
+
+
+=head1 EXIT STATUS
+
+netsend returns a zero exist status if it succeeds.
+Non zero is returned in case of failure. Following failure codes
+are implemented:
+
+  0 - succeed
+  1 - failure in memory handling
+  2 - command line option error
+  3 - failure which fit in any categories
+  4 - network error
+  5 - failure in netsend header (maybe corrupted hardware)
+  6 - netsend internal error (should never happen[tm])
+
+=head1 AUTHOR
+
+  Hagen Paul Pfeifer
+  Florian Westphal
+
+=head1 SEE ALSO
+
+http://netsend.berlios.de

@@ -381,10 +381,13 @@ struct opts {
 	int priority;
 	int nice;
 
+#define	DEFAULT_RTT_FILTER 4
+
 	/* this stores option for the rtt probe commandline option '-R' */
 	struct rtt_probe_opt {
 		int iterations;
 		int data_size;
+		int deviation_filter;
 		int force_ms;
 	} rtt_probe_opt;
 };

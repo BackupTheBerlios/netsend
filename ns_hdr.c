@@ -99,7 +99,8 @@ static int
 probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 {
 	int i, j, current_next_hdr;
-	double rtt_ms[probe_no + 1], variance_tmp = 0;
+	double rtt_ms[probe_no + 1], deviation = 0, covariance = 0;
+	double d_tmp = 0;
 	uint16_t packet_len; ssize_t to_write;
 	char rtt_buf[backing_data_size + sizeof(struct ns_rtt_probe)];
 	struct ns_rtt_probe *ns_rtt_probe = (struct ns_rtt_probe *) rtt_buf;
@@ -180,10 +181,9 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 		if (i == 1)
 			continue;
 
-
 		rtt_ms[i - 2] = (tv_res.tv_sec * 1000) + ((double)tv_res.tv_usec / 1000);
 
-		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt: %.5fms)",
+		msg(STRESSFUL, "receive rtt reply probe (sequence: %d, len %d, rtt: %.3fms)",
 				ntohs(ns_rtt_reply->seq_no), to_read, rtt_ms[i - 2]);
 
 	}
@@ -196,12 +196,30 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 
 	/* ... covariance and standard deviation */
 	for (j = 0; j < probe_no; j++)
-		variance_tmp += pow(rtt_ms[j] - net_stat.rtt_probe.usec, 2);
+		covariance += pow(rtt_ms[j] - net_stat.rtt_probe.usec, 2);
 
-	variance_tmp /= --j;
+	covariance /= --j;
+	deviation = sqrt(covariance);
 
-	msg(LOUDISH, "average rtt: %fms, covariance: %fms, standard deviation %fms",
-			net_stat.rtt_probe.usec, variance_tmp, sqrt(variance_tmp));
+	d_tmp = 0;
+
+	/* low and high pass deviation based filter, calculates new rtt average */
+	for (j = 0, i = 0; j < probe_no; j++) {
+
+		if (((rtt_ms[j] > net_stat.rtt_probe.usec) &&
+			(rtt_ms[j] < (net_stat.rtt_probe.usec +
+				(deviation * opts.rtt_probe_opt.deviation_filter)))) ||
+		   ((rtt_ms[j] < net_stat.rtt_probe.usec) &&
+			(rtt_ms[j] > (net_stat.rtt_probe.usec -
+				(deviation * opts.rtt_probe_opt.deviation_filter))))) {
+			d_tmp += rtt_ms[j];
+			++i;
+		}
+	}
+	net_stat.rtt_probe.usec = d_tmp / i;
+
+	msg(LOUDISH, "average rtt: %.3fms (after filter), covariance: %.3fms^2, standard deviation %.3fms",
+			net_stat.rtt_probe.usec, covariance, deviation);
 
 	return 0;
 }
@@ -223,6 +241,12 @@ timout_handler(int sig_no)
 #define	RTT_PAYLOAD_SIZE 500
 #define	RTT_NO_PROBES 5
 
+
+static int
+send_rtt_info(int fd, int next_hdr, struct rtt_probe *rtt_probe)
+{
+	return -1;
+}
 
 int
 meta_exchange_snd(int connected_fd, int file_fd)
@@ -297,6 +321,7 @@ meta_exchange_snd(int connected_fd, int file_fd)
 		}
 
 		/* transmitt our rtt probe results to our peer */
+		send_rtt_info(connected_fd, NSE_NXT_DATA, &net_stat.rtt_probe);
 
 	}
 

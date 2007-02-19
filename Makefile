@@ -15,6 +15,9 @@ OBJECTS =    error.o    \
 						 ns_hdr.o   \
 						 xfuncs.o
 
+POD = netsend.pod
+MAN = netsend.1
+
 LIBS = -lm
 
 # Inline workaround:
@@ -57,7 +60,10 @@ clean :
 	@rm -rf $(TARGET) $(OBJECTS) core *~
 
 distclean: clean
-	@rm -f config.h Make.Rules
+	@rm -f config.h Make.Rules $(MAN)
+
+man: $(POD)
+	pod2man -d $(TARGET) -c $(TARGET) $(POD) > $(MAN)
 
 DISTNAME=$(TARGET)
 
