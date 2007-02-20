@@ -245,6 +245,9 @@ timout_handler(int sig_no)
 static int
 send_rtt_info(int fd, int next_hdr, struct rtt_probe *rtt_probe)
 {
+	(void) fd;
+	(void) next_hdr;
+	(void) rtt_probe;
 	return -1;
 }
 
@@ -300,7 +303,8 @@ meta_exchange_snd(int connected_fd, int file_fd)
 		/* set TCP_NODELAY so tcp writes dont get buffered */
 		if (opts.protocol == IPPROTO_TCP) {
 			if ((flag_old = set_nodelay(connected_fd, 1)) < 0) {
-				err_sys("Can't set TCP_NODELAY for socket");
+				err_sys("Can't set TCP_NODELAY for socket (ret: %d)",
+						flag_old);
 			}
 		}
 

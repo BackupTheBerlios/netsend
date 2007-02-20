@@ -56,15 +56,28 @@ xgetaddrinfo(const char *node, const char *service,
 int
 set_nodelay(int fd, int flag)
 {
-	int ret; socklen_t ret_size;
+	int ret = 0; socklen_t ret_size;
 
-	if (getsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&ret, &ret_size) < 0) {
+	if (getsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&ret, &ret_size) < 0)
 		return -1;
-	}
 
-	if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(flag)) < 0) {
+	if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(flag)) < 0)
 		return -1;
-	}
+
+	return ret;
+}
+
+
+int
+get_tcp_info(int fd, struct tcp_info *tcp_info)
+{
+	int ret = 0; socklen_t ret_size = sizeof(struct tcp_info);
+
+	if (getsockopt(fd, IPPROTO_TCP, TCP_INFO, (char *)&tcp_info, &ret_size) < 0)
+		return -1;
+
+	if (sizeof(struct tcp_info) != ret_size)
+		return -1;
 
 	return ret;
 }

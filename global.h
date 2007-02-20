@@ -221,12 +221,17 @@ struct sock_stat {
 	/* ip attributes */
 };
 
+#define __USE_MISC 1
+#include <netinet/tcp.h> /* for struct tcp_info */
+
 struct net_stat {
 
 	struct rtt_probe {
 		double usec;
 		double variance;
 	} rtt_probe;
+
+	struct tcp_info tcp_info;
 
 	struct sock_stat sock_stat;
 
@@ -494,6 +499,7 @@ void xgetaddrinfo(const char *, const char *,
 int get_sock_opts(int, struct net_stat *);
 void change_congestion(int fd);
 int set_nodelay(int, int);
+int get_tcp_info(int, struct tcp_info *);
 
 /* ns_hdr.c */
 int meta_exchange_snd(int, int);

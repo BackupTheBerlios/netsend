@@ -564,6 +564,46 @@ transmit_mode(void)
 
 	gettimeofday(&opts.endtime, NULL);
 
+	/* print tcp statistic if we run verbose (LOUDISCH) */
+	if (opts.protocol == IPPROTO_TCP && VL_LOUDISH(opts.verbose)) {
+
+		struct tcp_info tcp_info;
+
+		if (get_tcp_info(connected_fd, &tcp_info) >= 0) {
+			 fprintf(stderr, "\ntcp info:\n"
+					 "\tretransmits:   %d\n"
+					 "\tprobes:        %d\n"
+					 "\tbackoff:       %d\n",
+					 tcp_info.tcpi_retransmits, tcp_info.tcpi_probes,
+					 tcp_info.tcpi_backoff);
+			 fprintf(stderr,
+					 "\toptions:       ");
+			 /* see netinet/tcp.h for definition */
+			 if (tcp_info.tcpi_options & TCPI_OPT_TIMESTAMPS)
+				 fprintf(stderr, "TIMESTAMPS ");
+			 if (tcp_info.tcpi_options & TCPI_OPT_SACK)
+				 fprintf(stderr, "SACK ");
+			 if (tcp_info.tcpi_options & TCPI_OPT_WSCALE)
+				 fprintf(stderr, "WSCALE ");
+			 if (tcp_info.tcpi_options & TCPI_OPT_ECN)
+				 fprintf(stderr, "ECN ");
+			 fputs("\n", stderr);
+			 fprintf(stderr,
+					 "\tsnd_wscale:    %d\n"
+					 "\trcv_wscale:    %d\n"
+					 "\trto:           %d\n"
+					 "\tato:           %d\n"
+					 "\tsnd_mss:       %d\n"
+					 "\trcv_mss:       %d\n"
+					 "\tunacked:       %d\n"
+					 , tcp_info.tcpi_snd_wscale, tcp_info.tcpi_rcv_wscale,
+					 tcp_info.tcpi_rto, tcp_info.tcpi_ato, tcp_info.tcpi_snd_mss,
+					 tcp_info.tcpi_rcv_mss, tcp_info.tcpi_unacked);
+
+
+		}
+	}
+
 	/* if we spawn a child - reaping it here */
 	waitpid(-1, &child_status, 0);
 
