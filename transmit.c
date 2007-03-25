@@ -41,7 +41,7 @@
 
 #include "debug.h"
 #include "global.h"
-
+#include "xfuncs.h"
 
 extern struct opts opts;
 extern struct net_stat net_stat;
@@ -136,10 +136,8 @@ ss_rw(int file_fd, int connected_fd)
 
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
 		cnt_coll = write_len(connected_fd, buf, cnt);
-		if (cnt_coll == -1) {
-			err_sys("write error");
-			exit(EXIT_FAILNET);;
-		}
+		if (cnt_coll == -1)
+			err_sys_die(EXIT_FAILNET, "write error");
 		/* correct statistics */
 		net_stat.total_tx_bytes += cnt_coll;
 
@@ -236,10 +234,8 @@ ss_sendfile(int file_fd, int connected_fd)
 	msg(STRESSFUL, "send via sendfile io operation");
 
 	ret = fstat(file_fd, &stat_buf);
-	if (ret == -1) {
-		err_sys("Can't fstat file %s", opts.infile);
-		exit(EXIT_FAILMISC);
-	}
+	if (ret == -1)
+		err_sys_die(EXIT_FAILMISC, "Can't fstat file %s", opts.infile);
 
 	/* full or partial write */
 	write_cnt = opts.buffer_size ?
@@ -250,20 +246,16 @@ ss_sendfile(int file_fd, int connected_fd)
 	/* write chunked sized frames */
 	while (stat_buf.st_size - offset - 1 >= write_cnt) {
 		rc = sendfile(connected_fd, file_fd, &offset, write_cnt);
-		if (rc == -1) {
-			err_sys("Failure in sendfile routine");
-			exit(EXIT_FAILNET);
-		}
+		if (rc == -1)
+			err_sys_die(EXIT_FAILNET, "Failure in sendfile routine");
 		net_stat.total_tx_calls += 1;
 	};
 	/* and write remaining bytes, if any */
 	write_cnt = stat_buf.st_size - offset - 1;
 	if (write_cnt >= 0) {
 		rc = sendfile(connected_fd, file_fd, &offset, write_cnt + 1);
-		if (rc == -1) {
-			err_sys("Failure in sendfile routine");
-			exit(EXIT_FAILNET);
-		}
+		if (rc == -1)
+			err_sys_die(EXIT_FAILNET, "Failure in sendfile routine");
 		net_stat.total_tx_calls += 1;
 	}
 
@@ -329,6 +321,8 @@ set_socketopts(int fd)
 						         socket_options[i].option,
 								 &socket_options[i].value,
 								 sizeof(socket_options[i].value));
+				if (ret)
+					err_sys("setsockopt option %d failed", socket_options[i].sockopt_type);
 				break;
 			default:
 				DEBUGPRINTF("Unknown sockopt_type %d\n",
@@ -409,34 +403,17 @@ instigate_ss(void)
 				int on = 1;
 			switch (addrtmp->ai_family) {
 				case AF_INET6:
-					ret = setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-							         (char *)&hops_ttl, sizeof(hops_ttl));
-					if (ret == -1) {
-						err_sys("Can't set socketoption IPV6_MULTICAST_HOPS");
-						exit(EXIT_FAILNET);
-					}
-
-					ret = setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-							&on, sizeof(int));
-					if (ret == -1) {
-						err_sys("setsockopt (IPV6_MULTICAST_LOOP) failed");
-						exit(EXIT_FAILNET);
-					}
+					xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *)&hops_ttl,
+								sizeof(hops_ttl), "IPV6_MULTICAST_HOPS");
+					xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+							&on, sizeof(int), "IPV6_MULTICAST_LOOP");
 					break;
 				case AF_INET:
-					ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL,
-							         (char *)&hops_ttl, sizeof(hops_ttl));
-					if (ret == -1) {
-						err_sys("Can't set socketoption IP_MULTICAST_TTL");
-						exit(EXIT_FAILNET);
-					}
+					xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL,
+					         (char *)&hops_ttl, sizeof(hops_ttl), "IP_MULTICAST_TTL");
 
-					ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
-							&on, sizeof(int));
-					if (ret == -1) {
-						err_sys("setsockopt (IP_MULTICAST_LOOP) failed");
-						exit(EXIT_FAILNET);
-					}
+					xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
+							&on, sizeof(int), "IP_MULTICAST_LOOP");
 					msg(STRESSFUL, "set IP_MULTICAST_LOOP option");
 					break;
 				default:
@@ -460,14 +437,9 @@ instigate_ss(void)
 			int packet_size = DCCP_STD_PACKET_SIZE;
 
 			/* if user doesn't selected a packet size */
-			if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue) {
-				ret = setsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_PACKET_SIZE,
-						&packet_size, sizeof(packet_size));
-				if (ret == -1) {
-					err_sys("setsockopt dccp packet size");
-					exit(EXIT_FAILNET);
-				}
-			}
+			if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue)
+				xsetsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_PACKET_SIZE,
+					&packet_size, sizeof(packet_size), "DCCP_SOCKOPT_PACKET_SIZE");
 		}
 
 
@@ -491,10 +463,8 @@ instigate_ss(void)
 		** 3. Error detection (e.g. destination port unreachable at udp)
 		*/
 		ret = connect(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
-		if (ret == -1) {
-			err_sys("Can't connect to %s", opts.hostname);
-			exit(EXIT_FAILNET);
-		}
+		if (ret == -1)
+			err_sys_die(EXIT_FAILNET, "Can't connect to %s", opts.hostname);
 
 		msg(LOUDISH, "socket connected to %s via port %s",
 			opts.hostname, opts.port);

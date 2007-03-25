@@ -38,6 +38,7 @@
 #endif
 
 #include "global.h"
+#include "xfuncs.h"
 
 extern struct net_stat net_stat;
 extern struct conf_map_t memadvice_map[];
@@ -527,5 +528,23 @@ sublong(long a, long b)
 	return a - b;
 }
 
+void xgetaddrinfo(const char *node, const char *service,
+		struct addrinfo *hints, struct addrinfo **res)
+{
+	int ret;
 
+	ret = getaddrinfo(node, service, hints, res);
+	if (ret != 0) {
+		err_msg_die(EXIT_FAILNET, "Call to getaddrinfo() failed: %s!\n",
+				(ret == EAI_SYSTEM) ?  strerror(errno) : gai_strerror(ret));
+	}
+}
+
+
+void xsetsockopt(int s, int level, int optname, const void *optval, socklen_t optlen, const char *str)
+{
+	int ret = setsockopt(s, level, optname, optval, optlen);
+	if (ret)
+		err_sys_die(EXIT_FAILNET, "Can't set socketoption %s", str);
+}
 /* vim:set ts=4 sw=4 tw=78 noet: */

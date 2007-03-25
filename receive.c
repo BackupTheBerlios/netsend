@@ -39,6 +39,7 @@
  #include <signal.h>
 
 #include "global.h"
+#include "xfuncs.h"
 
 extern struct opts opts;
 extern struct net_stat net_stat;
@@ -172,11 +173,7 @@ instigate_cs(int *ret_fd)
 		** the same host will bind to this local socket.
 		** In all other cases: there is no penalty - hopefully! ;-)
 		*/
-		ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-		if (ret == -1) {
-			err_sys("setsockopt (SO_REUSEADDR)");
-			exit(EXIT_FAILNET);
-		}
+		xsetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on), "SO_REUSEADDR");
 
 		ret = bind(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
 		if (ret == 0) {   /* bind call success */
@@ -185,38 +182,22 @@ instigate_cs(int *ret_fd)
 
 				switch (addrtmp->ai_family) {
 					case AF_INET6:
-						ret = setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-								&on, sizeof(int));
-						if (ret == -1) {
-							err_sys("setsockopt (IPV6_MULTICAST_LOOP) failed");
-							exit(EXIT_FAILNET);
-						}
+						xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+								&on, sizeof(int), "IPV6_MULTICAST_LOOP");
 						msg(STRESSFUL, "set IPV6_MULTICAST_LOOP option");
 
-						ret = setsockopt(fd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-								         &mreq6, sizeof(mreq6));
-						if (ret == -1) {
-							err_sys("setsockopt (IPV6_JOIN_GROUP) failed");
-							exit(EXIT_FAILNET);
-						}
+						xsetsockopt(fd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+							         &mreq6, sizeof(mreq6), "IPV6_JOIN_GROUP");
 						msg(GENTLE, "join IPv6 multicast group");
 
 						break;
 					case AF_INET:
-						ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
-								&on, sizeof(int));
-						if (ret == -1) {
-							err_sys("setsockopt (IP_MULTICAST_LOOP) failed");
-							exit(EXIT_FAILNET);
-						}
+						xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
+								&on, sizeof(int), "IP_MULTICAST_LOOP");
 						msg(STRESSFUL, "set IP_MULTICAST_LOOP option");
 
-						ret = setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-								         &mreq, sizeof(mreq));
-						if (ret == -1) {
-							err_sys("setsockopt (IP_ADD_MEMBERSHIP) failed");
-							exit(EXIT_FAILNET);
-						}
+						xsetsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+							         &mreq, sizeof(mreq), "IP_ADD_MEMBERSHIP");
 						msg(GENTLE, "add membership to IPv4 multicast group");
 						break;
 					default:

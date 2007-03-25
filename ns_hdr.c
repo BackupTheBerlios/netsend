@@ -265,10 +265,8 @@ meta_exchange_snd(int connected_fd, int file_fd)
 
 	/* fetch file size */
 	ret = fstat(file_fd, &stat_buf);
-	if (ret == -1) {
-		err_sys("Can't fstat file %s", opts.infile);
-		exit(EXIT_FAILMISC);
-	}
+	if (ret == -1)
+		err_sys_die(EXIT_FAILMISC, "Can't fstat file %s", opts.infile);
 
 	file_size = S_ISREG(stat_buf.st_mode) ? stat_buf.st_size : 0;
 

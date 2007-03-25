@@ -57,16 +57,12 @@ open_input_file(void)
 		int pipefd[2];
 
 		ret = pipe(pipefd);
-		if (ret == -1) {
-			err_sys("Can't create pipe");
-			exit(EXIT_FAILMISC);
-		}
+		if (ret == -1)
+			err_sys_die(EXIT_FAILMISC, "Can't create pipe");
 
 		switch (pid = fork()) {
 			case -1:
-				err_sys("Can't fork");
-				exit(EXIT_FAILMISC);
-				break;
+				err_sys_die(EXIT_FAILMISC, "Can't fork");
 			case 0:
 				close(STDOUT_FILENO);
 				close(STDERR_FILENO);
@@ -88,10 +84,8 @@ open_input_file(void)
 	** the content as our source.
 	*/
 	ret = stat(opts.infile, &stat_buf);
-	if (ret == -1) {
-		err_sys("Can't fstat file %s", opts.infile);
-		exit(EXIT_FAILMISC);
-	}
+	if (ret == -1)
+		err_sys_die(EXIT_FAILMISC, "Can't fstat file %s", opts.infile);
 
 #if 0
 	if (!(stat_buf.st_mode & S_IFREG)) {

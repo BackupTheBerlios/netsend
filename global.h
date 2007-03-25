@@ -494,8 +494,6 @@ void usage(void);
 int parse_opts(int, char **);
 
 /* net.c */
-void xgetaddrinfo(const char *, const char *,
-		struct addrinfo *, struct addrinfo **);
 int get_sock_opts(int, struct net_stat *);
 void change_congestion(int fd);
 int set_nodelay(int, int);
@@ -511,9 +509,6 @@ void receive_mode(void);
 /* transmit.c */
 void transmit_mode(void);
 ssize_t write_len(int, const void *, size_t);
-
-
-
 
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

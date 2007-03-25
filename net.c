@@ -35,19 +35,6 @@
 extern struct opts opts;
 
 
-void
-xgetaddrinfo(const char *node, const char *service,
-		struct addrinfo *hints, struct addrinfo **res)
-{
-	int ret;
-
-	ret = getaddrinfo(node, service, hints, res);
-	if (ret != 0) {
-		err_msg_die(EXIT_FAILNET, "Call to getaddrinfo() failed: %s!\n",
-				(ret == EAI_SYSTEM) ?  strerror(errno) : gai_strerror(ret));
-	}
-}
-
 /* set TCP_NODELAY opption on socket
 ** return the previous value (0, 1) or
 ** -1 if a error occur
