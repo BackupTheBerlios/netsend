@@ -107,6 +107,8 @@ usage(void)
 			"-e                       reuse port\n"
 			"-6                       prefer ipv6\n"
 			"-E <command>             execute command in server-mode and bind STDIN\n"
+			"-R <string>		  set rtt data, e.g: -R 10n,10d,10m,10f\n"
+			"			  where n: num iterations; d size; f: force RTT\n"
 			"                         and STDOUT to program\n"
 			"-T                       print statistics\n"
 			"-8                       print statistic in bit instead of byte\n"
@@ -122,79 +124,57 @@ usage(void)
 
 
 static int
-parse_rtt_string(char *rtt_cmd)
+parse_rtt_string(const char *rtt_cmd)
 {
-	char *string, *tok;
+	const char *tok = rtt_cmd;
+	char *what;
 
-	for (string = rtt_cmd; ; string = NULL) {
-		tok = strtok(string, ",");
-		if (tok == NULL)
+	while (tok) {
+		long value = strtol(tok, &what, 10);
+		switch (*what) {
+		case 'n':
+			opts.rtt_probe_opt.iterations = value;
+			if (value <= 0 || value > 100) {
+				fprintf(stderr, "You want %ld rtt probe iterations - that's not sensible! "
+						"Valid range is between 1 and 100 probe iterations\n", value);
+				return -1;
+			}
 			break;
-
-		if (*(tok + strlen(tok) - 1) == 'n') {
-			char no[strlen(tok)];
-			int len = strlen(tok);
-
-			memcpy(no, tok, len - 1);
-			no[len] = '0';
-			opts.rtt_probe_opt.iterations = strtol(no, (char **)NULL, 10);
-			if (opts.rtt_probe_opt.iterations <= 0 ||
-					opts.rtt_probe_opt.iterations > 100) {
-				fprintf(stderr, "You want %d rtt probe iterations - that's not sensible! "
-						"Valid range is between 1 and 100 probe iterations\n", opts.rtt_probe_opt.iterations);
-				return -1;
-
-			}
-		} else if (*(tok + strlen(tok) - 1) == 'd') {
-			char no[strlen(tok)];
-			int len = strlen(tok);
-
-			memcpy(no, tok, len - 1);
-			no[len] = '0';
-
-			opts.rtt_probe_opt.data_size = strtol(no, (char **)NULL, 10);
-			if (opts.rtt_probe_opt.data_size <= 0) {
-				fprintf(stderr, "%d not a valid data size for our rtt probe\n",
-						opts.rtt_probe_opt.data_size);
+		case 'd':
+			opts.rtt_probe_opt.data_size = value;
+			if (value <= 0) {
+				fprintf(stderr, "%ld not a valid data size for our rtt probe\n", value);
 				return -1;
 			}
-		} else if (*(tok + strlen(tok) - 1) == 'm') {
-			char no[strlen(tok)];
-			int len = strlen(tok);
-
-			memcpy(no, tok, len - 1);
-			no[len] = '0';
-
-			opts.rtt_probe_opt.deviation_filter = strtol(no, (char **)NULL, 10);
-			if (opts.rtt_probe_opt.deviation_filter < 0 ||
-				opts.rtt_probe_opt.deviation_filter > 50) {
-				fprintf(stderr, "%dms are nonsensical for the filter multiplier (default is %d)\n",
-						opts.rtt_probe_opt.force_ms, DEFAULT_RTT_FILTER);
+			break;
+		case 'm':
+			opts.rtt_probe_opt.deviation_filter = value;
+			if (value < 0 || value > 50) {
+				fprintf(stderr, "%ldms are nonsensical for the filter multiplier (default is %d)\n", value, DEFAULT_RTT_FILTER);
 				return -1;
 			}
-		} else if (*(tok + strlen(tok) - 1) == 'f') {
-			char no[strlen(tok)];
-			int len = strlen(tok);
-
-			memcpy(no, tok, len - 1);
-			no[len] = '0';
-
-			opts.rtt_probe_opt.force_ms = strtol(no, (char **)NULL, 10);
-			if (opts.rtt_probe_opt.force_ms < 0) {
-				fprintf(stderr, "%dms are nonsensical for a rtt\n",
-						opts.rtt_probe_opt.force_ms);
+			break;
+		case 'f':
+			opts.rtt_probe_opt.force_ms = value;
+			if (value < 0) {
+				fprintf(stderr, "%ldms are nonsensical for a rtt\n", value);
 				return -1;
 			}
-
-		} else {
-			fprintf(stderr, "short rtt option %s in %s not supported\n", tok, rtt_cmd);
+			break;
+		default:
+			fprintf(stderr, "short rtt option %s in %s not supported: %c not recognized\n", tok, rtt_cmd, *what);
 			return -1;
 		}
+		if (*what) what++;
+		if (*what && *what != ',') {
+			fprintf(stderr, "rtt options must be comma seperated, got %c: %s\n", *what, tok);
+			return -1;
+		}
+		tok = strchr(tok, ',');
+		if (tok) tok++;
 	}
-
 	return 0;
 }
-
 
 /* parse_short_opt is a helper function who
 ** parse the particular options
