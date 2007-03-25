@@ -77,14 +77,7 @@ err_doit(int sys_error, const char *file, const int line_no,
 		snprintf(buf + len,  sizeof buf - len, " (%s)", strerror(errno_save));
 	}
 
-#ifdef DEBUG
 	fprintf(stderr, "ERROR [%s:%d]: %s\n", file, line_no, buf);
-#else
-	fprintf(stderr, "ERROR: %s\n", buf);
-	/* shut-up gcc warnings ... */
-	(void) file;
-	(void) line_no;
-#endif
 	fflush(NULL);
 }
 
