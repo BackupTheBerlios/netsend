@@ -271,9 +271,8 @@ ss_sendfile(int file_fd, int connected_fd)
 
 
 	if (offset != stat_buf.st_size) {
-		err_msg("Incomplete transfer from sendfile: %d of %ld bytes",
+		err_msg_die(EXIT_FAILNET, "Incomplete transfer from sendfile: %d of %ld bytes",
 				offset , stat_buf.st_size);
-		exit(EXIT_FAILNET);
 	}
 
 	/* correct statistics */
@@ -316,12 +315,10 @@ set_socketopts(int fd)
 					break;
 				}
 				/* and exit if socketoption and sockettype did not match */
-				err_msg("You selected an socketoption who isn't "
+				err_msg_die(EXIT_FAILMISC, "You selected an socketoption who isn't "
 						"compatible with this particular socket option");
-				exit(EXIT_FAILMISC);
 			default:
-				err_msg("Programmed Error");
-				exit(EXIT_FAILNET);
+				err_msg_die(EXIT_FAILINT, "Programmed Failure");
 		}
 
 		/* ... and do the dirty: set the socket options */
@@ -403,8 +400,7 @@ instigate_ss(void)
 					}
 					break;
 				default:
-					err_msg("Programmed Error");
-					exit(EXIT_FAILINT);
+					err_msg_die(EXIT_FAILINT, "Programmed Failure");
 			}
 		}
 
@@ -444,9 +440,7 @@ instigate_ss(void)
 					msg(STRESSFUL, "set IP_MULTICAST_LOOP option");
 					break;
 				default:
-					err_msg("Programmed Error");
-					exit(EXIT_FAILINT);
-					break;
+					err_msg_die(EXIT_FAILINT, "Programmed Failure");
 			}
 		}
 
@@ -506,11 +500,8 @@ instigate_ss(void)
 			opts.hostname, opts.port);
 	}
 
-	if (fd < 0) {
-		err_msg("No suitable socket found");
-		exit(EXIT_FAILNET);
-	}
-
+	if (fd < 0)
+		err_msg_die(EXIT_FAILNET, "No suitable socket found");
 
 	freeaddrinfo(hostres);
 	return fd;
@@ -557,8 +548,7 @@ transmit_mode(void)
 			ss_rw(file_fd, connected_fd);
 			break;
 		default:
-			err_msg("Programmed Failure");
-			exit(EXIT_FAILMISC);
+			err_msg_die(EXIT_FAILINT, "Programmed Failure");
 			break;
 	}
 

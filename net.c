@@ -35,7 +35,7 @@
 extern struct opts opts;
 
 
-inline void
+void
 xgetaddrinfo(const char *node, const char *service,
 		struct addrinfo *hints, struct addrinfo **res)
 {
@@ -43,9 +43,8 @@ xgetaddrinfo(const char *node, const char *service,
 
 	ret = getaddrinfo(node, service, hints, res);
 	if (ret != 0) {
-		err_msg("Call to getaddrinfo() failed: %s!\n",
+		err_msg_die(EXIT_FAILNET, "Call to getaddrinfo() failed: %s!\n",
 				(ret == EAI_SYSTEM) ?  strerror(errno) : gai_strerror(ret));
-		exit(EXIT_FAILNET);
 	}
 }
 
@@ -148,9 +147,7 @@ get_sock_opts(int fd, struct net_stat *ns)
 		case IPPROTO_DCCP:
 			return 0;
 		default:
-			err_msg("Programmed Error");
-			exit(EXIT_FAILOPT);
-			break;
+			err_msg_die(EXIT_FAILMISC, "Programmed Failure");
 	}
 
 	return 0;

@@ -107,7 +107,7 @@ probe_rtt(int peer_fd, int next_hdr, int probe_no, uint16_t backing_data_size)
 	char *data_ptr = rtt_buf + sizeof(struct ns_rtt_probe);
 
 	if (probe_no <= 0)
-		err_msg_die(EXIT_FAILINT, "Programmed error");
+		err_msg_die(EXIT_FAILINT, "Programmed Failure");
 
 	memset(ns_rtt_probe, 0, sizeof(struct ns_rtt_probe));
 	memset(data_ptr, 'A', backing_data_size);

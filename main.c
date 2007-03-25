@@ -119,8 +119,7 @@ main(int argc, char *argv[])
 			receive_mode();
 			break;
 		default:
-			err_msg("Programmed Failure");
-			exit(EXIT_FAILMISC);
+			err_msg_die(EXIT_FAILMISC, "Programmed Failure");
 	}
 
 	if (opts.statistics) {

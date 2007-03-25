@@ -104,10 +104,8 @@ open_input_file(void)
 #else
 	fd = open(opts.infile, O_RDONLY);
 #endif
-	if (fd == -1) {
-		err_msg("Can't open input file: %s", opts.infile);
-		exit(EXIT_FAILMISC);
-	}
+	if (fd == -1)
+		err_msg_die(EXIT_FAILMISC, "Can't open input file: %s", opts.infile);
 
 	return fd;
 }

@@ -117,15 +117,13 @@ instigate_cs(int *ret_fd)
 
 		if (inet_pton(AF_INET, hostname, &mreq.imr_multiaddr) <= 0) {
 			if (inet_pton(AF_INET6, hostname, &mreq6.ipv6mr_multiaddr) <= 0) {
-				err_msg("You didn't specify an valid multicast address (%s)!",
+				err_msg_die(EXIT_FAILNET, "You didn't specify an valid multicast address (%s)!",
 						hostname);
-				exit(EXIT_FAILNET);
 			}
 			/* IPv6 */
 			if (!IN6_IS_ADDR_MULTICAST(&mreq6.ipv6mr_multiaddr)) {
-				err_msg("You didn't specify an valid IPv6 multicast address (%s)!",
+				err_msg_die(EXIT_FAILNET, "You didn't specify an valid IPv6 multicast address (%s)!",
 						hostname);
-				exit(EXIT_FAILNET);
 			}
 			hosthints.ai_family = AF_INET6;
 			mreq6.ipv6mr_interface = 0;
@@ -133,9 +131,8 @@ instigate_cs(int *ret_fd)
 
 		} else { /* IPv4 */
 			if (!IN_MULTICAST(ntohl(mreq.imr_multiaddr.s_addr))) {
-				err_msg("You didn't specify an valid IPv4 multicast address (%s)!",
+				err_msg_die(EXIT_FAILNET, "You didn't specify an valid IPv4 multicast address (%s)!",
 						hostname);
-				exit(EXIT_FAILNET);
 			}
 			hosthints.ai_family = AF_INET;
 			mreq.imr_interface.s_addr = INADDR_ANY;
@@ -145,9 +142,8 @@ instigate_cs(int *ret_fd)
 			** deliver us with a (valid) ipv4 multicast address
 			*/
 			if (opts.family == AF_INET6) {
-				err_msg("You specify strict ipv6 support (-6) add a "
+				err_msg_die(EXIT_FAILOPT, "You specify strict ipv6 support (-6) add a "
 						"IPv4 multicast address!");
-				exit(EXIT_FAILOPT);
 			}
 		}
 		hosthints.ai_flags = AI_NUMERICHOST | AI_ADDRCONFIG;
@@ -224,8 +220,7 @@ instigate_cs(int *ret_fd)
 						msg(GENTLE, "add membership to IPv4 multicast group");
 						break;
 					default:
-						err_msg("Programmed Error");
-						exit(EXIT_FAILINT);
+						err_msg_die(EXIT_FAILINT, "Programmed Failure");
 						break;
 				}
 			}
@@ -302,10 +297,8 @@ receive_mode(void)
 
 		ret = getnameinfo((struct sockaddr *)&sa, sa_len, peer,
 				sizeof(peer), NULL, 0, 0);
-		if (ret != 0) {
-			err_msg("getnameinfo error: %s",  gai_strerror(ret));
-			exit(EXIT_FAILNET);
-		}
+		if (ret != 0)
+			err_msg_die(EXIT_FAILNET, "getnameinfo error: %s",  gai_strerror(ret));
 		msg(GENTLE, "accept from %s", peer);
 	}
 

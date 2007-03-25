@@ -370,7 +370,7 @@ gen_mashine_analyse(char *buf, unsigned int max_buf_len)
 			case IO_SENDFILE: call_str = "sendfile"; break;
 			case IO_MMAP:     call_str = "mmap"; break;
 			case IO_RW:       call_str = "write"; break;
-			default: err_msg_die(EXIT_FAILINT, "Programmed error"); break;
+			default: err_msg_die(EXIT_FAILINT, "Programmed Failure"); break;
 		}
 	} else {
 		call_str = "read";
