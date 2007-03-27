@@ -261,6 +261,10 @@ meta_exchange_snd(int connected_fd, int file_fd)
 	struct stat stat_buf;
 	int perform_rtt;
 
+	if (opts.socktype != SOCK_STREAM) {
+		msg(STRESSFUL, "skipping rtt probing: not SOCK_STREAM");
+		return 0;
+	}
 	memset(&ns_hdr, 0, sizeof(struct ns_hdr));
 
 	/* fetch file size */
@@ -405,6 +409,11 @@ meta_exchange_rcv(int peer_fd)
 	ssize_t rc = 0, to_read = sizeof(struct ns_hdr);
 	struct ns_hdr ns_hdr;
 
+	if (opts.socktype != SOCK_STREAM) {
+		msg(STRESSFUL, "skipping rtt probing: not SOCK_STREAM");
+		return 0;
+	}
+
 	memset(&ns_hdr, 0, sizeof(struct ns_hdr));
 
 	ptr = (unsigned char *) &ns_hdr;
@@ -445,7 +454,6 @@ meta_exchange_rcv(int peer_fd)
 		extension_size = ntohs(common_ext_head[1]);
 
 		switch (extension_type) {
-
 			case NSE_NXT_DATA:
 				msg(STRESSFUL, "end of extension header processing (NSE_NXT_DATA)");
 				return 0;
@@ -482,10 +490,17 @@ meta_exchange_rcv(int peer_fd)
 					return -1;
 				break;
 		}
-
-
 		extension_type = ntohs(common_ext_head[0]);
+		switch (extension_type) {
+			case NSE_NXT_DATA:
+				msg(STRESSFUL, "end of extension header processing (NSE_NXT_DATA)");
+				return 0;
 
+			case NSE_NXT_NONXT:
+				msg(STRESSFUL, "end of extension header processing (NSE_NXT_NONXT)");
+				return process_nonxt(peer_fd, extension_size);
+				break;
+		}
 	};
 
 	/* failure if we reach here (failure in previous while loop */
