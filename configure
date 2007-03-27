@@ -242,6 +242,35 @@ EOF
 }
 
 
+check_for_splice()
+{
+	echo -n "checking for splice..."
+	TMPDIR=`mktemp -d`
+	cat > "$TMPDIR"/splice.c <<EOF
+#define _GNU_SOURCE
+#include <fcntl.h>
+#include <stddef.h>
+int main(void) {
+	return splice(0, NULL, 1, NULL, 42, SPLICE_F_MOVE|SPLICE_F_MORE);
+}
+EOF
+	gcc -o /dev/null "$TMPDIR"/splice.c >/dev/null 2>&1
+	if [ $? -eq 0 ];then
+		echo " yes"
+		echo "#define HAVE_SPLICE 1" >>config.h
+	else
+		echo " no"
+		echo "#undef HAVE_SPLICE" >>config.h
+
+	fi
+	rm -f "$TMPDIR"/splice.c
+	rmdir "$TMPDIR"
+}
+
+
+
+
+
 print_config()
 {
 	echo
@@ -266,6 +295,7 @@ create_make_rules
 check_for_alloca
 check_for_rdtscll
 check_for_udplite
+check_for_splice
 
 print_config
 

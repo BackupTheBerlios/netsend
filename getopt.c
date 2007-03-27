@@ -70,7 +70,7 @@ usage(void)
 			"                                    (output-file and multicast adddr in receive mode are optional)\n\n"
 			"-m <tcp | udp | dccp>    specify default transfer protocol (default: tcp)\n"
 			"-p <port>                set portnumber (default: 6666)\n"
-			"-u <sendfile | mmap | rw | read >\n"
+			"-u <sendfile | mmap | rw | read | splice >\n"
 			"                         utilize specific function-call for IO operation\n"
 			"                         (this depends on operation mode (-t, -r)\n"
 			"-N                       select buffer chunk size (e.g. sendfile transfer amount per call)\n"
@@ -622,6 +622,7 @@ parse_opts(int argc, char *argv[])
 
 		switch (opts.io_call) { /* only sendfile(), mmap(), ... allowed */
 			case IO_SENDFILE:
+			case IO_SPLICE:
 			case IO_MMAP:
 			case IO_RW:
 				break;

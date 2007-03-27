@@ -199,6 +199,7 @@ enum memaccess_advice {
 enum io_call {
 	IO_MMAP = 0,
 	IO_SENDFILE,
+	IO_SPLICE,
 	IO_RW,
 	IO_READ,
 };
