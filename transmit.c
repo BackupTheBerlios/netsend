@@ -55,10 +55,10 @@ static inline int splice(int fdin, loff_t *off_in, int fdout, loff_t *off_out,
 #include <stdbool.h>
 
 #include <sys/sendfile.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <netinet/in.h>
-#include <sys/stat.h>
 
 #include "debug.h"
 #include "global.h"
@@ -243,26 +243,43 @@ ss_mmap(int file_fd, int connected_fd)
 	return rc;
 }
 
+#ifdef HAVE_SPLICE
+static ssize_t
+ss_splice_frompipe(int pipe_fd, int connected_fd, ssize_t write_cnt)
+{
+	ssize_t written;
+	do {
+		written = splice(pipe_fd, NULL, connected_fd, NULL, write_cnt, SPLICE_F_MOVE|SPLICE_F_MORE);
+		if (written < 0)
+			err_sys_die(EXIT_FAILNET, "Failure in splice from pipe");
+		net_stat.total_tx_calls += 1;
+        } while (written > 0);
+	return 0;
+}
+#endif
+
 
 static ssize_t
 ss_splice(int file_fd, int connected_fd)
 {
+#ifdef HAVE_SPLICE
 	int ret, pipefds[2];
 	struct stat stat_buf;
 	ssize_t rc, write_cnt;
 	__off64_t offset = 0;
-#ifdef HAVE_SPLICE
+
 	msg(STRESSFUL, "send via splice io operation");
 
 	ret = fstat(file_fd, &stat_buf);
 	if (ret == -1)
 		err_sys_die(EXIT_FAILMISC, "Can't fstat file %s", opts.infile);
 
-	if (pipe(pipefds))
-		err_sys_die(EXIT_FAILMISC, "pipe() failed: %s", opts.infile);
-	/* full or partial write */
-	write_cnt = opts.buffer_size ?
-		opts.buffer_size : stat_buf.st_size;
+	if (opts.buffer_size)
+		write_cnt = opts.buffer_size;
+	else if (S_ISREG(stat_buf.st_mode))
+		write_cnt = stat_buf.st_size;
+	else
+		write_cnt = 65536;
 
 	if (write_cnt > 65536)
 		write_cnt = 65536;
@@ -270,6 +287,11 @@ ss_splice(int file_fd, int connected_fd)
 	if (opts.buffer_size > 65536)
 		 msg(STRESSFUL, "reduced buffer length to 64k");
 
+	if (S_ISFIFO(stat_buf.st_mode))
+		return ss_splice_frompipe(file_fd, connected_fd, write_cnt);
+
+	if (pipe(pipefds))
+		err_sys_die(EXIT_FAILMISC, "pipe() failed: %s", opts.infile);
 	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
 
 	/* write chunked sized frames */
@@ -292,7 +314,7 @@ ss_splice(int file_fd, int connected_fd)
 		if (rc == -1)
 			err_sys_die(EXIT_FAILNET, "Failure in splice to pipe");
 		do {
-			ssize_t written = splice(pipefds[0], NULL, connected_fd, NULL, rc, SPLICE_F_MOVE|SPLICE_F_MORE);
+			ssize_t written = splice(pipefds[0], NULL, connected_fd, NULL, rc, SPLICE_F_MOVE);
 			if (written < 0)
 				err_sys_die(EXIT_FAILNET, "Failure in splice from pipe");
 			rc -= written;
@@ -312,7 +334,7 @@ ss_splice(int file_fd, int connected_fd)
 	net_stat.total_tx_bytes = stat_buf.st_size;
 	return rc;
 #else
-	err_msg_die("splice support not compiled in");
+	err_msg_die(EXIT_FAILMISC, "splice support not compiled in");
 #endif
 }
 
