@@ -447,7 +447,10 @@ meta_exchange_rcv(int peer_fd)
 		uint16_t common_ext_head[2];
 		to_read = sizeof(uint16_t) * 2;
 
-		/* read first 4 octets of extension header */
+		/* read first 4 octets of extension header, because we now
+		** there IS a extension header and a extension header is always
+		** 4 byte
+		*/
 		if (readn(peer_fd, common_ext_head, to_read) != to_read)
 			return -1;
 
