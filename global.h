@@ -339,6 +339,13 @@ struct ns_rtt_info {
 } __attribute__((packed));
 
 
+struct sock_callbacks {
+	ssize_t (*cb_read)(int, void *, size_t);
+	ssize_t (*cb_write)(int, const void *, size_t);
+	int (*cb_listen)(int,int);
+	int (*cb_accept)(int,struct sockaddr *addr,socklen_t *);
+};
+
 /* command line arguments */
 
 #define	HDR_MSK_SOCKOPT (1 << 0)

@@ -30,6 +30,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
+#include "proto_tipc.h"
 #include "global.h"
 
 extern struct opts opts;
@@ -116,10 +117,8 @@ get_sock_opts(int fd, struct net_stat *ns)
 {
 	int ret;
 
-	/* at the moment we asume every descriptor is
-	** ip based - so we always call get_ip_sock_opts()
-	*/
-
+	if (opts.family == AF_TIPC)
+		return 0;
 	ret = get_ip_sock_opts(fd, ns);
 	if (ret != 0) {
 		return ret;

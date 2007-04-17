@@ -10,6 +10,8 @@ OBJECTS =    error.o    \
 						 getopt.o   \
 						 main.o     \
 						 net.o      \
+						 proto_tipc.o \
+						 proto_udp.o \
 						 receive.o  \
 						 transmit.o \
 						 ns_hdr.o   \

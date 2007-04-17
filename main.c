@@ -34,6 +34,8 @@
 #include <sys/socket.h>
 
 #include "global.h"
+#include "proto_tipc.h"
+#include "proto_udp.h"
 
 struct conf_map_t congestion_map[] = {
 	{ CA_BIC,      "bic"      },
@@ -85,7 +87,10 @@ struct socket_options socket_options[] = {
 struct opts opts;
 struct net_stat net_stat;
 
+struct sock_callbacks sock_callbacks = { .cb_read = read, .cb_write = write, .cb_accept = accept, .cb_listen = listen};
+
 #define	MAX_STATLEN 4096
+
 
 int
 main(int argc, char *argv[])
@@ -110,6 +115,9 @@ main(int argc, char *argv[])
 	if ((opts.nice != INT_MAX) && (nice(opts.nice) == -1)) {
 		err_sys("nice()");
 	}
+
+	if (opts.protocol == IPPROTO_UDP)
+		sock_callbacks.cb_listen = udp_listen;
 
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {

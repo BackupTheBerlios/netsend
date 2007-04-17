@@ -63,12 +63,14 @@ static inline int splice(int fdin, loff_t *off_in, int fdout, loff_t *off_out,
 #include "debug.h"
 #include "global.h"
 #include "xfuncs.h"
+#include "proto_tipc.h"
 
 extern struct opts opts;
 extern struct net_stat net_stat;
 extern struct conf_map_t congestion_map[];
 extern struct conf_map_t io_call_map[];
 extern struct socket_options socket_options[];
+extern struct sock_callbacks sock_callbacks;
 
 static int
 get_mem_adv_m(int adv)
@@ -110,7 +112,7 @@ write_len(int fd, const void *buf, size_t len)
 	const char *bufptr = buf;
 	ssize_t total = 0;
 	do {
-		ssize_t written = write(fd, bufptr, len);
+		ssize_t written = sock_callbacks.cb_write(fd, bufptr, len);
 		net_stat.total_tx_calls += 1;
 		if (written < 0) {
 			if (errno == EINTR)
@@ -464,6 +466,15 @@ instigate_ss(void)
 	struct addrinfo  hosthints, *hostres, *addrtmp;
 	struct protoent *protoent;
 
+#ifdef HAVE_AF_TIPC
+	if (opts.family == AF_TIPC) {
+		fd = tipc_socket_connect();
+		if (fd < 0)
+			err_sys_die(EXIT_FAILNET, "tipc_socket_connect");
+
+		return fd;
+	}
+#endif
 	memset(&hosthints, 0, sizeof(struct addrinfo));
 
 	/* probe our values */

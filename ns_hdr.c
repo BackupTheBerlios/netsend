@@ -47,6 +47,7 @@
 
 extern struct opts opts;
 extern struct net_stat net_stat;
+extern struct sock_callbacks sock_callbacks;
 
 static ssize_t
 writen(int fd, const void *buf, size_t len)
@@ -54,7 +55,7 @@ writen(int fd, const void *buf, size_t len)
 	const char *bufptr = buf;
 	ssize_t total = 0;
 	do {
-		ssize_t written = write(fd, bufptr, len);
+		ssize_t written = sock_callbacks.cb_write(fd, bufptr, len);
 		if (written < 0) {
 			if (errno == EINTR)
 				continue;

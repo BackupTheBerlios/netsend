@@ -34,6 +34,43 @@
 
 #include "global.h"
 
+#ifdef HAVE_AF_TIPC 1
+#include <linux/tipc.h>
+
+static const struct {
+	int  socktype;
+	const char *sockname;
+} socktype_map[] =
+{
+	{ SOCK_RDM, "SOCK_RDM" },
+	{ SOCK_DGRAM, "SOCK_DGRAM" },
+	{ SOCK_STREAM, "SOCK_STREAM" },
+	{ SOCK_SEQPACKET, "SOCK_SEQPACKET" }
+};
+
+
+static void tipc_print_socktypes(void)
+{
+	unsigned i;
+	for (i=0; i < ARRAY_SIZE(socktype_map); i++)
+		fprintf(stderr, "%s\n", socktype_map[i].sockname);
+}
+
+
+static int tipc_parse_socktype(const char *socktype)
+{
+	unsigned i;
+
+	for (i=0; i < ARRAY_SIZE(socktype_map); i++) {
+		if (strcasecmp(socktype, socktype_map[i].sockname) == 0)
+			return socktype_map[i].socktype;
+	}
+	fprintf(stderr, "Unknown socket type: %s. Known Types:\n", socktype);
+	tipc_print_socktypes();
+	exit(EXIT_FAILOPT);
+}
+#endif
+
 
 #ifndef SCHED_BATCH
 # define SCHED_BATCH 3
@@ -68,7 +105,11 @@ usage(void)
 			"    -r <output-file> <multicast>    _r_eceive data and save to outputfile\n"
 			"                                    bind local socket to multicast group\n"
 			"                                    (output-file and multicast adddr in receive mode are optional)\n\n"
-			"-m <tcp | udp | dccp>    specify default transfer protocol (default: tcp)\n"
+			"-m <tcp | udp | dccp"
+#ifdef HAVE_AF_TIPC
+			" | tipc socktype"
+#endif
+			">    specify default transfer protocol (default: tcp)\n"
 			"-p <port>                set portnumber (default: 6666)\n"
 			"-u <sendfile | mmap | rw | read | splice >\n"
 			"                         utilize specific function-call for IO operation\n"
@@ -229,6 +270,20 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 				opts.socktype    = SOCK_DCCP;
 				fprintf(stderr, "DCCP not supported yet ... exiting\n");
 				exit(EXIT_FAILINT);
+#ifdef HAVE_AF_TIPC
+			} else if (!strcasecmp((*argv)[2], "tipc")) {
+				if (*argc <= 3) {
+					fputs("tipc requires socket-type argument, known values:\n", stderr);
+					tipc_print_socktypes();
+					exit(EXIT_FAILOPT);
+				}
+				opts.family = AF_TIPC;
+				opts.protocol = 0;
+				opts.socktype = tipc_parse_socktype((*argv)[3]);
+				(*argc) -=2;
+				(*argv) += 2;
+				return 0;
+#endif
 			} else {
 				fprintf(stderr, "Unsupported protocol: %s\n",
 						(*argv)[2]);

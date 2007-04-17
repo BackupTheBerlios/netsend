@@ -40,12 +40,13 @@
 
 #include "global.h"
 #include "xfuncs.h"
+#include "proto_tipc.h"
 
 extern struct opts opts;
 extern struct net_stat net_stat;
 extern struct conf_map_t io_call_map[];
 extern struct socket_options socket_options[];
-
+extern struct sock_callbacks sock_callbacks;
 
 /* This is our inner receive function.
 ** It reads from a connected socket descriptor
@@ -97,8 +98,17 @@ instigate_cs(int *ret_fd)
 	struct addrinfo  hosthints, *hostres, *addrtmp;
 	struct ip_mreq mreq;
 	struct ipv6_mreq mreq6;
-
-
+#ifdef HAVE_AF_TIPC
+	if (opts.family == AF_TIPC) {
+		fd = tipc_socket_bind();
+		if (fd < 0)
+			err_sys_die(EXIT_FAILNET, "tipc_socket_bind");
+		*ret_fd = fd;
+		if (sock_callbacks.cb_listen(fd, BACKLOG))
+			err_sys_die(EXIT_FAILNET, "listen(fd: %d, backlog: %d) failed", fd, BACKLOG);
+		return 0;
+	}
+#endif
 	memset(&hosthints, 0, sizeof(struct addrinfo));
 
 	hosthints.ai_family   = opts.family;
@@ -213,13 +223,9 @@ instigate_cs(int *ret_fd)
 		}
 	}
 
-	if (opts.protocol == IPPROTO_TCP) {
-		ret = listen(fd, BACKLOG);
-		if (ret < 0) {
-			err_sys("listen(fd: %d, backlog: %d) failed", fd, BACKLOG);
-			exit(EXIT_FAILNET);
-		}
-	}
+	ret = sock_callbacks.cb_listen(fd, BACKLOG);
+	if (ret < 0)
+		err_sys_die(EXIT_FAILNET, "listen(fd: %d, backlog: %d) failed", fd, BACKLOG);
 
 	freeaddrinfo(hostres);
 
@@ -265,6 +271,12 @@ receive_mode(void)
 
 	instigate_cs(&server_fd);
 
+	connected_fd = server_fd;
+	if (opts.family == AF_TIPC) {
+		connected_fd = tipc_accept(server_fd, (struct sockaddr *) &sa, &sa_len);
+		if (connected_fd == -1)
+			err_sys_die(EXIT_FAILNET, "accept");
+	}
 
 	if (opts.protocol == IPPROTO_TCP) {
 
@@ -284,14 +296,14 @@ receive_mode(void)
 	}
 
 	/* read netsend header */
-	meta_exchange_rcv(opts.protocol == IPPROTO_TCP ? connected_fd : server_fd);
+	meta_exchange_rcv(connected_fd);
 
 	/* take the transmit start time for diff */
 	gettimeofday(&opts.starttime, NULL);
 
 	msg(LOUDISH, "block in read");
 
-	cs_read(file_fd, opts.protocol == IPPROTO_TCP ? connected_fd : server_fd);
+	cs_read(file_fd, connected_fd);
 
 	msg(LOUDISH, "done");
 

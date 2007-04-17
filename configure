@@ -211,6 +211,34 @@ EOF
 	rmdir "$TMPDIR"
 }
 
+
+check_for_af_tipc()
+{
+	echo -n "checking for TIPC support..."
+	TMPDIR=`mktemp -d`
+	cat > "$TMPDIR"/tipc.c <<EOF
+#include <stdio.h>
+#include <linux/tipc.h>
+int main(int argc, char **argv){
+struct sockaddr_tipc s;
+int af = AF_TIPC;
+return 0;
+}
+EOF
+	gcc -o /dev/null "$TMPDIR"/tipc.c >/dev/null 2>&1
+	if [ $? -eq 0 ];then
+		echo " yes"
+		echo "#define HAVE_AF_TIPC 1" >>config.h
+	else
+		echo " no"
+		echo "#undef HAVE_AF_TIPC" >>config.h
+
+	fi
+	rm -f "$TMPDIR"/tipc.c
+	rmdir "$TMPDIR"
+}
+
+
 check_for_udplite()
 {
 	echo -n "checking for udplite support..."
@@ -296,6 +324,8 @@ check_for_alloca
 check_for_rdtscll
 check_for_udplite
 check_for_splice
+check_for_af_tipc
+
 
 print_config
 
