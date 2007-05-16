@@ -234,14 +234,6 @@ instigate_cs(int *ret_fd)
 	return 0;
 }
 
-static void
-signal_hndl(int signo)
-{
-	(void) signo;
-
-	fprintf(stderr, "received signal\n");
-	return;
-}
 
 /* *** Main Client Routine ***
 **
@@ -260,7 +252,7 @@ receive_mode(void)
 
 
 
-	sigterm_sa.sa_handler = signal_hndl;
+	sigterm_sa.sa_handler = SIG_IGN;
 	sigemptyset(&sigterm_sa.sa_mask);
 	sigterm_sa.sa_flags = 0;
 	sigaction(SIGPIPE, &sigterm_sa, NULL);
