@@ -264,12 +264,13 @@ receive_mode(void)
 	instigate_cs(&server_fd);
 
 	connected_fd = server_fd;
+#ifdef HAVE_AF_TIPC
 	if (opts.family == AF_TIPC) {
 		connected_fd = tipc_accept(server_fd, (struct sockaddr *) &sa, &sa_len);
 		if (connected_fd == -1)
 			err_sys_die(EXIT_FAILNET, "accept");
 	}
-
+#endif
 	if (opts.protocol == IPPROTO_TCP) {
 
 		char peer[1024];
