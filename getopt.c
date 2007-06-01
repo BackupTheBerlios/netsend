@@ -34,7 +34,7 @@
 
 #include "global.h"
 
-#ifdef HAVE_AF_TIPC 1
+#ifdef HAVE_AF_TIPC
 #include <linux/tipc.h>
 
 static const struct {
