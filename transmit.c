@@ -27,20 +27,26 @@
 #define SPLICE_F_MOVE 1
 #define SPLICE_F_MORE 4
 
-#define __NR_sys_splice 313
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/syscall.h>
 
-_syscall6(int, sys_splice, int, fdin, loff_t *, off_in, int, fdout, loff_t *, off_out, size_t,len, unsigned int, flags);
+#undef __NR_sys_splice
+#ifndef __NR_splice
+# warning __NR_splice not defined - define as 313
+# define __NR_sys_splice 313
+#else
+# define __NR_sys_splice __NR_splice
+#endif
+
 
 static inline int splice(int fdin, loff_t *off_in, int fdout, loff_t *off_out,
 		                        size_t len, unsigned long flags)
 {
-	    return sys_splice(fdin, off_in, fdout, off_out, len, flags);
+	return syscall(__NR_sys_splice, fdin, off_in, fdout, off_out, len, flags);
 }
-#endif
+#endif /* HAVE_SPLICE */
 
 #define _XOPEN_SOURCE 600	/* needed for posix_madvise/fadvise */
 #include <sys/mman.h>
