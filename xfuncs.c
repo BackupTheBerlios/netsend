@@ -335,8 +335,9 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 			len += DO_SNPRINTF(buf + len, max_buf_len - len, ", %.5f %s/sec",
 					(throughput / UNIT_N2F(G_UNIT)), UNIT_N2S(G_UNIT));
 		}
-		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s", ")\n"); /* newline */
+		len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s", ")"); /* newline */
 	}
+	len += DO_SNPRINTF(buf + len, max_buf_len - len, "%s", "\n");
 }
 
 #undef T2S
