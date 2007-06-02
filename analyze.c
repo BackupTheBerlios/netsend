@@ -160,7 +160,7 @@ unit_conv(char *buf, int buf_len, ssize_t bytes, int unit_scale)
 void
 gen_human_analyse(char *buf, unsigned int max_buf_len)
 {
-	int len, page_size;
+	int len = 0, page_size;
 	char unit_buf[UNIT_MAX];
 	struct timeval tv_tmp;
 	struct utsname utsname;
