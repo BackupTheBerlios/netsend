@@ -254,6 +254,14 @@ send_rtt_info(int fd, int next_hdr, struct rtt_probe *rtt_probe)
 	return -1;
 }
 
+/**
+ * meta_exchange_snd send header(s) information to the
+ * peer node. We definitive send our netsend header and
+ * 0 or more rtt probe packets to gather the current
+ * round trip time. If we send rtt probes we transmit the
+ * results also to the peer node.
+*/
+
 int
 meta_exchange_snd(int connected_fd, int file_fd)
 {
@@ -264,10 +272,15 @@ meta_exchange_snd(int connected_fd, int file_fd)
 	struct stat stat_buf;
 	int perform_rtt;
 
+	/* currently the header exchange (rtt gather service, etc.)
+	** work only for tcp - but in next releases this should be
+	** fixed
+	*/
 	if (opts.socktype != SOCK_STREAM) {
 		msg(STRESSFUL, "skipping rtt probing: not SOCK_STREAM");
 		return 0;
 	}
+
 	memset(&ns_hdr, 0, sizeof(struct ns_hdr));
 
 	/* fetch file size */
