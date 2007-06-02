@@ -482,7 +482,6 @@ instigate_ss(void)
 
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
 
-	printf("proto %d\n", hostres->ai_protocol);
 	addrtmp = hostres;
 
 	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
