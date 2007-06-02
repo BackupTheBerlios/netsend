@@ -67,6 +67,7 @@ void xgetaddrinfo(const char *node, const char *service,
 	/* getaddrinfo() does not support DCCP/SCTP yet, so fix things up manually 8-/ */
 		switch (hints->ai_protocol) {
 		case IPPROTO_DCCP:
+		case IPPROTO_UDPLITE:
 		case IPPROTO_SCTP:
 			ai_protocol = hints->ai_protocol;
 			ai_socktype = hints->ai_socktype;

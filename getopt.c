@@ -107,7 +107,7 @@ usage(void)
 			"    -r <output-file> <multicast>    _r_eceive data and save to outputfile\n"
 			"                                    bind local socket to multicast group\n"
 			"                                    (output-file and multicast adddr in receive mode are optional)\n\n"
-			"-m <tcp | udp | dccp | sctp"
+			"-m <tcp | udp | dccp | sctp | udplite"
 #ifdef HAVE_AF_TIPC
 			" | tipc socktype"
 #endif
@@ -227,6 +227,7 @@ static void parse_ipprotocol(const char *protoname)
 		ipprotocols[] = {
 			{ "tcp", SOCK_STREAM, IPPROTO_TCP },
 			{ "udp", SOCK_DGRAM, IPPROTO_UDP },
+			{ "udplite", SOCK_DGRAM, IPPROTO_UDPLITE },
 			{ "sctp", SOCK_STREAM, IPPROTO_SCTP },
 			{ "dccp", SOCK_DCCP, IPPROTO_DCCP }
 		};
