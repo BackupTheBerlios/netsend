@@ -33,6 +33,7 @@
 #include "global.h"
 #include "debug.h"
 #include "proto_tipc.h"
+#include "xfuncs.h"
 
 
 extern struct opts opts;
@@ -49,14 +50,11 @@ static struct sockaddr_tipc *sendto_dest_addr;
 
 static struct sockaddr_tipc sa_tipc_get(void)
 {
-	struct sockaddr_tipc sa_tipc = { 0 };
+	struct sockaddr_tipc sa_tipc = { .family = AF_TIPC,.scope = TIPC_ZONE_SCOPE };
 
 	assert(opts.family == AF_TIPC);
 
-	sa_tipc.family = AF_TIPC;
-	sa_tipc.scope = TIPC_ZONE_SCOPE;
 	sa_tipc.addr.nameseq.type = NETSEND_TIPC_SERVER;
-
 	return sa_tipc;
 }
 
@@ -79,7 +77,7 @@ int tipc_socket_bind(void)
 	switch (opts.socktype) {
 	case SOCK_RDM: case SOCK_DGRAM:
 		assert(sendto_dest_addr == NULL);
-		sendto_dest_addr = alloc(sizeof(*sendto_dest_addr));
+		sendto_dest_addr = xmalloc(sizeof(*sendto_dest_addr));
 		*sendto_dest_addr = sa_tipc;
 		sock_callbacks.cb_write = tipc_write;
 	}
@@ -105,7 +103,7 @@ int tipc_socket_connect(void)
 		return fd;
 	case SOCK_RDM: case SOCK_DGRAM:
 		assert(sendto_dest_addr == NULL);
-		sendto_dest_addr = alloc(sizeof(*sendto_dest_addr));
+		sendto_dest_addr = xmalloc(sizeof(*sendto_dest_addr));
 		*sendto_dest_addr = sa_tipc;
 		sock_callbacks.cb_write = tipc_write;
 		sock_callbacks.cb_accept = tipc_accept;

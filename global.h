@@ -31,6 +31,7 @@
 #include <sys/resource.h>
 
 #include "config.h"
+#include "error.h"
 #ifdef HAVE_RDTSCLL
 # include <linux/timex.h>
 #endif /* HAVE_RDTSCLL */
@@ -255,90 +256,6 @@ struct net_stat {
 enum workmode { MODE_NONE = 0, MODE_TRANSMIT, MODE_RECEIVE };
 
 
-/* protocol definitions */
-
-/* all values in network byte order */
-
-#define	NS_MAGIC 0x67
-
-
-#define	NSE_NXT_DATA         0
-#define	NSE_NXT_DIGEST       1
-#define	NSE_NXT_RTT_PROBE    2
-#define	NSE_NXT_NONXT        3
-#define	NSE_NXT_RTT_INFO     4
-
-struct ns_hdr {
-	uint16_t magic;
-	uint16_t version;
-	uint32_t data_size; /* purely data, without netsend header */
-	uint16_t nse_nxt_hdr; /* NSE_NXT_DATA for no header */
-	uint16_t unused;
-} __attribute__((packed));
-
-/*
-** netsend chaining header fields for ancillary information.
-** This is a similar mechanism like the ipv6 extension header.
-** This information can be used to exchange information like
-** data digest, buffersize, etc.
-** Like ipv6: each extension header appears only once. If a
-** header apears multiple times the last extension header has significance.
-** In contrast to ipv6, netsend headers have no order.
-*/
-
-
-/* ns_nxt_digest is the digest header extension
-** Currently netsend support following digest algorithms:
-**  o NULL   (0)
-**  o SHA    (20)
-**  o SHA256 (32)
-**  o SHA512 (64)
-*/
-
-struct ns_nxt_digest {
-	uint16_t  nse_nxt_hdr; /* next header */
-	uint16_t  nse_len; /* length in units of 4 octets (not including the first 4 octets) */
-	uint8_t  nse_dgst_type;
-	uint8_t  nse_dgst_len;
-	/* followed by digest data */
-} __attribute__((packed));
-
-
-/* this is a dummy extension header. it indicates that this
-** is the last extension header AND no more data is comming!
-*/
-
-struct ns_nxt_nonxt {
-	uint16_t  nse_nxt_hdr; /* next header */
-	uint16_t  nse_len; /* length in units of 4 octets (not including the first 4 octets) */
-	uint32_t  unused;
-} __attribute__((packed));
-
-
-/* rtt packet */
-
-enum ns_rtt_type { RTT_REQUEST_TYPE = 0, RTT_REPLY_TYPE };
-
-struct ns_rtt_probe {
-	uint16_t  nse_nxt_hdr; /* next header */
-	uint16_t  nse_len; /* length in units of 4 octets (not including the first 4 octets) */
-	uint16_t  type; /* on of ns_rtt_type */
-	uint16_t  unused; /* checksum */
-	uint16_t  ident; /* packetstream identifier */
-	uint16_t  seq_no;
-	uint32_t  sec;
-	uint32_t  usec;
-	/* variable data */
-} __attribute__((packed));
-
-struct ns_rtt_info {
-	uint16_t  nse_nxt_hdr; /* next header */
-	uint16_t  nse_len; /* ... you know */
-	uint32_t  sec;
-	uint32_t  usec;
-} __attribute__((packed));
-
-
 struct sock_callbacks {
 	ssize_t (*cb_read)(int, void *, size_t);
 	ssize_t (*cb_write)(int, const void *, size_t);
@@ -405,62 +322,13 @@ struct opts {
 	} rtt_probe_opt;
 };
 
-/* error handling macros */
-#define err_msg(format, args...) \
-	do { \
-		x_err_ret(__FILE__, __LINE__,  format , ## args); \
-	} while (0)
-
-#define err_sys(format, args...) \
-	do { \
-		x_err_sys(__FILE__, __LINE__,  format , ## args); \
-	} while (0)
-
-#define err_sys_die(exitcode, format, args...) \
-	do { \
-		x_err_sys(__FILE__, __LINE__, format , ## args); \
-		exit( exitcode ); \
-	} while (0)
-
-#define err_msg_die(exitcode, format, args...) \
-	do { \
-		x_err_ret(__FILE__, __LINE__,  format , ## args); \
-		exit( exitcode ); \
-	} while (0)
-
-enum {
-	QUITSCENT = 0,
-	GENTLE,
-	LOUDISH,
-	STRESSFUL
-};
-
 /*** Interface ***/
 
-/* error.c */
-void x_err_ret(const char *file, int line_no, const char *, ...);
-void x_err_sys(const char *file, int line_no, const char *, ...);
-void msg(const int, const char *, ...);
-void print_bt(void);
-
-
-/* xfunc.c definitions */
-void * alloc(size_t);
-void * salloc(int, size_t);
-#define	zalloc(x) salloc(0, x)
-void gen_human_analyse(char *, unsigned int);
-void gen_mashine_analyse(char *, unsigned int);
-long sublong(long, long);
-
-
 enum where_send {
-	TOUCH_BEFORE_OP = 0,
+    TOUCH_BEFORE_OP = 0,
     TOUCH_AFTER_OP
 };
-#define TIME_GT(x,y) (x->tv_sec > y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec > y->tv_usec))
-#define TIME_LT(x,y) (x->tv_sec < y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec < y->tv_usec))
-unsigned long long tsc_diff(unsigned long long, unsigned long long);
-int subtime(struct timeval *, struct timeval *, struct timeval *);
+
 
 /* Gcc is smart enough to realize that argument 'where' is static
 ** at compile time and reorder the branch - this is tested!
@@ -493,6 +361,7 @@ touch_use_stat(enum where_send where, struct use_stat *use_stat)
 };
 
 
+
 /* file.c */
 int open_input_file(void);
 int open_output_file(void);
@@ -517,6 +386,5 @@ void receive_mode(void);
 /* transmit.c */
 void transmit_mode(void);
 ssize_t write_len(int, const void *, size_t);
-
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

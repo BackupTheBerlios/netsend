@@ -33,6 +33,7 @@
 
 #include <sys/socket.h>
 
+#include "analyze.h"
 #include "global.h"
 #include "proto_tipc.h"
 #include "proto_udp.h"

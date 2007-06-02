@@ -42,7 +42,9 @@
 
 #include <arpa/inet.h>
 
+#include "analyze.h"
 #include "global.h"
+#include "ns_hdr.h"
 #include "debug.h"
 
 extern struct opts opts;

@@ -62,8 +62,7 @@ cs_read(int file_fd, int connected_fd)
 	/* user option or default(DEFAULT_BUFSIZE) */
 	buflen = (opts.buffer_size == 0) ? DEFAULT_BUFSIZE : opts.buffer_size;
 
-	/* allocate read buffer */
-	buf = alloc(buflen);
+	buf = xmalloc(buflen);
 
 	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
 

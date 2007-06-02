@@ -5,17 +5,11 @@ ifeq ($(shell test \! -f Make.Rules || echo yes),yes)
 endif
 
 TARGET = netsend
-OBJECTS =    error.o    \
-						 file.o     \
-						 getopt.o   \
-						 main.o     \
-						 net.o      \
-						 proto_tipc.o \
-						 proto_udp.o \
-						 receive.o  \
-						 transmit.o \
-						 ns_hdr.o   \
-						 xfuncs.o
+OBJECTS = analyze.o error.o file.o \
+	getopt.o main.o net.o \
+	proto_tipc.o proto_udp.o \
+	receive.o transmit.o \
+	ns_hdr.o xfuncs.o
 
 POD = netsend.pod
 MAN = netsend.1
@@ -49,7 +43,7 @@ config.h:
 $(TARGET): $(OBJECTS)
 	$(CC) $(LIBS) $(CFLAGS) -o $(TARGET) $(OBJECTS)
 
-%.o: %.c global.h Makefile
+%.o: %.c analyze.h error.h global.h xfuncs.h Makefile
 	$(CC) $(CFLAGS) -c  $< -o $@
 
 install: all

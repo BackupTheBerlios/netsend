@@ -146,16 +146,7 @@ ss_rw(int file_fd, int connected_fd)
 	/* user option or default */
 	buflen = opts.buffer_size ? opts.buffer_size : DEFAULT_BUFSIZE;
 
-	/* allocate buffer */
-	buf = alloc(buflen);
-
-	/* XXX: proof this code for this case that we read from
-	** STDIN. Exact: the default buflen and the interaction
-	** between glibc buffersize for STDIN.
-	** Do we want to change the default buffer behavior for
-	** STDIN(linebuffer, fullbuffer, ...)?  --HGN
-	*/
-
+	buf = xmalloc(buflen);
 	if (opts.change_mem_advise &&
 		posix_fadvise(file_fd, 0, 0, get_mem_adv_f(opts.mem_advice))) {
 		err_sys("posix_fadvise");	/* do not exit */

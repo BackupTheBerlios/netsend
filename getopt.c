@@ -33,6 +33,8 @@
 #include <netinet/in.h>
 
 #include "global.h"
+#include "xfuncs.h"
+
 
 #ifdef HAVE_AF_TIPC
 #include <linux/tipc.h>
@@ -217,6 +219,7 @@ parse_rtt_string(const char *rtt_cmd)
 	return 0;
 }
 
+
 /* parse_short_opt is a helper function who
 ** parse the particular options
 */
@@ -265,6 +268,9 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			} else if (!strcasecmp((*argv)[2], "udp")) {
 				opts.protocol    = IPPROTO_UDP;
 				opts.socktype    = SOCK_DGRAM;
+			} else if (!strcasecmp((*argv)[2], "sctp")) {
+				opts.protocol    = IPPROTO_SCTP;
+				opts.socktype    = SOCK_STREAM;
 			} else if (!strcasecmp((*argv)[2], "dccp")) {
 				opts.protocol    = IPPROTO_DCCP;
 				opts.socktype    = SOCK_DCCP;
@@ -381,8 +387,7 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			** now free it and reallocate a proper size
 			*/
 			free(opts.port);
-			opts.port = alloc(strlen((*argv)[2]) + 1);
-			sprintf(opts.port, "%s", (*argv)[2]);
+			opts.port = xstrdup((*argv)[2]);
 			(*argc)--;
 			(*argv)++;
 			break;
@@ -408,7 +413,7 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 						(*opt_str)[2], (*argc));
 				exit(1);
 			}
-			opts.execstring = alloc(strlen((*argv)[2]) + 1);
+			opts.execstring = xstrdup((*argv)[2] + 1);
 			strcpy(opts.outfile, (*argv)[2]);
 			(*argc)--;
 			(*argv)++;
@@ -612,11 +617,9 @@ parse_opts(int argc, char *argv[])
 	memset(&opts, 0, sizeof(struct opts));
 	if ((tmp = strrchr(argv[0], '/')) != NULL) {
 		tmp++;
-		opts.me = alloc(strlen(tmp) + 1);
-		strcpy(opts.me, tmp);
+		opts.me = xstrdup(tmp);
 	} else {
-		opts.me = alloc(strlen(argv[0]) + 1);
-		strcpy(opts.me, argv[0]);
+		opts.me = xstrdup(argv[0] + 1);
 	}
 
 	/* Initialize some default values */
@@ -638,9 +641,7 @@ parse_opts(int argc, char *argv[])
 
 	/* if opts.nice is equal INT_MAX nobody change something - hopefully */
 	opts.nice = INT_MAX;
-
-	opts.port = alloc(strlen(DEFAULT_PORT) + 1);
-	sprintf(opts.port, "%s", DEFAULT_PORT);
+	opts.port = xstrdup(DEFAULT_PORT);
 
 	/* outer loop runs over argv's ... */
 	while (argc > 1) {
@@ -686,11 +687,8 @@ parse_opts(int argc, char *argv[])
 				break;
 		}
 
-		opts.infile = alloc(strlen(argv[1]) + 1);
-		strcpy(opts.infile, argv[1]);
-
-		opts.hostname = alloc(strlen(argv[2]) + 1);
-		strcpy(opts.hostname, argv[2]);
+		opts.infile = xstrdup(argv[1] + 1);
+		opts.hostname = xstrdup(argv[2] + 1);
 
 	} else if (opts.workmode == MODE_RECEIVE) { /* MODE_RECEIVE */
 
@@ -699,13 +697,11 @@ parse_opts(int argc, char *argv[])
 				break;
 
 			case 2:
-				opts.hostname = alloc(strlen(argv[2]) + 1);
-				strcpy(opts.hostname, argv[2]);
+				opts.hostname = xstrdup(argv[2] + 1);
+				/* fallthrough */
 			case 1:
-				opts.outfile = alloc(strlen(argv[1]) + 1);
-				strcpy(opts.outfile, argv[1]);
+				opts.outfile = xstrdup(argv[1] + 1);
 				break;
-
 			default:
 				err_msg("You specify to many arguments!");
 				usage();
