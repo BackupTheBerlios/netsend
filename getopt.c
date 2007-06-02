@@ -424,7 +424,7 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 
 			opts.buffer_size = strtol((*argv)[2], (char **)NULL, 10);
 			if (opts.buffer_size <= 0)
-				err_msg_die(EXIT_FAILOPT  "Buffer size to small (%d byte)!",
+				err_msg_die(EXIT_FAILOPT, "Buffer size to small (%d byte)!",
 						opts.buffer_size);
 			(*argc)--;
 			(*argv)++;
