@@ -71,6 +71,17 @@
 /* dccp packet default size */
 #define	DCCP_STD_PACKET_SIZE 256
 
+#ifndef SOL_SCTP
+# define SOL_SCTP 132
+#endif
+
+#ifndef SCTP_MAXSEG
+# define SCTP_MAXSEG    13
+#endif
+
+#ifndef IPPROTO_UDPLITE
+# define IPPROTO_UDPLITE 136
+#endif
 /* Our makros start here */
 
 #define NIPQUAD(addr)   ((unsigned char *)&addr)[0], \
