@@ -129,7 +129,7 @@
 
 /* Default values */
 #define	DEFAULT_PORT    "6666"
-#define	BACKLOG         0
+#define	BACKLOG         1
 #define	DEFAULT_BUFSIZE (8 * 1024)
 
 enum sockopt_val_types {

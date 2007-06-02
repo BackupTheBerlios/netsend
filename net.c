@@ -130,8 +130,8 @@ get_sock_opts(int fd, struct net_stat *ns)
 			return get_tcp_sock_opts(fd, ns);
 			break;
 		case IPPROTO_UDP:
-			return 0;
 		case IPPROTO_DCCP:
+		case IPPROTO_SCTP:
 			return 0;
 		default:
 			err_msg_die(EXIT_FAILMISC, "Programmed Failure");

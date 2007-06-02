@@ -107,7 +107,7 @@ usage(void)
 			"    -r <output-file> <multicast>    _r_eceive data and save to outputfile\n"
 			"                                    bind local socket to multicast group\n"
 			"                                    (output-file and multicast adddr in receive mode are optional)\n\n"
-			"-m <tcp | udp | dccp"
+			"-m <tcp | udp | dccp | sctp"
 #ifdef HAVE_AF_TIPC
 			" | tipc socktype"
 #endif
