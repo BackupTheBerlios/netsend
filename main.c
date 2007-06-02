@@ -118,7 +118,7 @@ main(int argc, char *argv[])
 	}
 
 	switch (opts.protocol) {
-	case IPPROTO_UDP: case IPPROTO_UDP_UDPLITE:
+	case IPPROTO_UDP: case IPPROTO_UDPLITE:
 		sock_callbacks.cb_listen = udp_listen;
 	}
 	/* Branch to final workmode ... */
