@@ -279,11 +279,9 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			opts.stat_prefix = STAT_PREFIX_SI;
 			break;
 		case 'm':
-			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 2))
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(1);
-			}
 /* special case: TIPC is no IP protocol and we need to setup some additional things. */
 #ifdef HAVE_AF_TIPC
 			if (!strcasecmp((*argv)[2], "tipc")) {
@@ -305,11 +303,9 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 		(*argv)++;
 		break;
 		case 'a':
-			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 2))
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(1);
-			}
 			for (i = 0; i <= MEMADV_MAX; i++ ) {
 				if (!strcasecmp((*argv)[2], memadvice_map[i].conf_string)) {
 					opts.mem_advice = memadvice_map[i].conf_code;
@@ -319,20 +315,17 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 					return 0;
 				}
 			}
-			fprintf(stderr, "ERROR: Mem Advice %s not supported!\n", (*argv)[2]);
-			exit(EXIT_FAILOPT);
+			err_msg_die(EXIT_FAILOPT, "ERROR: Mem Advice %s not supported!", (*argv)[2]);
 			break;
 		case 'c':
-			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 2))
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(1);
-			}
 			for (i = 0; i <= CA_MAX; i++ ) {
 				if (!strncasecmp((*argv)[2],
-							congestion_map[i].conf_string,
-							max(strlen(congestion_map[i].conf_string),
-								strlen((*argv)[2]))))
+						congestion_map[i].conf_string,
+						max(strlen(congestion_map[i].conf_string),
+							strlen((*argv)[2]))))
 				{
 					opts.congestion = congestion_map[i].conf_code;
 					opts.change_congestion++;
@@ -341,31 +334,26 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 					return 0;
 				}
 			}
-			fprintf(stderr, "ERROR: Congestion algorithm %s not supported!\n",
+			err_msg_die(EXIT_FAILOPT, "ERROR: Congestion algorithm %s not supported!",
 					(*argv)[2]);
-			exit(EXIT_FAILOPT);
 			break;
 		case 'R':
-			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 2))
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(1);
-			}
-			if (parse_rtt_string((*argv)[2]) < 0) {
-				fprintf(stderr, "ERROR: Failure in rtt probe string %s !\n",
-						(*argv)[2]);
-				exit(EXIT_FAILOPT);
-			}
+
+			if (parse_rtt_string((*argv)[2]) < 0)
+				err_msg_die(EXIT_FAILOPT, "ERROR: Failure in rtt probe string %s !", (*argv[2]));
+
 			(*argc)--;
 			(*argv)++;
 			return 0;
 			break;
 		case 'X':
-			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 2))
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(1);
-			}
+
 			for (i = 0; i <= CA_MAX; i++ ) {
 				if (!strncasecmp((*argv)[2],
 							congestion_map[i].conf_string,
@@ -379,16 +367,13 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 					return 0;
 				}
 			}
-			fprintf(stderr, "ERROR: Congestion algorithm %s not supported!\n",
-					(*argv)[2]);
-			exit(EXIT_FAILOPT);
+			err_msg_die(EXIT_FAILOPT, "ERROR: Congestion algorithm %s not supported!",
+										(*argv)[2]);
 			break;
 		case 'p':
-			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 2))
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(1);
-			}
 			/* we allocate room for DEFAULT_PORT at initialize phase
 			** now free it and reallocate a proper size
 			*/
@@ -414,11 +399,9 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			exit(EXIT_OK);
 			break;
 		case 'E':
-			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 2))
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(1);
-			}
 			opts.execstring = xstrdup((*argv)[2] + 1);
 			strcpy(opts.outfile, (*argv)[2]);
 			(*argc)--;
@@ -426,7 +409,7 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			break;
 		case 'n':
 			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
 				exit(EXIT_FAILOPT);
 			}
@@ -435,25 +418,21 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			(*argv)++;
 			break;
 		case 'N':
-			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 2))
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(1);
-			}
+
 			opts.buffer_size = strtol((*argv)[2], (char **)NULL, 10);
-			if (opts.buffer_size <= 0) {
-				fprintf(stderr, "Buffer size to small (%d byte)!\n",
+			if (opts.buffer_size <= 0)
+				err_msg_die(EXIT_FAILOPT  "Buffer size to small (%d byte)!",
 						opts.buffer_size);
-			}
 			(*argc)--;
 			(*argv)++;
 			break;
 		case 'u':
-			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 2))
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(1);
-			}
 			for (i = 0; i <= IO_MAX; i++ ) {
 				if (!strncasecmp((*argv)[2],
 							io_call_map[i].conf_string,
@@ -466,9 +445,8 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 					return 0;
 				}
 			}
-			fprintf(stderr, "ERROR: IO Function %s not supported!\n",
+			err_msg_die(EXIT_FAILOPT, "ERROR: IO Function %s not supported!",
 					(*argv)[2]);
-			exit(EXIT_FAILOPT);
 			break;
 			/* Two exception for this socketoption switch:
 			 ** o Common used options like SO_REUSEADDR or SO_KEEPALIVE
@@ -479,11 +457,9 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			 **   via this interface.
 			 */
 		case 'o':
-			if (((*opt_str)[2])  || ((*argc) <= 3)) {
-				fprintf(stderr, "Option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 3))
+				err_msg_die(stderr, "Option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(1);
-			}
 			/* parse socket option argument */
 			for (i = 0; socket_options[i].sockopt_name; i++) {
 				/* found option */
@@ -513,10 +489,8 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 							socket_options[i].user_issue++;
 							break;
 						default:
-							fprintf(stderr, "ERROR: Programmed Error (%s:%d)\n",
+							err_msg_die(EXIT_FAILMISC, "ERROR: Programmed Error (%s:%d)\n",
 									__FILE__, __LINE__);
-							exit(EXIT_FAILMISC);
-							break;
 					}
 					/* Fine, we are done ... */
 					break;
@@ -578,29 +552,24 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 			} else if (!strcasecmp((*argv)[3], "MIN")) {
 				opts.priority = sched_get_priority_min(opts.sched_policy);
 			} else {
-				fprintf(stderr, "Not a valid scheduling priority (%s)!\n"
-						"Valid: max or min\n",
-						(*argv)[3]);
-				exit(EXIT_FAILOPT);
+				err_msg_die(EXIT_FAILOPT, "Not a valid scheduling priority (%s)!\n"
+						"Valid: max or min", (*argv)[3]);
 			}
 			(*argc) -= 2;
 			(*argv) += 2;
 			break;
 
 		case 'C':
-			if (((*opt_str)[2])  || ((*argc) <= 2)) {
-				fprintf(stderr, "option error (%c:%d)\n",
+			if (((*opt_str)[2])  || ((*argc) <= 2))
+				err_msg_die(EXIT_FAILOPT, "option error (%c:%d)",
 						(*opt_str)[2], (*argc));
-				exit(EXIT_FAILOPT);
-			}
 			opts.nice = strtol((*argv)[2], (char **)NULL, 10);
 			(*argc)--;
 			(*argv)++;
 			break;
 
 		default:
-			fprintf(stderr, "Short option %c not supported!\n", (*opt_str)[1]);
-			exit(EXIT_FAILINT);
+			err_msg_die(EXIT_FAILOPT, "Short option %c not supported!\n", (*opt_str)[1]);
 	}
 
 	return 0;

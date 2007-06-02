@@ -143,16 +143,11 @@ struct unit_map_t
 static char *
 unit_conv(char *buf, int buf_len, ssize_t bytes, int unit_scale)
 {
-	int ret;
 	ssize_t res = bytes / unit_map[unit_scale].factor;
 
-	ret = snprintf(buf, buf_len, "%zd %s", res,
+	xsnprintf(buf, buf_len, "%zd %s", res,
 			(opts.statistics > 1) ? unit_map[unit_scale].name_long :
 			unit_map[unit_scale].name_short);
-	if (ret < 0 || (ssize_t)ret >= buf_len) {
-		err_msg_die(EXIT_FAILINT, "Buflen %u not sufficient (ret %d)",
-				buf_len, ret);
-	}
 	return buf;
 }
 

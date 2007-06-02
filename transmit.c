@@ -187,19 +187,16 @@ ss_mmap(int file_fd, int connected_fd)
 	msg(STRESSFUL, "send via mmap/write io operation");
 
 	ret = fstat(file_fd, &stat_buf);
-	if (ret == -1) {
-		fprintf(stderr, "ERROR: Can't fstat file %s: %s\n", opts.infile,
-				strerror(errno));
-		exit(EXIT_FAILMISC);
-	}
+	if (ret == -1)
+		err_msg_die(EXIT_FAILMISC, "ERROR: Can't fstat file %s: %s",
+						opts.infile, strerror(errno));
 
 	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
 
 	mmap_buf = mmap(NULL, stat_buf.st_size, PROT_READ, MAP_SHARED, file_fd, 0);
-	if (mmap_buf == MAP_FAILED) {
+	if (mmap_buf == MAP_FAILED)
 		err_sys_die(EXIT_FAILMISC, "Can't mmap file %s: %s\n",
 				opts.infile, strerror(errno));
-	}
 
 	if (opts.change_mem_advise &&
 		posix_madvise(mmap_buf, stat_buf.st_size, get_mem_adv_m(opts.mem_advice)))
@@ -214,7 +211,7 @@ ss_mmap(int file_fd, int connected_fd)
 		char *tmpbuf = mmap_buf;
 		rc = write_len(connected_fd, tmpbuf + written, write_cnt);
 		written += rc;
-	};
+	}
 	/* and write remaining bytes, if any */
 	write_cnt = stat_buf.st_size - written;
 	if (write_cnt > 0) {
@@ -232,9 +229,8 @@ ss_mmap(int file_fd, int connected_fd)
 	}
 
 	ret = munmap(mmap_buf, stat_buf.st_size);
-	if (ret == -1) {
+	if (ret == -1)
 		err_sys("Can't munmap buffer");
-	}
 
 	/* correct statistics */
 	net_stat.total_tx_bytes = stat_buf.st_size;

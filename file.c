@@ -110,13 +110,11 @@ open_output_file(void)
 {
 	int fd = 0;
 
-	if (!opts.outfile) {
+	if (!opts.outfile)
 		return STDOUT_FILENO;
-	}
 
-	if (!strncmp(opts.outfile, "-", 1)) {
+	if (!strncmp(opts.outfile, "-", 1))
 		return STDOUT_FILENO;
-	}
 
 	umask(0);
 
@@ -141,8 +139,6 @@ open_output_file(void)
 
 	return fd;
 }
-
-
 
 
 /* vim:set ts=4 sw=4 tw=78 noet: */
