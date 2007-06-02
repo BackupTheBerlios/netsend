@@ -263,8 +263,6 @@ receive_mode(void)
 	socklen_t sa_len = sizeof sa;
 	struct sigaction sigterm_sa;
 
-
-
 	sigterm_sa.sa_handler = SIG_IGN;
 	sigemptyset(&sigterm_sa.sa_mask);
 	sigterm_sa.sa_flags = 0;
@@ -284,8 +282,10 @@ receive_mode(void)
 			err_sys_die(EXIT_FAILNET, "accept");
 	}
 #endif
-	if (opts.protocol == IPPROTO_TCP) {
-
+	switch (opts.protocol) {
+	case IPPROTO_TCP:
+	case IPPROTO_DCCP:
+	case IPPROTO_SCTP: {
 		char peer[1024];
 
 		connected_fd = accept(server_fd, (struct sockaddr *) &sa, &sa_len);
@@ -299,6 +299,7 @@ receive_mode(void)
 		if (ret != 0)
 			err_msg_die(EXIT_FAILNET, "getnameinfo error: %s",  gai_strerror(ret));
 		msg(GENTLE, "accept from %s", peer);
+		}
 	}
 
 	/* read netsend header */
