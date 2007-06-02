@@ -390,6 +390,7 @@ static void
 set_socketopts(int fd)
 {
 	int i;
+
 	/* loop over all selectable socket options */
 	for (i = 0; socket_options[i].sockopt_name; i++) {
 		int ret;
@@ -424,6 +425,12 @@ set_socketopts(int fd)
 				err_msg_die(EXIT_FAILINT, "Programmed Failure");
 		}
 
+		/* catch some errors */
+		if (opts.protocol == IPPROTO_DCCP &&
+			(opts.buffer_size ||
+			 socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue))
+			break;
+
 		/* ... and do the dirty: set the socket options */
 		switch (socket_options[i].sockopt_type) {
 			case SVT_BOOL:
@@ -436,12 +443,12 @@ set_socketopts(int fd)
 					err_sys("setsockopt option %d failed", socket_options[i].sockopt_type);
 				break;
 			default:
-				DEBUGPRINTF("Unknown sockopt_type %d\n",
+				err_msg_die(EXIT_FAILNET, "Unknown sockopt_type %d\n",
 						socket_options[i].sockopt_type);
 				exit(EXIT_FAILMISC);
 		}
 		if (ret < 0) {
-			err_sys("ERROR: Can't set socket option %s: ",
+			err_sys("ERROR: Can't set socket option %s",
 				socket_options[i].sockopt_name);
 		}
 	}
