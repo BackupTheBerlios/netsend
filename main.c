@@ -117,9 +117,10 @@ main(int argc, char *argv[])
 		err_sys("nice()");
 	}
 
-	if (opts.protocol == IPPROTO_UDP)
+	switch (opts.protocol) {
+	case IPPROTO_UDP: case IPPROTO_UDP_UDPLITE:
 		sock_callbacks.cb_listen = udp_listen;
-
+	}
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
 		case MODE_TRANSMIT:
