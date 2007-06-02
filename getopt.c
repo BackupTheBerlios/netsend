@@ -220,6 +220,28 @@ parse_rtt_string(const char *rtt_cmd)
 }
 
 
+static void parse_ipprotocol(const char *protoname)
+{
+	unsigned i;
+	static const struct { const char *name; int socktype; int protocol; }
+		ipprotocols[] = {
+			{ "tcp", SOCK_STREAM, IPPROTO_TCP },
+			{ "udp", SOCK_DGRAM, IPPROTO_UDP },
+			{ "sctp", SOCK_STREAM, IPPROTO_SCTP },
+			{ "dccp", SOCK_DCCP, IPPROTO_DCCP }
+		};
+
+	for (i=0; i < ARRAY_SIZE(ipprotocols); i++) {
+		if (strcasecmp(ipprotocols[i].name, protoname))
+			continue;
+		opts.protocol = ipprotocols[i].protocol;
+		opts.socktype = ipprotocols[i].socktype;
+		return;
+	}
+	err_msg_die(EXIT_FAILOPT, "Protocol \"%s\" not supported", protoname);
+}
+
+
 /* parse_short_opt is a helper function who
 ** parse the particular options
 */
@@ -262,22 +284,9 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 						(*opt_str)[2], (*argc));
 				exit(1);
 			}
-			if (!strcasecmp((*argv)[2], "tcp")) {
-				opts.protocol    = IPPROTO_TCP;
-				opts.socktype    = SOCK_STREAM;
-			} else if (!strcasecmp((*argv)[2], "udp")) {
-				opts.protocol    = IPPROTO_UDP;
-				opts.socktype    = SOCK_DGRAM;
-			} else if (!strcasecmp((*argv)[2], "sctp")) {
-				opts.protocol    = IPPROTO_SCTP;
-				opts.socktype    = SOCK_STREAM;
-			} else if (!strcasecmp((*argv)[2], "dccp")) {
-				opts.protocol    = IPPROTO_DCCP;
-				opts.socktype    = SOCK_DCCP;
-				fprintf(stderr, "DCCP not supported yet ... exiting\n");
-				exit(EXIT_FAILINT);
+/* special case: TIPC is no IP protocol and we need to setup some additional things. */
 #ifdef HAVE_AF_TIPC
-			} else if (!strcasecmp((*argv)[2], "tipc")) {
+			if (!strcasecmp((*argv)[2], "tipc")) {
 				if (*argc <= 3) {
 					fputs("tipc requires socket-type argument, known values:\n", stderr);
 					tipc_print_socktypes();
@@ -289,15 +298,12 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 				(*argc) -=2;
 				(*argv) += 2;
 				return 0;
-#endif
-			} else {
-				fprintf(stderr, "Unsupported protocol: %s\n",
-						(*argv)[2]);
-				exit(EXIT_FAILOPT);
 			}
-			(*argc)--;
-			(*argv)++;
-			break;
+#endif
+		parse_ipprotocol((*argv)[2]);
+		(*argc)--;
+		(*argv)++;
+		break;
 		case 'a':
 			if (((*opt_str)[2])  || ((*argc) <= 2)) {
 				fprintf(stderr, "option error (%c:%d)\n",
