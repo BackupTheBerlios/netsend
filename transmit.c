@@ -483,7 +483,6 @@ instigate_ss(void)
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
 
 	addrtmp = hostres;
-	printf("proto %d\n", addrtmp->ai_protocol);
 
 	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
 
@@ -491,7 +490,7 @@ instigate_ss(void)
 			addrtmp->ai_family != opts.family) { /* user fixed family! */
 			continue;
 		}
-		printf("proto %d\n", addrtmp->ai_protocol);
+
 		fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
 				addrtmp->ai_protocol);
 		if (fd < 0) {
@@ -500,8 +499,9 @@ instigate_ss(void)
 		}
 
 		protoent = getprotobynumber(addrtmp->ai_protocol);
-		msg(LOUDISH, "socket created - protocol %s(%d)",
-			protoent->p_name, protoent->p_proto);
+		if (protoent)
+			msg(LOUDISH, "socket created - protocol %s(%d)",
+				protoent->p_name, protoent->p_proto);
 
 		/* mulicast checks */
 		if (addrtmp->ai_protocol == IPPROTO_UDP) {

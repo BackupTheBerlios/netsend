@@ -63,8 +63,6 @@ void xgetaddrinfo(const char *node, const char *service,
 	struct addrinfo *a;
 	bool dccp_sctp_fixup;
 
-	printf("proto: %d\n", hints->ai_protocol);
-	printf("sockt: %d\n", hints->ai_socktype);
 	if (hints) {
 	/* getaddrinfo() does not support DCCP/SCTP yet, so fix things up manually 8-/ */
 		switch (hints->ai_protocol) {
@@ -91,11 +89,9 @@ void xgetaddrinfo(const char *node, const char *service,
 		return; /* no we did not */
 
 	/* yes, need fixup */
-	for (a = res; a != NULL ; a = a->ai_next) {
+	for (a = *res; a != NULL ; a = a->ai_next) {
 		a->ai_protocol = ai_protocol;
 		a->ai_socktype = ai_socktype;
-	printf("new proto: %d\n", a->ai_protocol);
-	printf("new sockt: %d\n", a->ai_socktype);
 	}
 }
 
