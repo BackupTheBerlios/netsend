@@ -160,7 +160,7 @@ unit_conv(char *buf, int buf_len, ssize_t bytes, int unit_scale)
 void
 gen_human_analyse(char *buf, unsigned int max_buf_len)
 {
-	int len = 0, page_size;
+	int len, page_size;
 	char unit_buf[UNIT_MAX];
 	struct timeval tv_tmp;
 	struct utsname utsname;
@@ -172,13 +172,12 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 	if (uname(&utsname))
 		*utsname.nodename = *utsname.release = *utsname.machine = 0;
 
-	len = xsnprintf(buf + len, max_buf_len - len,
+	len = xsnprintf(buf, max_buf_len,
 			"\n** %s statistics (%s | %s | %s) ** \n",
 			opts.workmode == MODE_TRANSMIT ? "tx" : "rx",
 			utsname.nodename, utsname.release, utsname.machine);
 
 	if (opts.workmode == MODE_TRANSMIT) {
-
 		const char *tx_call_str;
 
 		/* display system call count */
