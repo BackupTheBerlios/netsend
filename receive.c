@@ -172,10 +172,8 @@ instigate_cs(int *ret_fd)
 		fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
 				addrtmp->ai_protocol);
 
-		if (fd < 0) {
-			err_sys("socket");
+		if (fd < 0)
 			continue;
-		}
 
 		/* For multicast sockets it is maybe necessary to set
 		** socketoption SO_REUSEADDR, cause multiple receiver on
@@ -183,6 +181,22 @@ instigate_cs(int *ret_fd)
 		** In all other cases: there is no penalty - hopefully! ;-)
 		*/
 		xsetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on), "SO_REUSEADDR");
+
+		/* set dccp options here */
+		if (opts.protocol == IPPROTO_DCCP) {
+
+			int packet_size = DCCP_STD_PACKET_SIZE;
+
+			/* if user doesn't selected a packet size */
+			if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue)
+				packet_size = socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue;
+
+			xsetsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_PACKET_SIZE,
+					&packet_size, sizeof(packet_size), "DCCP_SOCKOPT_PACKET_SIZE");
+			xsetsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_SERVICE,
+					&packet_size, sizeof(packet_size), "DCCP_SOCKOPT_SERVICE");
+		}
+
 
 		ret = bind(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
 		if (ret == 0) {   /* bind call success */

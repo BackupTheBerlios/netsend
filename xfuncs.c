@@ -70,7 +70,7 @@ void xgetaddrinfo(const char *node, const char *service,
 		case IPPROTO_SCTP:
 			ai_protocol = hints->ai_protocol;
 			ai_socktype = hints->ai_socktype;
-			hints->ai_protocol = 0;
+			hints->ai_protocol = IPPROTO_TCP;
 			hints->ai_socktype = hints->ai_protocol == IPPROTO_DCCP ?
 							SOCK_DGRAM : SOCK_STREAM;
 

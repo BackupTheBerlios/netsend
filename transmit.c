@@ -482,6 +482,7 @@ instigate_ss(void)
 
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
 
+	printf("proto %d\n", hostres->ai_protocol);
 	addrtmp = hostres;
 
 	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
@@ -563,8 +564,12 @@ instigate_ss(void)
 
 			/* if user doesn't selected a packet size */
 			if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue)
-				xsetsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_PACKET_SIZE,
+				packet_size = socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue;
+
+			xsetsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_PACKET_SIZE,
 					&packet_size, sizeof(packet_size), "DCCP_SOCKOPT_PACKET_SIZE");
+			xsetsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_SERVICE,
+					&packet_size, sizeof(packet_size), "DCCP_SOCKOPT_SERVICE");
 		}
 
 
