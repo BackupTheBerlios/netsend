@@ -483,6 +483,7 @@ instigate_ss(void)
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
 
 	addrtmp = hostres;
+	printf("proto %d\n", addrtmp->ai_protocol);
 
 	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
 
@@ -490,7 +491,7 @@ instigate_ss(void)
 			addrtmp->ai_family != opts.family) { /* user fixed family! */
 			continue;
 		}
-
+		printf("proto %d\n", addrtmp->ai_protocol);
 		fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
 				addrtmp->ai_protocol);
 		if (fd < 0) {

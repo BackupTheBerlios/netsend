@@ -22,6 +22,7 @@
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -58,12 +59,43 @@ xmalloc(size_t size)
 void xgetaddrinfo(const char *node, const char *service,
 		struct addrinfo *hints, struct addrinfo **res)
 {
-	int ret;
+	int ret, ai_protocol, ai_socktype;
+	struct addrinfo *a;
+	bool dccp_sctp_fixup;
+
+	printf("proto: %d\n", hints->ai_protocol);
+	printf("sockt: %d\n", hints->ai_socktype);
+	if (hints) {
+	/* getaddrinfo() does not support DCCP/SCTP yet, so fix things up manually 8-/ */
+		switch (hints->ai_protocol) {
+		case IPPROTO_DCCP:
+		case IPPROTO_SCTP:
+			ai_protocol = hints->ai_protocol;
+			ai_socktype = hints->ai_socktype;
+			hints->ai_protocol = 0;
+			hints->ai_socktype = hints->ai_protocol == IPPROTO_DCCP ?
+							SOCK_DGRAM : SOCK_STREAM;
+
+			dccp_sctp_fixup = true;
+		}
+	}
 
 	ret = getaddrinfo(node, service, hints, res);
 	if (ret != 0) {
 		err_msg_die(EXIT_FAILNET, "Call to getaddrinfo() failed: %s!\n",
 				(ret == EAI_SYSTEM) ?  strerror(errno) : gai_strerror(ret));
+	}
+
+	/* check if we meddled with *hints behind getaddrinfos back and fix things up again */
+	if (!dccp_sctp_fixup)
+		return; /* no we did not */
+
+	/* yes, need fixup */
+	for (a = res; a != NULL ; a = a->ai_next) {
+		a->ai_protocol = ai_protocol;
+		a->ai_socktype = ai_socktype;
+	printf("new proto: %d\n", a->ai_protocol);
+	printf("new sockt: %d\n", a->ai_socktype);
 	}
 }
 
