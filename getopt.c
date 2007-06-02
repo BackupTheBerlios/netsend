@@ -625,7 +625,7 @@ parse_opts(int argc, char *argv[])
 		tmp++;
 		opts.me = xstrdup(tmp);
 	} else {
-		opts.me = xstrdup(argv[0] + 1);
+		opts.me = xstrdup(argv[0]);
 	}
 
 	/* Initialize some default values */
@@ -693,8 +693,8 @@ parse_opts(int argc, char *argv[])
 				break;
 		}
 
-		opts.infile = xstrdup(argv[1] + 1);
-		opts.hostname = xstrdup(argv[2] + 1);
+		opts.infile = xstrdup(argv[1]);
+		opts.hostname = xstrdup(argv[2]);
 
 	} else if (opts.workmode == MODE_RECEIVE) { /* MODE_RECEIVE */
 
@@ -703,10 +703,10 @@ parse_opts(int argc, char *argv[])
 				break;
 
 			case 2:
-				opts.hostname = xstrdup(argv[2] + 1);
+				opts.hostname = xstrdup(argv[2]);
 				/* fallthrough */
 			case 1:
-				opts.outfile = xstrdup(argv[1] + 1);
+				opts.outfile = xstrdup(argv[1]);
 				break;
 			default:
 				err_msg("You specify to many arguments!");
