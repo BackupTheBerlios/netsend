@@ -133,7 +133,7 @@ main(int argc, char *argv[])
 			err_msg_die(EXIT_FAILMISC, "Programmed Failure");
 	}
 
-	if (opts.statistics) {
+	if (opts.statistics || opts.mashine_parseable) {
 		char buf[MAX_STATLEN];
 
 		if (opts.mashine_parseable)
@@ -141,7 +141,7 @@ main(int argc, char *argv[])
 		else
 			gen_human_analyse(buf, MAX_STATLEN);
 
-		fprintf(stderr, "%s", buf);
+		fputs(buf, stderr);
 		fflush(stderr);
 	}
 
