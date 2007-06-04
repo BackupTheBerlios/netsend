@@ -239,37 +239,6 @@ EOF
 }
 
 
-check_for_udplite()
-{
-	echo -n "checking for udplite support..."
-	TMPDIR=`mktemp -d`
-	cat > "$TMPDIR"/udplite.c <<EOF
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <netinet/in.h>
-
-
-
-int main(int argc, char **argv){
-int proto = IPPROTO_UDPLITE;
-return 0;
-}
-EOF
-	gcc -o /dev/null "$TMPDIR"/udplite.c >/dev/null 2>&1
-	if [ $? -eq 0 ];then
-		echo " yes"
-		echo "#define HAVE_UDPLITE 1" >>config.h
-	else
-		echo " no"
-		echo "#undef HAVE_UDPLITE" >>config.h
-
-	fi
-	rm -f "$TMPDIR"/udplite.c
-	rmdir "$TMPDIR"
-}
-
-
 check_for_splice()
 {
 	echo -n "checking for splice..."
@@ -322,7 +291,6 @@ create_make_rules
 
 check_for_alloca
 check_for_rdtscll
-check_for_udplite
 check_for_splice
 check_for_af_tipc
 
