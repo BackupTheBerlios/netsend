@@ -236,6 +236,11 @@ instigate_cs(int *ret_fd)
 		}
 	}
 
+	if (fd < 0) {
+		err_msg_die(EXIT_FAILNET, "Don't found a suitable address for binding, giving up "
+				"(TIP: start program with strace(2) to find the problen\n");
+	}
+
 	ret = sock_callbacks.cb_listen(fd, BACKLOG);
 	if (ret < 0)
 		err_sys_die(EXIT_FAILNET, "listen(fd: %d, backlog: %d) failed", fd, BACKLOG);
