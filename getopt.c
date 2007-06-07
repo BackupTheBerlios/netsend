@@ -486,7 +486,7 @@ parse_short_opt(char **opt_str, int *argc, char **argv[])
 						case SVT_INT:
 							/* TODO: add some input checkings here */
 							socket_options[i].value =
-								strtol((*argv)[2], (char **)NULL, 10);
+								strtol((*argv)[3], (char **)NULL, 10);
 							socket_options[i].user_issue++;
 							break;
 						default:
