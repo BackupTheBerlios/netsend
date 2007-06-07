@@ -61,7 +61,7 @@ void xgetaddrinfo(const char *node, const char *service,
 {
 	int ret, ai_protocol, ai_socktype;
 	struct addrinfo *a;
-	bool dccp_sctp_fixup;
+	bool dccp_sctp_fixup = false;
 
 	if (hints) {
 	/* getaddrinfo() does not support DCCP/SCTP yet, so fix things up manually 8-/ */

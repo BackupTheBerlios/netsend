@@ -48,10 +48,6 @@
 # define IPPROTO_DCCP 33
 #endif
 
-#ifndef DCCP_SOCKOPT_PACKET_SIZE
-# define DCCP_SOCKOPT_PACKET_SIZE 1
-#endif
-
 #ifndef DCCP_SOCKOPT_SERVICE
 # define DCCP_SOCKOPT_SERVICE 2
 #endif
@@ -67,9 +63,6 @@
 #ifndef TCP_CONGESTION
 # define TCP_CONGESTION  13
 #endif
-
-/* dccp packet default size */
-#define	DCCP_STD_PACKET_SIZE 256
 
 #ifndef SOL_SCTP
 # define SOL_SCTP 132
@@ -170,7 +163,6 @@ struct socket_options {
 #define	CNT_SO_RCVLOWAT              8
 #define	CNT_SO_SNDTIMEO              9
 #define	CNT_SO_RCVTIMEO              10
-#define	CNT_DCCP_SOCKOPT_PACKET_SIZE 11
 
 struct conf_map_t {
 	int          conf_code;

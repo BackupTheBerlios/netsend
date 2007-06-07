@@ -666,39 +666,6 @@ parse_opts(int argc, char *argv[])
 		opts.infile = xstrdup(argv[1]);
 		opts.hostname = xstrdup(argv[2]);
 
-		/* DCCP workaround:
-		 * DCCP required a exact packetsize, this is set in transmit and
-		 * receive path via setsockopt() and furthermore: we are also constrained to send
-		 * chunked size packet via write/sendfile/etc.
-		 * So if the user specify
-		 */
-		if (opts.protocol == IPPROTO_DCCP) {
-
-			if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue &&
-				opts.buffer_size &&
-				socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue !=
-				opts.buffer_size) {
-				err_msg_die(EXIT_FAILOPT, "You specify -N n and DCCP packet size."
-						" But this values must be identical!\nEither specify one option"
-						" none or both of identical size!\n");
-			}
-			/* If the user specify one option this had precedence
-			 * In the other case DCCP_STD_PACKET_SIZE become default
-			 */
-			if (opts.buffer_size) {
-				if (opts.buffer_size != DCCP_STD_PACKET_SIZE)
-					err_msg("dccp packet size should be %d byte", DCCP_STD_PACKET_SIZE);
-				socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue = opts.buffer_size;
-			} else if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue) {
-				if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue !=
-						DCCP_STD_PACKET_SIZE)
-					err_msg("dccp packet size should be %d byte", DCCP_STD_PACKET_SIZE);
-				opts.buffer_size = socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue;
-			} else {
-				opts.buffer_size = DCCP_STD_PACKET_SIZE;
-			}
-		}
-
 	} else if (opts.workmode == MODE_RECEIVE) { /* MODE_RECEIVE */
 
 		switch (--argc) {

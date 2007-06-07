@@ -182,22 +182,6 @@ instigate_cs(int *ret_fd)
 		*/
 		xsetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on), "SO_REUSEADDR");
 
-		/* set dccp options here */
-		if (opts.protocol == IPPROTO_DCCP) {
-
-			int packet_size = DCCP_STD_PACKET_SIZE;
-
-			/* if user doesn't selected a packet size */
-			if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue)
-				packet_size = socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue;
-
-			xsetsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_PACKET_SIZE,
-					&packet_size, sizeof(packet_size), "DCCP_SOCKOPT_PACKET_SIZE");
-			xsetsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_SERVICE,
-					&packet_size, sizeof(packet_size), "DCCP_SOCKOPT_SERVICE");
-		}
-
-
 		ret = bind(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
 		if (ret == 0) {   /* bind call success */
 
@@ -298,7 +282,6 @@ receive_mode(void)
 			err_sys("accept error");
 			exit(EXIT_FAILNET);
 		}
-
 		ret = getnameinfo((struct sockaddr *)&sa, sa_len, peer,
 				sizeof(peer), NULL, 0, 0);
 		if (ret != 0)

@@ -121,7 +121,7 @@ write_len(int fd, const void *buf, size_t len)
 		ssize_t written = sock_callbacks.cb_write(fd, bufptr, len);
 		net_stat.total_tx_calls += 1;
 		if (written < 0) {
-			if (errno == EINTR)
+			if (errno == EINTR || errno == EAGAIN)
 				continue;
 			break;
 		}
@@ -425,12 +425,6 @@ set_socketopts(int fd)
 				err_msg_die(EXIT_FAILINT, "Programmed Failure");
 		}
 
-		/* catch some errors */
-		if (opts.protocol == IPPROTO_DCCP &&
-			(opts.buffer_size ||
-			 socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue))
-			break;
-
 		/* ... and do the dirty: set the socket options */
 		switch (socket_options[i].sockopt_type) {
 			case SVT_BOOL:
@@ -551,29 +545,6 @@ instigate_ss(void)
 
 		if (opts.protocol == IPPROTO_TCP && opts.change_congestion)
 			change_congestion(fd);
-
-		/* NOTE: in the first paragraph we set default socketoptions
-		** if the user doesn't select one and the socket
-		** need this (e.g. DCCP_SOCKOPT_PACKET_SIZE)
-		**
-		** In set_socketopts() we set user socketoptions
-		*/
-
-		/* set dccp packet size */
-		if (opts.protocol == IPPROTO_DCCP) {
-
-			int packet_size = DCCP_STD_PACKET_SIZE;
-
-			/* if user doesn't selected a packet size */
-			if (socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue)
-				packet_size = socket_options[CNT_DCCP_SOCKOPT_PACKET_SIZE].user_issue;
-
-			xsetsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_PACKET_SIZE,
-					&packet_size, sizeof(packet_size), "DCCP_SOCKOPT_PACKET_SIZE");
-			xsetsockopt(fd, SOL_DCCP, DCCP_SOCKOPT_SERVICE,
-					&packet_size, sizeof(packet_size), "DCCP_SOCKOPT_SERVICE");
-		}
-
 
 		/* We iterate over our commandline argument array - where the user
 		** set socketoption and set this on our socket
