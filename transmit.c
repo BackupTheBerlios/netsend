@@ -348,6 +348,9 @@ ss_sendfile(int file_fd, int connected_fd)
 	if (ret == -1)
 		err_sys_die(EXIT_FAILMISC, "Can't fstat file %s", opts.infile);
 
+	if (stat_buf.st_size == 0)
+		err_msg("empty file");
+
 	/* full or partial write */
 	write_cnt = opts.buffer_size ?
 		opts.buffer_size : stat_buf.st_size;
@@ -411,9 +414,11 @@ set_socketopts(int fd)
 					break;
 				}
 			case IPPROTO_UDP:
-				if (opts.protocol == IPPROTO_UDP) {
+				if (opts.protocol == IPPROTO_UDP)
 					break;
-				}
+			case IPPROTO_UDPLITE:
+				if (opts.protocol == IPPROTO_UDPLITE)
+					break;
 			case SOL_DCCP:
 				if (opts.protocol == IPPROTO_DCCP) {
 					break;
@@ -429,6 +434,7 @@ set_socketopts(int fd)
 		switch (socket_options[i].sockopt_type) {
 			case SVT_BOOL:
 			case SVT_ON:
+			case SVT_INT:
 				ret = setsockopt(fd, socket_options[i].level,
 						         socket_options[i].option,
 								 &socket_options[i].value,

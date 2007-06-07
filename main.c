@@ -81,6 +81,7 @@ struct socket_options socket_options[] = {
   {"SO_RCVLOWAT",  SOL_SOCKET,  SO_RCVLOWAT,  SVT_INT,  0, 0},
   {"SO_SNDTIMEO",  SOL_SOCKET,  SO_SNDTIMEO,  SVT_INT,  0, 0},
   {"SO_RCVTIMEO",  SOL_SOCKET,  SO_RCVTIMEO,  SVT_INT,  0, 0},
+  {"UDPLITE_SEND_CSCOV", IPPROTO_UDPLITE, UDPLITE_SEND_CSCOV, SVT_INT, 0, 8},
   {NULL, 0, 0, 0, 0, 0}
 };
 

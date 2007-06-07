@@ -118,7 +118,7 @@ usage(void)
 			"                         (this depends on operation mode (-t, -r)\n"
 			"-N                       select buffer chunk size (e.g. sendfile transfer amount per call)\n"
 			"-n                       set maximum number of sized chunkes. This limit upper transfer limit\n"
-			"-o <outfile>             save file to outfile (standard: STDOUT)\n"
+			"-o <optname>             specify setsockopt(2) options\n"
 			"-a <advice>              set memory advisory information\n"
 			"          * normal\n"
 			"          * sequential\n"

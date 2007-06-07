@@ -75,6 +75,11 @@
 #ifndef IPPROTO_UDPLITE
 # define IPPROTO_UDPLITE 136
 #endif
+
+#ifndef UDPLITE_SEND_CSCOV
+# define UDPLITE_SEND_CSCOV   10
+#endif
+
 /* Our makros start here */
 
 #define NIPQUAD(addr)   ((unsigned char *)&addr)[0], \
@@ -163,6 +168,7 @@ struct socket_options {
 #define	CNT_SO_RCVLOWAT              8
 #define	CNT_SO_SNDTIMEO              9
 #define	CNT_SO_RCVTIMEO              10
+#define	CNT_SO_UDPLITE_SEND_CSCOV    11
 
 struct conf_map_t {
 	int          conf_code;
