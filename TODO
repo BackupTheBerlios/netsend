@@ -7,7 +7,7 @@ o Extend the configure script to figure out
   sendfile with splice and to exclude dccp header
   values
 
-o add UDP-Lite support
+o replace gettimeofday() with clock_gettime()
 
 o Socket option processing
 
