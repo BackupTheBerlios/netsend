@@ -247,10 +247,10 @@ struct net_stat {
 	struct sock_stat sock_stat;
 
 	unsigned int total_rx_calls;
-	ssize_t      total_rx_bytes;
+	unsigned long long total_rx_bytes;
 
 	unsigned int total_tx_calls;
-	ssize_t      total_tx_bytes;
+	unsigned long long total_tx_bytes;
 
 	struct use_stat use_stat_start;
 	struct use_stat use_stat_end;

@@ -193,7 +193,7 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 				net_stat.total_tx_calls, tx_call_str);
 
 		/* display data amount */
-		len += xsnprintf(buf + len, max_buf_len - len, "%s %zd %s",
+		len += xsnprintf(buf + len, max_buf_len - len, "%s %llu %s",
 				T2S(STAT_TX_BYTES), opts.stat_unit == BYTE_UNIT ?
 				net_stat.total_tx_bytes : net_stat.total_tx_bytes * 8,
 				opts.stat_unit == BYTE_UNIT ? "Byte" : "Bit");
@@ -218,7 +218,7 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 				net_stat.total_rx_calls);
 
 		/* display data amount */
-		len += xsnprintf(buf + len, max_buf_len - len, "%s %zd %s",
+		len += xsnprintf(buf + len, max_buf_len - len, "%s %llu %s",
 				T2S(STAT_RX_BYTES), opts.stat_unit == BYTE_UNIT ?
 				net_stat.total_rx_bytes : net_stat.total_rx_bytes * 8,
 				opts.stat_unit == BYTE_UNIT ? "Byte" : "Bit");
@@ -390,7 +390,7 @@ gen_mashine_analyse(char *buf, unsigned int max_buf_len)
 		 net_stat.total_rx_calls);
 
 	/* 5. byte transmitted/received */
-	len += xsnprintf(buf + len, max_buf_len - len, "%zd ",
+	len += xsnprintf(buf + len, max_buf_len - len, "%llu ",
 		(opts.workmode == MODE_TRANSMIT) ? net_stat.total_tx_bytes :
 		 net_stat.total_rx_bytes);
 

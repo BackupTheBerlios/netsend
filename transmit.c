@@ -162,9 +162,10 @@ ss_rw(int file_fd, int connected_fd)
 		net_stat.total_tx_bytes += cnt_coll;
 
 		/* if we reached a user transfer limit? */
-		if (opts.multiple_barrier &&
-				net_stat.total_tx_bytes >= (buflen * opts.multiple_barrier)) {
-			break;
+		if (opts.multiple_barrier) {
+			unsigned long long limit = buflen * opts.multiple_barrier;
+			if (net_stat.total_tx_bytes >= limit)
+				break;
 		}
 	}
 
