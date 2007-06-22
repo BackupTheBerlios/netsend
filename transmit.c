@@ -156,8 +156,10 @@ ss_rw(int file_fd, int connected_fd)
 
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
 		cnt_coll = write_len(connected_fd, buf, cnt);
-		if (cnt_coll == -1)
-			err_sys_die(EXIT_FAILNET, "write error");
+		if (cnt_coll == -1) {
+			err_sys("write failed");
+			break;
+		}
 		/* correct statistics */
 		net_stat.total_tx_bytes += cnt_coll;
 
@@ -192,6 +194,7 @@ ss_mmap(int file_fd, int connected_fd)
 		err_msg_die(EXIT_FAILMISC, "ERROR: Can't fstat file %s: %s",
 						opts.infile, strerror(errno));
 
+	net_stat.total_tx_bytes = 0;
 	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
 
 	mmap_buf = mmap(NULL, stat_buf.st_size, PROT_READ, MAP_SHARED, file_fd, 0);
@@ -211,6 +214,8 @@ ss_mmap(int file_fd, int connected_fd)
 	while (stat_buf.st_size - written >= write_cnt) {
 		char *tmpbuf = mmap_buf;
 		rc = write_len(connected_fd, tmpbuf + written, write_cnt);
+		if (rc == -1)
+			goto write_fail;
 		written += rc;
 	}
 	/* and write remaining bytes, if any */
@@ -218,6 +223,13 @@ ss_mmap(int file_fd, int connected_fd)
 	if (write_cnt > 0) {
 		char *tmpbuf = mmap_buf;
 		rc = write_len(connected_fd, tmpbuf + written, write_cnt);
+		if (rc == -1) {
+ write_fail:
+			err_sys("write failed");
+			touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
+			net_stat.total_tx_bytes = written;
+			return munmap(mmap_buf, stat_buf.st_size);
+		}
 		written += rc;
 	}
 
@@ -243,13 +255,24 @@ ss_mmap(int file_fd, int connected_fd)
 static ssize_t
 ss_splice_frompipe(int pipe_fd, int connected_fd, ssize_t write_cnt)
 {
-	ssize_t written;
+	ssize_t written, total = 0;
+
+	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
+
 	do {
 		written = splice(pipe_fd, NULL, connected_fd, NULL, write_cnt, SPLICE_F_MOVE|SPLICE_F_MORE);
-		if (written < 0)
-			err_sys_die(EXIT_FAILNET, "Failure in splice from pipe");
+		if (written < 0) {
+			err_sys("Failure in splice from pipe");
+			break;
+		}
 		net_stat.total_tx_calls += 1;
+		total += written;
         } while (written > 0);
+
+	touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
+
+	net_stat.total_tx_bytes = total;
+
 	return 0;
 }
 #endif
