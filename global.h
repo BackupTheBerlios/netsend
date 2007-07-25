@@ -34,6 +34,11 @@
 #include "error.h"
 #ifdef HAVE_RDTSCLL
 # include <linux/timex.h>
+
+# ifndef rdtscll
+#define rdtscll(val) \
+     __asm__ __volatile__("rdtsc" : "=A" (val))
+# endif
 #endif /* HAVE_RDTSCLL */
 
 #ifndef SOCK_DCCP
