@@ -23,7 +23,7 @@
 */
 
 void gen_human_analyse(char *, unsigned int);
-void gen_mashine_analyse(char *, unsigned int);
+void gen_machine_analyse(char *, unsigned int);
 long sublong(long, long);
 
 #define TIME_GT(x,y) (x->tv_sec > y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec > y->tv_usec))

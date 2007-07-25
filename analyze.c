@@ -157,6 +157,19 @@ unit_conv(char *buf, int buf_len, ssize_t bytes, int unit_scale)
 		unit_map[x].name_long : \
 		unit_map[x].name_short)
 
+
+static const char *io_call_to_str(enum io_call code)
+{
+	switch(code) {
+	case IO_SENDFILE: return "sendfile";
+	case IO_MMAP: return "mmap";
+	case IO_RW: return "write";
+	case IO_SPLICE: return "splice";
+	case IO_READ: return "read";
+	}
+	return "";
+}
+
 void
 gen_human_analyse(char *buf, unsigned int max_buf_len)
 {
@@ -178,16 +191,9 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 			utsname.nodename, utsname.release, utsname.machine);
 
 	if (opts.workmode == MODE_TRANSMIT) {
-		const char *tx_call_str;
+		const char *tx_call_str = io_call_to_str(opts.io_call);
 
 		/* display system call count */
-		switch (opts.io_call) {
-			case IO_SENDFILE: tx_call_str = "sendfile"; break;
-			case IO_MMAP:     tx_call_str = "mmap"; break;
-			case IO_RW:       tx_call_str = "write"; break;
-			default:          tx_call_str = ""; break;
-		}
-
 		len += xsnprintf(buf + len, max_buf_len - len, "%s %d (%s)\n",
 				T2S(STAT_TX_CALLS),
 				net_stat.total_tx_calls, tx_call_str);
@@ -211,7 +217,6 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 		len += xsnprintf(buf + len, max_buf_len - len, "%s", "\n"); /* newline */
 
 	} else { /* MODE_RECEIVE */
-
 		/* display system call count */
 		len += xsnprintf(buf + len, max_buf_len - len, "%s %d (read)\n",
 				T2S(STAT_RX_CALLS),
@@ -267,7 +272,6 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 #endif
 
 	if (opts.verbose >= LOUDISH) {
-
 		long res;
 
 		/* test for signed long overflow in subtraction */
@@ -330,7 +334,7 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 #undef T2S
 
 void
-gen_mashine_analyse(char *buf, unsigned int max_buf_len)
+gen_machine_analyse(char *buf, unsigned int max_buf_len)
 {
 	int len = 0, page_size; long res;
 	const char *call_str;

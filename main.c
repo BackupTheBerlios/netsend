@@ -133,11 +133,11 @@ main(int argc, char *argv[])
 			err_msg_die(EXIT_FAILMISC, "Programmed Failure");
 	}
 
-	if (opts.statistics || opts.mashine_parseable) {
+	if (opts.statistics || opts.machine_parseable) {
 		char buf[MAX_STATLEN];
 
-		if (opts.mashine_parseable)
-			gen_mashine_analyse(buf, MAX_STATLEN);
+		if (opts.machine_parseable)
+			gen_machine_analyse(buf, MAX_STATLEN);
 		else
 			gen_human_analyse(buf, MAX_STATLEN);
 

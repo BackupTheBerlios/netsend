@@ -297,7 +297,7 @@ struct opts {
 
 	int  verbose;
 	int  statistics;
-	int  mashine_parseable;
+	int  machine_parseable;
 	int  stat_unit;
 	int  stat_prefix;
 	char *me;
