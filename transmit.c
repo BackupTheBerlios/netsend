@@ -189,10 +189,7 @@ ss_mmap(int file_fd, int connected_fd)
 
 	msg(STRESSFUL, "send via mmap/write io operation");
 
-	ret = fstat(file_fd, &stat_buf);
-	if (ret == -1)
-		err_msg_die(EXIT_FAILMISC, "ERROR: Can't fstat file %s: %s",
-						opts.infile, strerror(errno));
+	xfstat(file_fd, &stat_buf, opts.infile);
 
 	net_stat.total_tx_bytes = 0;
 	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
@@ -282,16 +279,14 @@ static ssize_t
 ss_splice(int file_fd, int connected_fd)
 {
 #ifdef HAVE_SPLICE
-	int ret, pipefds[2];
+	int pipefds[2];
 	struct stat stat_buf;
 	ssize_t rc, write_cnt;
 	__off64_t offset = 0;
 
 	msg(STRESSFUL, "send via splice io operation");
 
-	ret = fstat(file_fd, &stat_buf);
-	if (ret == -1)
-		err_sys_die(EXIT_FAILMISC, "Can't fstat file %s", opts.infile);
+	xfstat(file_fd, &stat_buf, opts.infile);
 
 	if (opts.buffer_size)
 		write_cnt = opts.buffer_size;
@@ -309,8 +304,8 @@ ss_splice(int file_fd, int connected_fd)
 	if (S_ISFIFO(stat_buf.st_mode))
 		return ss_splice_frompipe(file_fd, connected_fd, write_cnt);
 
-	if (pipe(pipefds))
-		err_sys_die(EXIT_FAILMISC, "pipe() failed: %s", opts.infile);
+	xpipe(pipefds);
+
 	touch_use_stat(TOUCH_BEFORE_OP, &net_stat.use_stat_start);
 
 	/* write chunked sized frames */
@@ -342,11 +337,9 @@ ss_splice(int file_fd, int connected_fd)
 	}
 	touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
 
-	if (offset != stat_buf.st_size) {
-		err_msg_die(EXIT_FAILNET, "Incomplete transfer in splice: %d of %ld bytes",
-				offset , stat_buf.st_size);
-	}
-
+	if (offset != stat_buf.st_size)
+		err_msg("Incomplete transfer in splice: %d of %ld bytes",
+						offset , stat_buf.st_size);
 	close(pipefds[0]);
 	close(pipefds[1]);
 	/* correct statistics */
@@ -361,19 +354,16 @@ ss_splice(int file_fd, int connected_fd)
 static ssize_t
 ss_sendfile(int file_fd, int connected_fd)
 {
-	int ret = 0;
 	struct stat stat_buf;
 	ssize_t rc, write_cnt;
 	off_t offset = 0;
 
 	msg(STRESSFUL, "send via sendfile io operation");
 
-	ret = fstat(file_fd, &stat_buf);
-	if (ret == -1)
-		err_sys_die(EXIT_FAILMISC, "Can't fstat file %s", opts.infile);
+	xfstat(file_fd, &stat_buf, opts.infile);
 
 	if (stat_buf.st_size == 0)
-		err_msg("empty file");
+		err_msg("%s: empty file", opts.infile);
 
 	/* full or partial write */
 	write_cnt = opts.buffer_size ?
@@ -387,7 +377,7 @@ ss_sendfile(int file_fd, int connected_fd)
 		if (rc == -1)
 			err_sys_die(EXIT_FAILNET, "Failure in sendfile routine");
 		net_stat.total_tx_calls += 1;
-	};
+	}
 	/* and write remaining bytes, if any */
 	write_cnt = stat_buf.st_size - offset - 1;
 	if (write_cnt >= 0) {
@@ -399,81 +389,64 @@ ss_sendfile(int file_fd, int connected_fd)
 
 	touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
 
-
-	if (offset != stat_buf.st_size) {
+	if (offset != stat_buf.st_size)
 		err_msg_die(EXIT_FAILNET, "Incomplete transfer from sendfile: %d of %ld bytes",
 				offset , stat_buf.st_size);
-	}
 
 	/* correct statistics */
 	net_stat.total_tx_bytes = stat_buf.st_size;
-
 	return rc;
 }
 
 
-
-static void
-set_socketopts(int fd)
+static void set_socketopts(int fd)
 {
 	int i;
 
 	/* loop over all selectable socket options */
 	for (i = 0; socket_options[i].sockopt_name; i++) {
-		int ret;
-
 		if (!socket_options[i].user_issue)
 			continue;
-
-		/* this switch statement look that the particular
-		** socketoption match our selected socket-type
-		*/
+		/*
+		 * this switch statement checks that the particular
+		 * socket option matches our selected socket-type
+		 */
 		switch (socket_options[i].level) {
-			case SOL_SOCKET:
-				break; /* works on every socket */
-
-			/* fall-through begins here ... */
-			case IPPROTO_TCP:
-				if (opts.protocol == IPPROTO_TCP) {
-					break;
-				}
-			case IPPROTO_UDP:
-				if (opts.protocol == IPPROTO_UDP)
-					break;
-			case IPPROTO_UDPLITE:
-				if (opts.protocol == IPPROTO_UDPLITE)
-					break;
-			case SOL_DCCP:
-				if (opts.protocol == IPPROTO_DCCP) {
-					break;
-				}
-				/* and exit if socketoption and sockettype did not match */
-				err_msg_die(EXIT_FAILMISC, "You selected an socketoption who isn't "
-						"compatible with this particular socket option");
-			default:
-				err_msg_die(EXIT_FAILINT, "Programmed Failure");
+		case SOL_SOCKET: break; /* works on every socket */
+		/* fall-through begins here ... */
+		case IPPROTO_TCP:
+			if (opts.protocol == IPPROTO_TCP)
+				break;
+		case IPPROTO_UDP:
+			if (opts.protocol == IPPROTO_UDP)
+				break;
+		case IPPROTO_UDPLITE:
+			if (opts.protocol == IPPROTO_UDPLITE)
+				break;
+		case SOL_DCCP:
+			if (opts.protocol == IPPROTO_DCCP)
+				break;
+		default:
+		/* and exit if socketoption and sockettype did not match */
+		err_msg_die(EXIT_FAILMISC, "You selected an socket option which isn't "
+					"compatible with this particular socket option");
 		}
 
 		/* ... and do the dirty: set the socket options */
 		switch (socket_options[i].sockopt_type) {
-			case SVT_BOOL:
-			case SVT_ON:
-			case SVT_INT:
-				ret = setsockopt(fd, socket_options[i].level,
-						         socket_options[i].option,
-								 &socket_options[i].value,
-								 sizeof(socket_options[i].value));
-				if (ret)
-					err_sys("setsockopt option %d failed", socket_options[i].sockopt_type);
-				break;
-			default:
-				err_msg_die(EXIT_FAILNET, "Unknown sockopt_type %d\n",
-						socket_options[i].sockopt_type);
-				exit(EXIT_FAILMISC);
-		}
-		if (ret < 0) {
-			err_sys("ERROR: Can't set socket option %s",
-				socket_options[i].sockopt_name);
+		case SVT_BOOL:
+		case SVT_ON:
+		case SVT_INT: {
+			int ret = setsockopt(fd, socket_options[i].level, socket_options[i].option,
+				&socket_options[i].value, sizeof(socket_options[i].value));
+			if (ret)
+				err_sys("setsockopt option %d (name %s) failed", socket_options[i].sockopt_type,
+										socket_options[i].sockopt_name);
+			}
+		break;
+		default:
+			err_msg_die(EXIT_FAILNET, "Unknown sockopt_type %d\n",
+					socket_options[i].sockopt_type);
 		}
 	}
 }
@@ -611,6 +584,37 @@ instigate_ss(void)
 }
 
 
+
+static void print_tcp_info(struct tcp_info *tcp_info)
+{
+	fprintf(stderr, "\ntcp info:\n"
+		 "\tretransmits:   %d\n"
+		 "\tprobes:        %d\n"
+		 "\tbackoff:       %d\n",
+		 tcp_info->tcpi_retransmits, tcp_info->tcpi_probes,
+		 tcp_info->tcpi_backoff);
+	 fputs("\toptions:       ", stderr);
+	 /* see netinet/tcp.h for definition */
+	 if (tcp_info->tcpi_options & TCPI_OPT_TIMESTAMPS)
+		 fputs("TIMESTAMPS ", stderr);
+	 if (tcp_info->tcpi_options & TCPI_OPT_SACK)
+		 fputs("SACK ", stderr);
+	 if (tcp_info->tcpi_options & TCPI_OPT_WSCALE)
+		 fputs("WSCALE ", stderr);
+	 if (tcp_info->tcpi_options & TCPI_OPT_ECN)
+		 fputs("ECN", stderr);
+	 fprintf(stderr, "\n"
+		"\tsnd_wscale:    %d\n"
+		"\trcv_wscale:    %d\n"
+		"\trto:           %d\n"
+		"\tato:           %d\n"
+		"\tsnd_mss:       %d\n"
+		"\trcv_mss:       %d\n"
+		"\tunacked:       %d\n", tcp_info->tcpi_snd_wscale,
+			tcp_info->tcpi_rcv_wscale, tcp_info->tcpi_rto, tcp_info->tcpi_ato,
+			tcp_info->tcpi_snd_mss, tcp_info->tcpi_rcv_mss, tcp_info->tcpi_unacked);
+}
+
 /* *** Main Server Routine ***
 **
 ** o initialize server socket
@@ -637,7 +641,6 @@ transmit_mode(void)
 	sa.sa_flags = 0;
 	sigaction(SIGPIPE, &sa, NULL);
 
-
 	/* fetch sockopt before the first byte  */
 	get_sock_opts(connected_fd, &net_stat);
 
@@ -648,70 +651,25 @@ transmit_mode(void)
 	gettimeofday(&opts.starttime, NULL);
 
 	switch (opts.io_call) {
-		case IO_SENDFILE:
-			ss_sendfile(file_fd, connected_fd);
-			break;
-		case IO_SPLICE:
-			ss_splice(file_fd, connected_fd);
-			break;
-		case IO_MMAP:
-			ss_mmap(file_fd, connected_fd);
-			break;
-		case IO_RW:
-			ss_rw(file_fd, connected_fd);
-			break;
-		default:
-			err_msg_die(EXIT_FAILINT, "Programmed Failure");
-			break;
+	case IO_SENDFILE: ss_sendfile(file_fd, connected_fd); break;
+	case IO_SPLICE: ss_splice(file_fd, connected_fd); break;
+	case IO_MMAP: ss_mmap(file_fd, connected_fd); break;
+	case IO_RW: ss_rw(file_fd, connected_fd); break;
+	default:
+		err_msg_die(EXIT_FAILINT, "Programmed Failure");
 	}
 
 	gettimeofday(&opts.endtime, NULL);
 
 	/* print tcp statistic if we run verbose (LOUDISCH) */
 	if (opts.protocol == IPPROTO_TCP && VL_LOUDISH(opts.verbose)) {
-
 		struct tcp_info tcp_info;
 
-		if (get_tcp_info(connected_fd, &tcp_info) >= 0) {
-			 fprintf(stderr, "\ntcp info:\n"
-					 "\tretransmits:   %d\n"
-					 "\tprobes:        %d\n"
-					 "\tbackoff:       %d\n",
-					 tcp_info.tcpi_retransmits, tcp_info.tcpi_probes,
-					 tcp_info.tcpi_backoff);
-			 fprintf(stderr,
-					 "\toptions:       ");
-			 /* see netinet/tcp.h for definition */
-			 if (tcp_info.tcpi_options & TCPI_OPT_TIMESTAMPS)
-				 fprintf(stderr, "TIMESTAMPS ");
-			 if (tcp_info.tcpi_options & TCPI_OPT_SACK)
-				 fprintf(stderr, "SACK ");
-			 if (tcp_info.tcpi_options & TCPI_OPT_WSCALE)
-				 fprintf(stderr, "WSCALE ");
-			 if (tcp_info.tcpi_options & TCPI_OPT_ECN)
-				 fprintf(stderr, "ECN ");
-			 fputs("\n", stderr);
-			 fprintf(stderr,
-					 "\tsnd_wscale:    %d\n"
-					 "\trcv_wscale:    %d\n"
-					 "\trto:           %d\n"
-					 "\tato:           %d\n"
-					 "\tsnd_mss:       %d\n"
-					 "\trcv_mss:       %d\n"
-					 "\tunacked:       %d\n"
-					 , tcp_info.tcpi_snd_wscale, tcp_info.tcpi_rcv_wscale,
-					 tcp_info.tcpi_rto, tcp_info.tcpi_ato, tcp_info.tcpi_snd_mss,
-					 tcp_info.tcpi_rcv_mss, tcp_info.tcpi_unacked);
-
-
-		}
+		if (get_tcp_info(connected_fd, &tcp_info) >= 0)
+			print_tcp_info(&tcp_info);
 	}
-
 	/* if we spawn a child - reaping it here */
 	waitpid(-1, &child_status, 0);
-
 }
-
-
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

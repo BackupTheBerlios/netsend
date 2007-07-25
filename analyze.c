@@ -278,7 +278,7 @@ gen_human_analyse(char *buf, unsigned int max_buf_len)
 		if (((net_stat.use_stat_end.ru.ru_nswap ^ net_stat.use_stat_start.ru.ru_nswap) &
 			((net_stat.use_stat_end.ru.ru_nswap - net_stat.use_stat_start.ru.ru_nswap) ^
 			 net_stat.use_stat_end.ru.ru_nswap)) >> (sizeof(long)*CHAR_BIT-1) ) {
-			err_sys("Overlow in long substraction");
+			err_sys("Overflow in long substraction");
 		}
 		res = net_stat.use_stat_end.ru.ru_nswap - net_stat.use_stat_start.ru.ru_nswap;
 
@@ -349,25 +349,18 @@ gen_machine_analyse(char *buf, unsigned int max_buf_len)
 	**  2) comment these in http://netsend.berlios.de/usag.html
 	*/
 
-
 	/* 1. versionstring */
 	len += xsnprintf(buf + len, max_buf_len - len, "%s ", VERSIONSTRING);
 
 	/* 2. workmode: rx || tx */
 	len += xsnprintf(buf + len, max_buf_len - len, "%s ",
-	(opts.workmode == MODE_TRANSMIT) ? "tx" : "rx");
+		(opts.workmode == MODE_TRANSMIT) ? "tx" : "rx");
 
 	/* 3. utilized io call */
-	if (opts.workmode == MODE_TRANSMIT) {
-		switch (opts.io_call) {
-			case IO_SENDFILE: call_str = "sendfile"; break;
-			case IO_MMAP:     call_str = "mmap"; break;
-			case IO_RW:       call_str = "write"; break;
-			default: err_msg_die(EXIT_FAILINT, "Programmed Failure"); break;
-		}
-	} else {
+	if (opts.workmode == MODE_TRANSMIT)
+		call_str = io_call_to_str(opts.io_call);
+	else
 		call_str = "read";
-	}
 	len += xsnprintf(buf + len, max_buf_len - len, "%s ", call_str);
 
 	/* memory advise */
@@ -441,11 +434,10 @@ gen_machine_analyse(char *buf, unsigned int max_buf_len)
 	len += xsnprintf(buf + len, max_buf_len - len, "%ld ", res * page_size);
 #endif
 
-
 	/* trailing newline */
 	len += xsnprintf(buf + len, max_buf_len - len, "%s", "\n");
-
 }
+
 
 unsigned long long
 tsc_diff(unsigned long long end, unsigned long long start)
@@ -486,7 +478,7 @@ long
 sublong(long a, long b)
 {
 	if (((a ^ b) & ((a - b) ^ a)) >> ( sizeof(long) * CHAR_BIT - 1) ) {
-		err_sys("Overlow in long substraction");
+		err_sys("Overflow in long substraction");
 	}
 	return a - b;
 }

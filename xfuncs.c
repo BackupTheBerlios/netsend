@@ -132,4 +132,17 @@ char *xstrdup(const char *src)
 }
 
 
+void xfstat(int filedes, struct stat *buf, const char *s)
+{
+	if (fstat(filedes, buf))
+		err_sys_die(EXIT_FAILMISC, "Can't fstat file %s", s);
+}
+
+
+void xpipe(int filedes[2])
+{
+	if (pipe(filedes))
+		err_sys_die(EXIT_FAILMISC, "Can't create pipe");
+}
+
 /* vim:set ts=4 sw=4 tw=78 noet: */

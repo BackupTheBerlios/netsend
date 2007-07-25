@@ -30,8 +30,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-
 #include "global.h"
+#include "xfuncs.h"
 
 extern struct opts opts;
 
@@ -52,13 +52,10 @@ open_input_file(void)
 	** this output as our data source.
 	*/
 	if (opts.execstring) {
-
 		pid_t pid;
 		int pipefd[2];
 
-		ret = pipe(pipefd);
-		if (ret == -1)
-			err_sys_die(EXIT_FAILMISC, "Can't create pipe");
+		xpipe(pipefd);
 
 		switch (pid = fork()) {
 			case -1:
@@ -85,7 +82,7 @@ open_input_file(void)
 	*/
 	ret = stat(opts.infile, &stat_buf);
 	if (ret == -1)
-		err_sys_die(EXIT_FAILMISC, "Can't fstat file %s", opts.infile);
+		err_sys_die(EXIT_FAILMISC, "Can't stat file %s", opts.infile);
 
 #if 0
 	if (!(stat_buf.st_mode & S_IFREG)) {
@@ -129,8 +126,7 @@ open_output_file(void)
 		if (fd == -1)
 			err_sys_die(EXIT_FAILOPT, "Can't open outputfile: %s", opts.outfile);
 
-		if (fstat(fd, &s))
-			err_sys_die(EXIT_FAILOPT, "stat() error: %s", opts.outfile);
+		xfstat(fd, &s, opts.outfile);
 
 		if (S_ISREG(s.st_mode)) /* symblic link that pointed to regular file */
 			err_sys_die(EXIT_FAILOPT, "Can't create outputfile: %s", opts.outfile);

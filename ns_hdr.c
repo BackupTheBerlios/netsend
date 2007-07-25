@@ -284,9 +284,7 @@ meta_exchange_snd(int connected_fd, int file_fd)
 	memset(&ns_hdr, 0, sizeof(struct ns_hdr));
 
 	/* fetch file size */
-	ret = fstat(file_fd, &stat_buf);
-	if (ret == -1)
-		err_sys_die(EXIT_FAILMISC, "Can't fstat file %s", opts.infile);
+	xfstat(file_fd, &stat_buf, opts.infile);
 
 	file_size = S_ISREG(stat_buf.st_mode) ? stat_buf.st_size : 0;
 

@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 
 
@@ -23,3 +24,8 @@ void xsetsockopt(int s, int level, int optname, const void *optval, socklen_t op
 int xsnprintf(char *str, size_t size, const char *format, ...);
 
 char *xstrdup(const char *src);
+
+void xfstat(int filedes, struct stat *buf, const char *str);
+
+void xpipe(int filedes[2]);
+
