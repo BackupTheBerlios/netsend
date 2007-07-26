@@ -87,6 +87,69 @@ cs_read(int file_fd, int connected_fd)
 }
 
 
+static void set_muticast4(int fd, struct ip_mreq *mreq)
+{
+	int on = 1;
+
+	xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &on, sizeof(int), "IP_MULTICAST_LOOP");
+	msg(STRESSFUL, "set IP_MULTICAST_LOOP option");
+
+	xsetsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, mreq, sizeof(*mreq), "IP_ADD_MEMBERSHIP");
+	msg(GENTLE, "add membership to IPv4 multicast group");
+}
+
+
+static void set_muticast6(int fd, struct ipv6_mreq *mreq6)
+{
+	int on = 1;
+
+	xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+		&on, sizeof(int), "IPV6_MULTICAST_LOOP");
+	msg(STRESSFUL, "set IPV6_MULTICAST_LOOP option");
+
+	xsetsockopt(fd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+	         mreq6, sizeof(*mreq6), "IPV6_JOIN_GROUP");
+	msg(GENTLE, "join IPv6 multicast group");
+}
+
+
+static int socket_bind(struct addrinfo *a)
+{
+	int ret, on = 1;
+	int fd = socket(a->ai_family, a->ai_socktype, a->ai_protocol);
+	if (fd < 0)
+		return -1;
+
+	/* For multicast sockets it is maybe necessary to set
+	 * socketoption SO_REUSEADDR, cause multiple receiver on
+	 * the same host will bind to this local socket.
+	 * In all other cases: there is no penalty - hopefully! ;-)
+	 */
+	xsetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on), "SO_REUSEADDR");
+
+	ret = bind(fd, a->ai_addr, a->ai_addrlen);
+	if (ret) {
+		err_msg("bind failed");
+		close(fd);
+		return -1;
+	}
+	return fd;
+}
+
+
+#ifdef HAVE_AF_TIPC
+static int instigate_cs_tipc(void)
+{
+	int fd = tipc_socket_bind();
+	if (fd < 0)
+		err_sys_die(EXIT_FAILNET, "tipc_socket_bind");
+	if (sock_callbacks.cb_listen(fd, BACKLOG))
+		err_sys_die(EXIT_FAILNET, "listen(fd: %d, backlog: %d) failed", fd, BACKLOG);
+	return fd;
+}
+#endif
+
+
 /* Creates our client socket and initialize
 ** options
 **
@@ -96,25 +159,17 @@ cs_read(int file_fd, int connected_fd)
 ** and exit - it isn't a uptime daemon.
 */
 static int
-instigate_cs(int *ret_fd)
+instigate_cs(void)
 {
-	int on = 1;
 	char *hostname = NULL;
 	bool use_multicast = false;
 	int fd = -1, ret;
-	struct addrinfo  hosthints, *hostres, *addrtmp;
+	struct addrinfo hosthints, *hostres, *addrtmp;
 	struct ip_mreq mreq;
 	struct ipv6_mreq mreq6;
 #ifdef HAVE_AF_TIPC
-	if (opts.family == AF_TIPC) {
-		fd = tipc_socket_bind();
-		if (fd < 0)
-			err_sys_die(EXIT_FAILNET, "tipc_socket_bind");
-		*ret_fd = fd;
-		if (sock_callbacks.cb_listen(fd, BACKLOG))
-			err_sys_die(EXIT_FAILNET, "listen(fd: %d, backlog: %d) failed", fd, BACKLOG);
-		return 0;
-	}
+	if (opts.family == AF_TIPC)
+		return instigate_cs_tipc();
 #endif
 	memset(&hosthints, 0, sizeof(struct addrinfo));
 
@@ -123,47 +178,40 @@ instigate_cs(int *ret_fd)
 	hosthints.ai_protocol = opts.protocol;
 	hosthints.ai_flags    = AI_PASSIVE | AI_ADDRCONFIG;
 
-
 	/* Check if the user want to bind to a
 	** multicast channel. We must implement this check
 	** here because if something fail we set hostname to
 	** NULL and initialize a standard udp socket
 	*/
 	if (opts.hostname && opts.protocol == IPPROTO_UDP) {
-
 		hostname = opts.hostname;
 
 		if (inet_pton(AF_INET, hostname, &mreq.imr_multiaddr) <= 0) {
-			if (inet_pton(AF_INET6, hostname, &mreq6.ipv6mr_multiaddr) <= 0) {
+			if (inet_pton(AF_INET6, hostname, &mreq6.ipv6mr_multiaddr) <= 0)
 				err_msg_die(EXIT_FAILNET, "You didn't specify an valid multicast address (%s)!",
 						hostname);
-			}
 			/* IPv6 */
-			if (!IN6_IS_ADDR_MULTICAST(&mreq6.ipv6mr_multiaddr)) {
+			if (!IN6_IS_ADDR_MULTICAST(&mreq6.ipv6mr_multiaddr))
 				err_msg_die(EXIT_FAILNET, "You didn't specify an valid IPv6 multicast address (%s)!",
 						hostname);
-			}
+
 			hosthints.ai_family = AF_INET6;
 			mreq6.ipv6mr_interface = 0;
-			use_multicast = true;
-
 		} else { /* IPv4 */
-			if (!IN_MULTICAST(ntohl(mreq.imr_multiaddr.s_addr))) {
+			if (!IN_MULTICAST(ntohl(mreq.imr_multiaddr.s_addr)))
 				err_msg_die(EXIT_FAILNET, "You didn't specify an valid IPv4 multicast address (%s)!",
 						hostname);
-			}
 			hosthints.ai_family = AF_INET;
 			mreq.imr_interface.s_addr = INADDR_ANY;
-			use_multicast = true;
 
 			/* no look if our user specify strict ipv6 address (-6) but
 			** deliver us with a (valid) ipv4 multicast address
 			*/
-			if (opts.family == AF_INET6) {
+			if (opts.family == AF_INET6)
 				err_msg_die(EXIT_FAILOPT, "You specify strict ipv6 support (-6) add a "
 						"IPv4 multicast address!");
-			}
 		}
+		use_multicast = true;
 		hosthints.ai_flags = AI_NUMERICHOST | AI_ADDRCONFIG;
 	}
 
@@ -171,77 +219,40 @@ instigate_cs(int *ret_fd)
 	xgetaddrinfo(hostname, opts.port, &hosthints, &hostres);
 
 	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
-
 		if (opts.family != AF_UNSPEC &&
 			addrtmp->ai_family != opts.family) { /* user fixed family! */
 			continue;
 		}
 
-		fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
-				addrtmp->ai_protocol);
-
+		fd = socket_bind(addrtmp);
 		if (fd < 0)
 			continue;
 
-		/* For multicast sockets it is maybe necessary to set
-		** socketoption SO_REUSEADDR, cause multiple receiver on
-		** the same host will bind to this local socket.
-		** In all other cases: there is no penalty - hopefully! ;-)
-		*/
-		xsetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on), "SO_REUSEADDR");
-
-		ret = bind(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
-		if (ret == 0) {   /* bind call success */
-
-			if (use_multicast) {
-
-				switch (addrtmp->ai_family) {
-					case AF_INET6:
-						xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-								&on, sizeof(int), "IPV6_MULTICAST_LOOP");
-						msg(STRESSFUL, "set IPV6_MULTICAST_LOOP option");
-
-						xsetsockopt(fd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-							         &mreq6, sizeof(mreq6), "IPV6_JOIN_GROUP");
-						msg(GENTLE, "join IPv6 multicast group");
-
-						break;
-					case AF_INET:
-						xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
-								&on, sizeof(int), "IP_MULTICAST_LOOP");
-						msg(STRESSFUL, "set IP_MULTICAST_LOOP option");
-
-						xsetsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-							         &mreq, sizeof(mreq), "IP_ADD_MEMBERSHIP");
-						msg(GENTLE, "add membership to IPv4 multicast group");
-						break;
-					default:
-						err_msg_die(EXIT_FAILINT, "Programmed Failure");
-						break;
-				}
+		if (use_multicast) {
+			switch (addrtmp->ai_family) {
+			case AF_INET6:
+				set_muticast6(fd, &mreq6);
+				break;
+			case AF_INET:
+				set_muticast4(fd, &mreq);
+				break;
+			default:
+				err_msg_die(EXIT_FAILINT, "Programmed Failure");
 			}
-			/* Fine: we find a valid socket, bind to it and probably set
-			** socketoptions for the multicast mode.
-			** Now break out an do the really interesting stuff ....
-			*/
-			break;
 		}
+		break;
 	}
 
-	if (fd < 0) {
+	if (fd < 0)
 		err_msg_die(EXIT_FAILNET, "Don't found a suitable address for binding, giving up "
 				"(TIP: start program with strace(2) to find the problen\n");
-	}
 
 	ret = sock_callbacks.cb_listen(fd, BACKLOG);
 	if (ret < 0)
 		err_sys_die(EXIT_FAILNET, "listen(fd: %d, backlog: %d) failed", fd, BACKLOG);
 
 	freeaddrinfo(hostres);
-
-	*ret_fd = fd;
-
-	return 0;
+	return fd;
 }
 
 
@@ -269,9 +280,8 @@ receive_mode(void)
 
 	file_fd = open_output_file();
 
-	instigate_cs(&server_fd);
+	connected_fd = server_fd = instigate_cs();
 
-	connected_fd = server_fd;
 #ifdef HAVE_AF_TIPC
 	if (opts.family == AF_TIPC) {
 		connected_fd = tipc_accept(server_fd, (struct sockaddr *) &sa, &sa_len);
