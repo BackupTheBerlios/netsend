@@ -46,6 +46,7 @@
 #include "global.h"
 #include "ns_hdr.h"
 #include "debug.h"
+#include "xfuncs.h"
 
 extern struct opts opts;
 extern struct net_stat net_stat;

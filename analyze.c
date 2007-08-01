@@ -141,11 +141,11 @@ struct unit_map_t
 #define	UNIT_MAX 128
 
 static char *
-unit_conv(char *buf, int buf_len, ssize_t bytes, int unit_scale)
+unit_conv(char *buf, int buf_len, unsigned long long bytes, int unit_scale)
 {
-	ssize_t res = bytes / unit_map[unit_scale].factor;
+	unsigned long long res = bytes / unit_map[unit_scale].factor;
 
-	xsnprintf(buf, buf_len, "%zd %s", res,
+	xsnprintf(buf, buf_len, "%llu %s", res,
 			(opts.statistics > 1) ? unit_map[unit_scale].name_long :
 			unit_map[unit_scale].name_short);
 	return buf;

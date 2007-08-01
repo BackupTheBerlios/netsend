@@ -272,6 +272,29 @@ ss_splice_frompipe(int pipe_fd, int connected_fd, ssize_t write_cnt)
 
 	return 0;
 }
+
+
+static ssize_t get_splice_size(int file_fd, struct stat *stat_buf)
+{
+	ssize_t write_cnt;
+
+	xfstat(file_fd, stat_buf, opts.infile);
+
+	if (opts.buffer_size)
+		write_cnt = opts.buffer_size;
+	else if (S_ISREG(stat_buf->st_mode))
+		write_cnt = stat_buf->st_size;
+	else
+		write_cnt = 65536;
+
+	if (write_cnt > 65536)
+		write_cnt = 65536;
+
+	if (opts.buffer_size > 65536)
+		 msg(STRESSFUL, "reduced splice buffer length to 64k");
+
+	return write_cnt;
+}
 #endif
 
 
@@ -286,20 +309,7 @@ ss_splice(int file_fd, int connected_fd)
 
 	msg(STRESSFUL, "send via splice io operation");
 
-	xfstat(file_fd, &stat_buf, opts.infile);
-
-	if (opts.buffer_size)
-		write_cnt = opts.buffer_size;
-	else if (S_ISREG(stat_buf.st_mode))
-		write_cnt = stat_buf.st_size;
-	else
-		write_cnt = 65536;
-
-	if (write_cnt > 65536)
-		write_cnt = 65536;
-
-	if (opts.buffer_size > 65536)
-		 msg(STRESSFUL, "reduced buffer length to 64k");
+	write_cnt = get_splice_size(file_fd, &stat_buf);
 
 	if (S_ISFIFO(stat_buf.st_mode))
 		return ss_splice_frompipe(file_fd, connected_fd, write_cnt);
