@@ -132,6 +132,9 @@
 #define	EXIT_FAILHEADER 6
 #define	EXIT_FAILINT    7 /* INTernal error */
 
+#define SUCCESS 0
+#define FAILURE -1
+
 /* Verbose levels */
 #define	VL_QUITSCENT(x)  (x)
 #define	VL_GENTLE(x)     (x >= 1)
@@ -283,6 +286,9 @@ struct sock_callbacks {
 #define HDR_MSK_DIGEST  (1 << 1)
 
 struct opts {
+
+	unsigned long short_opts_mask;
+
 	int family;
 	int protocol;
 	int socktype;
@@ -323,7 +329,7 @@ struct opts {
 	int	sched_user; /* this is true if user wan't to change scheduling */
 	int sched_policy;
 	int priority;
-	int nice;
+	long nice;
 
 #define	DEFAULT_RTT_FILTER 4
 
@@ -334,6 +340,7 @@ struct opts {
 		int deviation_filter;
 		int force_ms;
 	} rtt_probe_opt;
+	int perform_rtt_probe;
 };
 
 /*** Interface ***/
@@ -382,7 +389,7 @@ int open_output_file(void);
 
 /* getopt.c */
 void usage(void);
-int parse_opts(int, char **);
+int parse_opts(int, char **, struct opts *);
 
 /* net.c */
 int get_sock_opts(int, struct net_stat *);
@@ -401,4 +408,4 @@ void receive_mode(void);
 void transmit_mode(void);
 ssize_t write_len(int, const void *, size_t);
 
-/* vim:set ts=4 sw=4 tw=78 noet: */
+/* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */

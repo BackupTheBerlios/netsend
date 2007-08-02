@@ -42,6 +42,7 @@
 #include "global.h"
 #include "xfuncs.h"
 
+extern struct conf_map_t congestion_map[];
 
 /* Simple malloc wrapper - prevent error checking */
 void *
@@ -129,6 +130,14 @@ char *xstrdup(const char *src)
 	duplicate = xmalloc(len);
 	memcpy(duplicate, src, len);
 	return duplicate;
+}
+
+char *tcp_ca_code2str(int ca_code)
+{
+	if (ca_code < 0 || ca_code > CA_MAX)
+		return NULL;
+
+	return congestion_map[ca_code].conf_string;
 }
 
 

@@ -88,7 +88,12 @@ struct socket_options socket_options[] = {
 struct opts opts;
 struct net_stat net_stat;
 
-struct sock_callbacks sock_callbacks = { .cb_read = read, .cb_write = write, .cb_accept = accept, .cb_listen = listen};
+struct sock_callbacks sock_callbacks = {
+	.cb_read = read,
+	.cb_write = write,
+	.cb_accept = accept,
+	.cb_listen = listen
+};
 
 #define	MAX_STATLEN 4096
 
@@ -98,10 +103,8 @@ main(int argc, char *argv[])
 {
 	int ret = EXIT_OK;
 
-	if (parse_opts(argc, argv)) {
-		usage();
-		exit(EXIT_FAILOPT);
-	}
+	/* parse_opts will exit if an error occurr */
+	parse_opts(argc, argv, &opts);
 
 	msg(GENTLE, PROGRAMNAME " - " VERSIONSTRING);
 
@@ -149,5 +152,4 @@ main(int argc, char *argv[])
 }
 
 
-
-/* vim:set ts=4 sw=4 tw=78 noet: */
+/* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */
