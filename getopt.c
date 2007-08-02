@@ -298,6 +298,7 @@ static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 		}
 		if (i < ARRAY_SIZE(socktype_map)) {
 			optsp->socktype = socktype_map[i].socktype;
+			break;
 		}
 	}
 	if (optsp->protocol)
