@@ -132,7 +132,7 @@ char *xstrdup(const char *src)
 	return duplicate;
 }
 
-char *tcp_ca_code2str(int ca_code)
+const char *tcp_ca_code2str(int ca_code)
 {
 	if (ca_code < 0 || ca_code > CA_MAX)
 		return NULL;
