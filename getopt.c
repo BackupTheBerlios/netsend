@@ -138,7 +138,7 @@ static void print_usage(const char const *prefix_str,
  * related options first and within the switch/case statement we handle
  * transmit | receive specific options.
  */
-static int parse_tcp_opt(int ac, char *av[], struct opts *optsp, int mode)
+static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 {
 	int i;
 
@@ -192,25 +192,18 @@ static int parse_tcp_opt(int ac, char *av[], struct opts *optsp, int mode)
 	/* Now parse all transmit | receive specific code, plus the most
 	 * important options: the file- and hostname
 	 */
-	switch (mode) {
-
+	switch (optsp->workmode) {
 		case MODE_TRANSMIT:
-
 			/* sanity check first */
 			if (ac <= 1)
 				print_usage("tcp transmit mode required file and destination address\n",
 						HELP_STR_TCP, 1);
-
-			optsp->workmode = MODE_TRANSMIT;
 
 			optsp->infile = xstrdup(av[0]);
 			optsp->hostname = xstrdup(av[1]);
 
 			break;
 		case MODE_RECEIVE:
-
-			optsp->workmode = MODE_RECEIVE;
-
 			switch (ac) {
 				case 0: /* nothing to do */
 					break;
@@ -229,9 +222,7 @@ static int parse_tcp_opt(int ac, char *av[], struct opts *optsp, int mode)
 
 			break;
 		default:
-			err_msg("Internal, programmed error - unknown tranmit mode: %d\n", mode);
-			exit(EXIT_FAILINT);
-			break;
+			err_msg_die(EXIT_FAILINT, "Internal, programmed error - unknown tranmit mode: %d\n", optsp->workmode);
 	}
 
 	return SUCCESS;
@@ -267,8 +258,14 @@ static void dump_tcp_opt(struct opts *optsp)
 
 }
 
-static int parse_tipc_opt(int ac, char *av[],struct opts *optsp, int mode)
+static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 {
+	printf("ac %d\n",ac);
+	while (ac) {
+		ac--;
+		puts(av[ac]);
+	}
+
 	return SUCCESS;
 }
 
@@ -276,7 +273,7 @@ static void dump_tipc_opt(struct opts *optsp)
 {
 }
 
-static int parse_sctp_opt(int ac, char *av[],struct opts *optsp, int mode)
+static int parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 {
 	return SUCCESS;
 }
@@ -286,7 +283,7 @@ static void dump_sctp_opt(struct opts *optsp)
 }
 
 
-static int parse_dccp_opt(int ac, char *av[],struct opts *optsp, int mode)
+static int parse_dccp_opt(int ac, char *av[],struct opts *optsp)
 {
 	return SUCCESS;
 }
@@ -296,7 +293,7 @@ static void dump_dccp_opt(struct opts *optsp)
 }
 
 
-static int parse_udplite_opt(int ac, char *av[],struct opts *optsp, int mode)
+static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 {
 	return SUCCESS;
 }
@@ -306,7 +303,7 @@ static void dump_udplite_opt(struct opts *optsp)
 }
 
 
-static int parse_udp_opt(int ac, char *av[],struct opts *optsp, int mode)
+static int parse_udp_opt(int ac, char *av[],struct opts *optsp)
 {
 	return SUCCESS;
 }
@@ -321,7 +318,7 @@ struct __protocol_map_t {
 	int protocol;
 	const char *protoname;
 	const char *helptext;
-	int (*parse_proto)(int, char *[], struct opts *, int);
+	int (*parse_proto)(int, char *[], struct opts *);
 	void (*dump_proto)(struct opts *);
 } protocol_map[] = {
 	{ 0, "tipc", help_str[HELP_STR_TIPC] , parse_tipc_opt, dump_tipc_opt },
@@ -733,14 +730,16 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	for (i = 0; protocol_map[i].protoname; i++) {
 		if (!strcasecmp(protocol_map[i].protoname, av[FIRST_ARG_INDEX])) {
 			if (!strncasecmp(av[FIRST_ARG_INDEX + 1], "transmit", strlen(av[2]))) {
-				ret = protocol_map[i].parse_proto(ac - 3, av + 3, optsp, MODE_TRANSMIT);
+				optsp->workmode = MODE_TRANSMIT;
+				ret = protocol_map[i].parse_proto(ac - 3, av + 3, optsp);
 				if (dump_defaults) {
 					dump_opts(optsp);
 					protocol_map[i].dump_proto(optsp);
 				}
 				return ret;
 			} else if (!strncasecmp(av[FIRST_ARG_INDEX + 1], "receive", strlen(av[FIRST_ARG_INDEX + 1]))) {
-				ret = protocol_map[i].parse_proto(ac - 3, av + 3, optsp, MODE_RECEIVE);
+				optsp->workmode = MODE_RECEIVE;
+				ret = protocol_map[i].parse_proto(ac - 3, av + 3, optsp);
 				if (dump_defaults) {
 					dump_opts(optsp);
 					protocol_map[i].dump_proto(optsp);
