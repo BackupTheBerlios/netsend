@@ -41,7 +41,7 @@
 #endif
 
 
-static inline int splice(int fdin, loff_t *off_in, int fdout, loff_t *off_out,
+static inline long splice(int fdin, loff_t *off_in, int fdout, loff_t *off_out,
 		                        size_t len, unsigned long flags)
 {
 	return syscall(__NR_sys_splice, fdin, off_in, fdout, off_out, len, flags);
@@ -249,6 +249,28 @@ ss_mmap(int file_fd, int connected_fd)
 }
 
 #ifdef HAVE_SPLICE
+static long splice_chunk(int pipe_fd, int fd_out, size_t len, int flags)
+{
+	long written, total = 0;
+
+	do {
+		written = splice(pipe_fd, NULL, fd_out, NULL, len, flags);
+		if (written < 0) {
+			err_sys("Failure in splice from pipe");
+			break;
+		}
+
+		net_stat.total_tx_calls++;
+		total += written;
+		len -= written;
+        } while (len > 0);
+
+	net_stat.total_tx_bytes += total;
+	return total;
+}
+
+
+
 static ssize_t
 ss_splice_frompipe(int pipe_fd, int connected_fd, ssize_t write_cnt)
 {
@@ -322,29 +344,20 @@ ss_splice(int file_fd, int connected_fd)
 	while (stat_buf.st_size - offset - 1 >= write_cnt) {
 		rc = splice(file_fd, &offset, pipefds[1], NULL, write_cnt, SPLICE_F_MOVE);
 		if (rc == -1)
-			err_sys_die(EXIT_FAILNET, "Failure in splice to pipe");
-		do {
-			ssize_t written = splice(pipefds[0], NULL, connected_fd, NULL, rc, SPLICE_F_MOVE|SPLICE_F_MORE);
-			if (written < 0)
-				err_sys_die(EXIT_FAILNET, "Failure in splice from pipe");
-			rc -= written;
-			net_stat.total_tx_calls += 1;
-	        } while (rc);
-	};
+			err_sys_die(EXIT_FAILMISC, "Failure in splice to pipe");
+		if (splice_chunk(pipefds[0], connected_fd, rc, SPLICE_F_MOVE|SPLICE_F_MORE) < 0)
+			goto finish;
+	}
 	/* and write remaining bytes, if any */
 	write_cnt = stat_buf.st_size - offset - 1;
 	if (write_cnt >= 0) {
 		rc = splice(file_fd, &offset, pipefds[1], NULL, write_cnt + 1, 0);
 		if (rc == -1)
-			err_sys_die(EXIT_FAILNET, "Failure in splice to pipe");
-		do {
-			ssize_t written = splice(pipefds[0], NULL, connected_fd, NULL, rc, SPLICE_F_MOVE);
-			if (written < 0)
-				err_sys_die(EXIT_FAILNET, "Failure in splice from pipe");
-			rc -= written;
-			net_stat.total_tx_calls += 1;
-	        } while (rc);
+			err_sys_die(EXIT_FAILMISC, "Failure in splice to pipe");
+
+		splice_chunk(pipefds[0], connected_fd, rc, SPLICE_F_MOVE);
 	}
+ finish:
 	touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
 
 	if (offset != stat_buf.st_size)
@@ -352,8 +365,6 @@ ss_splice(int file_fd, int connected_fd)
 						offset , stat_buf.st_size);
 	close(pipefds[0]);
 	close(pipefds[1]);
-	/* correct statistics */
-	net_stat.total_tx_bytes = stat_buf.st_size;
 	return rc;
 #else
 	err_msg_die(EXIT_FAILMISC, "splice support not compiled in");
