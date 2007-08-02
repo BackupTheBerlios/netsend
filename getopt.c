@@ -258,15 +258,56 @@ static void dump_tcp_opt(struct opts *optsp)
 
 }
 
+
+#ifdef HAVE_AF_TIPC
+#include <linux/tipc.h>
+
+static const struct {
+	int  socktype;
+	const char *sockname;
+} socktype_map[] =
+{
+	{ SOCK_RDM, "SOCK_RDM" },
+	{ SOCK_DGRAM, "SOCK_DGRAM" },
+	{ SOCK_STREAM, "SOCK_STREAM" },
+	{ SOCK_SEQPACKET, "SOCK_SEQPACKET" }
+};
+
+
+static void tipc_print_socktypes(void)
+{
+	unsigned i;
+	for (i=0; i < ARRAY_SIZE(socktype_map); i++)
+		fprintf(stderr, "%s\n", socktype_map[i].sockname);
+}
+#endif /* HAVE_AF_TIPC */
+
+
 static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 {
-	printf("ac %d\n",ac);
-	while (ac) {
-		ac--;
-		puts(av[ac]);
-	}
+#ifdef HAVE_AF_TIPC
+	unsigned i;
 
-	return SUCCESS;
+	optsp->family = AF_TIPC;
+	optsp->protocol = 0;
+
+	while (ac--) {
+		for (i=0; i < ARRAY_SIZE(socktype_map); i++) {
+			if (strcasecmp(socktype_map[i].sockname, av[ac]) == 0)
+				break;
+		}
+		if (i < ARRAY_SIZE(socktype_map)) {
+			optsp->socktype = socktype_map[i].socktype;
+		}
+	}
+	if (optsp->protocol)
+		return SUCCESS;
+
+	fputs("You must specify a TIPC socket type. Known values:\n", stderr);
+	tipc_print_socktypes();
+	exit(EXIT_FAILOPT);
+#endif
+	return FAILURE;
 }
 
 static void dump_tipc_opt(struct opts *optsp)
@@ -362,45 +403,6 @@ struct __short_opts_t {
 	{ "6", SOPTS_IPV6, 1 },
 	{ NULL, ' ', 0 },
 };
-
-
-#ifdef HAVE_AF_TIPC
-#include <linux/tipc.h>
-
-static const struct {
-	int  socktype;
-	const char *sockname;
-} socktype_map[] =
-{
-	{ SOCK_RDM, "SOCK_RDM" },
-	{ SOCK_DGRAM, "SOCK_DGRAM" },
-	{ SOCK_STREAM, "SOCK_STREAM" },
-	{ SOCK_SEQPACKET, "SOCK_SEQPACKET" }
-};
-
-
-static void tipc_print_socktypes(void)
-{
-	unsigned i;
-	for (i=0; i < ARRAY_SIZE(socktype_map); i++)
-		fprintf(stderr, "%s\n", socktype_map[i].sockname);
-}
-
-
-static int tipc_parse_socktype(const char *socktype)
-{
-	unsigned i;
-
-	for (i=0; i < ARRAY_SIZE(socktype_map); i++) {
-		if (strcasecmp(socktype, socktype_map[i].sockname) == 0)
-			return socktype_map[i].socktype;
-	}
-	fprintf(stderr, "Unknown socket type: %s. Known Types:\n", socktype);
-	tipc_print_socktypes();
-	exit(EXIT_FAILOPT);
-}
-#endif /* HAVE_AF_TIPC */
-
 static void print_complete_usage(void)
 {
 	int i;
