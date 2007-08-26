@@ -289,10 +289,20 @@ static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 	unsigned i;
 
 	optsp->family = AF_TIPC;
-	optsp->protocol = 0;
+	optsp->socktype = 0;
 
+	if (optsp->workmode == MODE_TRANSMIT) {
+		if (ac <= 1) {
+			print_usage("TIPC transmit mode requires socket type and input file name\n", HELP_STR_TIPC, 1);
+			goto out;
+		}
+		--ac;
+		optsp->infile = av[ac];
+
+	}
 	while (ac--) {
 		for (i=0; i < ARRAY_SIZE(socktype_map); i++) {
+			puts(socktype_map[i].sockname);
 			if (strcasecmp(socktype_map[i].sockname, av[ac]) == 0)
 				break;
 		}
@@ -301,9 +311,9 @@ static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 			break;
 		}
 	}
-	if (optsp->protocol)
+	if (optsp->socktype)
 		return SUCCESS;
-
+ out:
 	fputs("You must specify a TIPC socket type. Known values:\n", stderr);
 	tipc_print_socktypes();
 	exit(EXIT_FAILOPT);
@@ -327,6 +337,21 @@ static void dump_sctp_opt(struct opts *optsp)
 
 static int parse_dccp_opt(int ac, char *av[],struct opts *optsp)
 {
+	optsp->protocol = IPPROTO_DCCP;
+	optsp->socktype = SOCK_DCCP;
+
+	switch (optsp->workmode) {
+	case MODE_RECEIVE: break;
+	case MODE_TRANSMIT:
+	if (ac <= 1) {
+		print_usage("dccp transmit mode requires file and destination address\n", HELP_STR_DCCP, 1);
+		return FAILURE;
+	}
+	optsp->infile = xstrdup(av[0]);
+	optsp->hostname = xstrdup(av[1]);
+	break;
+	case MODE_NONE: return FAILURE;
+	}
 	return SUCCESS;
 }
 
