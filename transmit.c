@@ -41,7 +41,7 @@
 #endif
 
 
-static inline long splice(int fdin, loff_t *off_in, int fdout, loff_t *off_out,
+static inline long splice(int fdin, off_t *off_in, int fdout, loff_t *off_out,
 		                        size_t len, unsigned long flags)
 {
 	return syscall(__NR_sys_splice, fdin, off_in, fdout, off_out, len, flags);
@@ -327,7 +327,7 @@ ss_splice(int file_fd, int connected_fd)
 	int pipefds[2];
 	struct stat stat_buf;
 	ssize_t rc, write_cnt;
-	__off64_t offset = 0;
+	off_t offset = 0;
 
 	msg(STRESSFUL, "send via splice io operation");
 
