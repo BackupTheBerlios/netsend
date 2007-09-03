@@ -65,7 +65,6 @@ struct conf_map_t io_call_map[] = {
 	{ IO_SENDFILE,	"sendfile"  },
 	{ IO_SPLICE,	"splice"  },
 	{ IO_RW,		"rw"		},
-	{ IO_READ,		"read"		},
 };
 
 /* Don't arrange wild! Look at the CNT_* order! */

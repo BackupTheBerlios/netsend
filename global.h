@@ -219,9 +219,8 @@ enum io_call {
 	IO_SENDFILE,
 	IO_SPLICE,
 	IO_RW,
-	IO_READ,
 };
-#define	IO_MAX IO_READ
+#define	IO_MAX IO_RW
 
 /* Centralize our statistic data */
 

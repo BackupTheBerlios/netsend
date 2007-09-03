@@ -165,7 +165,6 @@ static const char *io_call_to_str(enum io_call code)
 	case IO_MMAP: return "mmap";
 	case IO_RW: return "write";
 	case IO_SPLICE: return "splice";
-	case IO_READ: return "read";
 	}
 	return "";
 }

@@ -108,7 +108,9 @@ static const char const help_str[][4096] = {
 #define	HELP_STR_SCHED_POLICY 8
 	"SCHED-POLICY := { fifo | rr | batch | other }",
 #define	HELP_STR_MEM_ADVICE 9
-	"MEM-ADVISORY := { normal | sequential | random | willneed | dontneed | noreuse }"
+	"MEM-ADVISORY := { normal | sequential | random | willneed | dontneed | noreuse }",
+#define	HELP_STR_IO_ADVICE 10
+	"IO-CALL := { mmap | sendfile | splice | rw }"
 };
 
 
@@ -629,6 +631,27 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 			if (!optsp->change_mem_advise) /* option error */
 				print_usage(NULL, HELP_STR_MEM_ADVICE, 1);
+
+			av += 2; ac -= 2;
+			continue;
+		}
+
+		/* -u write-function */
+		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "u")) ) {
+
+			if (!av[FIRST_ARG_INDEX + 1])
+				print_usage(NULL, HELP_STR_GLOBAL, 1);
+
+			for (i = 0; i <= IO_MAX; i++ ) {
+				if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], io_call_map[i].conf_string)) {
+					puts( io_call_map[i].conf_string );
+					opts.io_call = io_call_map[i].conf_code;
+					break;
+				}
+			}
+
+			if (i > IO_MAX) /* option error */
+				print_usage(NULL, HELP_STR_IO_ADVICE, 1);
 
 			av += 2; ac -= 2;
 			continue;
