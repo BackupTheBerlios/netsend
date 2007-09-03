@@ -634,8 +634,8 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			continue;
 		}
 
-		/* -N nice-level */
-		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "N")) ) {
+		/* -r rtt probe */
+		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "r")) ) {
 			char *endptr;
 
 			if (!av[FIRST_ARG_INDEX + 1]) {
