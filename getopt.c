@@ -89,7 +89,7 @@ static const char const help_str[][4096] = {
 #define	HELP_STR_UDPLITE 3
 	" UDPL-OPTIONS := [ FIXME ]",
 #define	HELP_STR_SCTP 4
-	" SCTP-OPTIONS := [ FIXME ]",
+	""
 #define	HELP_STR_DCCP 5
 	" DCCP-OPTIONS := [ FIXME ]",
 #define	HELP_STR_TIPC 6
@@ -329,8 +329,62 @@ static void dump_tipc_opt(struct opts *optsp)
 
 static int parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 {
+	int i;
+
+	optsp->perform_rtt_probe = 1;
+	optsp->protocol = IPPROTO_SCTP;
+	optsp->socktype = SOCK_STREAM;
+
+	/* this do/while loop parse options in the form '-x'.
+	 * After the do/while loop the parse fork into transmit,
+	 * receive specific code.
+	 */
+	do {
+
+#define	FIRST_ARG_INDEX 0
+
+		/* break if we reach the end of the OPTIONS */
+		if (!av[FIRST_ARG_INDEX] || av[FIRST_ARG_INDEX][0] != '-')
+			break;
+
+		if (!av[FIRST_ARG_INDEX][1] || !isalnum(av[FIRST_ARG_INDEX][1]))
+			print_usage(NULL, HELP_STR_TCP, 1);
+
+	} while (1);
+#undef FIRST_ARG_INDEX
+
+	switch (optsp->workmode) {
+	case MODE_TRANSMIT:
+		/* sanity check first */
+		if (ac <= 1)
+			print_usage("sctp transmit mode requires file and destination address\n",
+				HELP_STR_SCTP, 1);
+
+		optsp->infile = xstrdup(av[0]);
+		optsp->hostname = xstrdup(av[1]);
+	break;
+	case MODE_RECEIVE:
+		switch (ac) {
+		case 0: /* nothing to do */
+			break;
+		case 2:
+			opts.hostname = xstrdup(av[1]);
+			/* fallthrough */
+		case 1:
+			opts.outfile = xstrdup(av[0]);
+			break;
+		default:
+			err_msg("You specify to many arguments!");
+			print_usage(NULL, HELP_STR_GLOBAL, 1);
+			break;
+		};
+		break;
+	default:
+		err_msg_die(EXIT_FAILINT, "Internal, programmed error - unknown tranmit mode: %d\n", optsp->workmode);
+	}
 	return SUCCESS;
 }
+
 
 static void dump_sctp_opt(struct opts *optsp)
 {
