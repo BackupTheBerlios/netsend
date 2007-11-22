@@ -4,16 +4,16 @@ netsend - a speedy filetransfer and network diagnostic program
 
 =head1 SYNOPSIS
 
-netsend
+netsend [OPTIONS] PROTOCOL MODE { COMMAND | HELP }
 
 =head1 DESCRIPTION
 
 
 =head1 OPTIONS
 
-  <-h> display a short help text
+=over 4
 
-  -D<Nn,Nd,Nm,Nf>
+=item B<-r Nn,Nd,Nm,Nf>
 
     Round trip probes options:
 
@@ -37,16 +37,56 @@ netsend
          paths (cache misses, page faults, ...) or network anomalies. Use this option
          carefully!
 
-    Nf - forces to don't perform rtt probes but take N milliseconds as average value. With
-         this option you can figure out the behaviour of satelite links (e.g you say -D500f)
+  -f	forces to don't perform rtt probes but take N milliseconds as average value. With
+        this option you can figure out the behaviour of satelite links (e.g you say -D500f)
+
+=item B<-b>
+
+        followed by a number: sets read/write buffer size to use. Default is 8192 for read/write and
+	size_of_file_to_send for mmap/sendfile.
+
+=item B<-m>
+
+        followed by a memadvise(2) option: normal, sequential, random, willneed, dontneed, noreuse.
+
+=item B<-P>
+
+        followed by scheduling policy: sched_rr, sched_fifo, sched_batch or sched_other
+
+=item B<-s>
+
+        followed by a setsockopt(2) optname and optval. netsend maps setsockopt levels and
+        optlen internally.  running 'netsend -s list' will print a list of all setsockopt
+        optnames currently recognized by netsend.
+
+=item B<-T>
+
+        followed by either human or machine: sets output format
 
 
+=back
 
 =head1 EXAMPLES
 
+=over 1
 
-  netsend -r
+Listen for incoming SCTP connections, incoming data goes to stdout:
 
+=over 4
+
+./netsend -T human -v stressful sctp receive
+
+=back
+
+=over 1
+
+Send file largefile via TCP with output in machine parseable format:
+
+=over 4
+
+./netsend -T machine tcp transmit largefile host.example.org
+
+=back
 
 =head1 EXIT STATUS
 

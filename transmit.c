@@ -444,6 +444,9 @@ static void set_socketopts(int fd)
 		case IPPROTO_UDPLITE:
 			if (opts.protocol == IPPROTO_UDPLITE)
 				break;
+		case IPPROTO_SCTP:
+			if (opts.protocol == IPPROTO_SCTP)
+				break;
 		case SOL_DCCP:
 			if (opts.protocol == IPPROTO_DCCP)
 				break;

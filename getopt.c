@@ -74,6 +74,7 @@ static const char const help_str[][4096] = {
     "Usage: netsend [OPTIONS] PROTOCOL MODE { COMMAND | HELP }\n"
 	" OPTIONS      := { -T FORMAT | -6 | -4 | -n | -d | -r RTTPROBE | -P SCHED-POLICY | -N level\n"
 	"                   -m MEM-ADVISORY | -V[version] | -v[erbose] LEVEL | -h[elp] | -a[ll-options] }\n"
+	"                   -s SETSOCKOPT_OPTNAME _OPTVAL -b READWRITE_BUFSIZE\n"
 	" PROTOCOL     := { tcp | udp | dccp | tipc | sctp | udplite }\n"
 	" MODE         := { receive | transmit }\n"
 	" FORMAT       := { human | machine }\n"
@@ -89,7 +90,7 @@ static const char const help_str[][4096] = {
 #define	HELP_STR_UDPLITE 3
 	" UDPL-OPTIONS := [ FIXME ]",
 #define	HELP_STR_SCTP 4
-	""
+	" SCTP_DISABLE_FRAGMENTS "
 #define	HELP_STR_DCCP 5
 	" DCCP-OPTIONS := [ FIXME ]",
 #define	HELP_STR_TIPC 6
@@ -132,6 +133,107 @@ static void print_usage(const char const *prefix_str,
 	if (should_exit)
 		exit(EXIT_FAILOPT);
 }
+
+
+static int
+parse_yesno(const char *optname, const char *optval)
+{
+	if (strcmp(optval, "1") == 0)
+		return 1;
+	if (strcmp(optval, "0") == 0)
+		return 0;
+	if (strcasecmp(optval, "on") == 0)
+		return 1;
+	if (strcasecmp(optval, "yes") == 0)
+		return 1;
+	if (strcasecmp(optval, "no") == 0)
+		return 0;
+	if (strcasecmp(optval, "off") == 0)
+		return 0;
+
+	err_msg("%s: unrecognized optval \"%s\" (only 0/1 allowed); assuming 0",
+								optname, optval);
+	return 0;
+}
+
+/* return number of characters parsed (ie amount of digits) */
+static int scan_int(const char *str, int *val)
+{
+	char *endptr;
+	long num;
+	size_t parsed;
+
+	num = strtol(str, &endptr, 0);
+
+	parsed = endptr - str;
+	if (parsed) {
+		if (num > INT_MAX)
+			err_msg("%s > INT_MAX", str);
+		if (num < INT_MIN)
+			err_msg("%s < INT_MIN", str);
+		*val = (int) num;
+	}
+	return parsed;
+}
+
+
+static const char *setsockopt_optvaltype_tostr(enum sockopt_val_types x)
+{
+	switch (x) {
+	case SVT_BOOL: /* fallthrough */
+	case SVT_ON: return "[ 0 | 1 ]";
+	case SVT_INT: return "number";
+	}
+	return "";
+}
+
+
+static void die_print_setsockopts(void)
+{
+	unsigned i;
+
+	fputs("Known setsockopt optnames:\n", stderr);
+	for (i = 0; socket_options[i].sockopt_name; i++) {
+		fprintf(stderr, "%s\t\t%s\n",
+			socket_options[i].sockopt_name,
+			setsockopt_optvaltype_tostr(socket_options[i].sockopt_type));
+	}
+	exit(EXIT_FAILOPT);
+}
+
+
+static void parse_setsockopt_name(const char *optname, const char *optval)
+{
+	unsigned i;
+
+	for (i = 0; socket_options[i].sockopt_name; i++) {
+		if (strcasecmp(optname, socket_options[i].sockopt_name))
+			continue;
+
+		switch (socket_options[i].sockopt_type) {
+		case SVT_BOOL: /* fallthrough */
+		case SVT_ON:
+			socket_options[i].value = parse_yesno(optname, optval);
+			socket_options[i].user_issue++;
+		return;
+		case SVT_INT:
+			if (scan_int(optval, &socket_options[i].value))
+				socket_options[i].user_issue++;
+			else
+				err_msg("%s: unrecognized optval \"%s\" "
+					"(integer argument required);skipped",
+							optval, optname);
+		return;
+		default:
+			err_msg("WARNING: Internal error: unrecognized "
+				"sockopt_type (%s %s) (%s:%u)",
+				optval, optname, __FILE__, __LINE__);
+			return;
+		}
+	}
+	err_msg("Unrecognized sockopt \"%s\" ignored", optname );
+}
+
 
 /* parse_tcp_opt set all tcp default values
  * within optsp and parse all tcp related options
@@ -329,8 +431,6 @@ static void dump_tipc_opt(struct opts *optsp)
 
 static int parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 {
-	int i;
-
 	optsp->perform_rtt_probe = 1;
 	optsp->protocol = IPPROTO_SCTP;
 	optsp->socktype = SOCK_STREAM;
@@ -339,18 +439,15 @@ static int parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 	 * After the do/while loop the parse fork into transmit,
 	 * receive specific code.
 	 */
-	do {
-
+	for (;;) {
 #define	FIRST_ARG_INDEX 0
-
 		/* break if we reach the end of the OPTIONS */
 		if (!av[FIRST_ARG_INDEX] || av[FIRST_ARG_INDEX][0] != '-')
 			break;
 
 		if (!av[FIRST_ARG_INDEX][1] || !isalnum(av[FIRST_ARG_INDEX][1]))
 			print_usage(NULL, HELP_STR_TCP, 1);
-
-	} while (1);
+	}
 #undef FIRST_ARG_INDEX
 
 	switch (optsp->workmode) {
@@ -670,6 +767,19 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			}
 		}
 
+		/* -b bufsize: -b readwritebufsize */
+		if (av[FIRST_ARG_INDEX][1] == 'b') {
+			puts("buffersizw");
+			if (!av[2])
+				print_usage(NULL, HELP_STR_GLOBAL, 1);
+
+			if (!scan_int(av[2], &optsp->buffer_size))
+				err_msg_die(EXIT_FAILOPT, "-w: writebuffersize must be a number");
+
+			av += 2; ac -= 2;
+			continue;
+		}
+
 		/* -m memory advice */
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "m")) ) {
 
@@ -713,8 +823,6 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 		/* -r rtt probe */
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "r")) ) {
-			char *endptr;
-
 			if (!av[FIRST_ARG_INDEX + 1]) {
 				print_usage(NULL, HELP_STR_GLOBAL, 1);
 			}
@@ -749,6 +857,27 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			av += 2; ac -= 2;
 			continue;
 		}
+
+		/* -s setsockopt options: -s OPTNAME [ OPTVAL ] */
+		if (av[FIRST_ARG_INDEX][1] == 's') {
+			const char *optval, *optname = av[FIRST_ARG_INDEX + 1];
+
+			if (!optname || *optname == '-' || !*optname) {
+				fputs("need optname after -s\n", stderr);
+				die_print_setsockopts();
+			}
+			optval = av[FIRST_ARG_INDEX + 2];
+			if (!optval || !*optval) {
+				fputs("need optval after optname\n", stderr);
+				die_print_setsockopts();
+			}
+
+			parse_setsockopt_name(optname, optval);
+
+			av += 3; ac -= 3;
+			continue;
+		}
+
 
 		/* -v { quitscent | gentle | loudish | stressful } */
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "v")) ) {

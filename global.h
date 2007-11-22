@@ -81,6 +81,10 @@
 # define IPPROTO_UDPLITE 136
 #endif
 
+#ifndef SCTP_DISABLE_FRAGMENTS
+# define SCTP_DISABLE_FRAGMENTS	8
+#endif
+
 #ifndef UDPLITE_SEND_CSCOV
 # define UDPLITE_SEND_CSCOV   10
 #endif
@@ -163,20 +167,6 @@ struct socket_options {
 	int   user_issue;
 	int   value;
 };
-
-/* NOTE: if you rerange here - rerange also in main.c */
-#define	CNT_SO_KEEPALIVE             0
-#define	CNT_SO_REUSEADDR             1
-#define	CNT_SO_BROADCAST             2
-#define	CNT_TCP_NODELAY              3
-#define	CNT_TCP_CORK                 4
-#define	CNT_SO_SNDBUF                5
-#define	CNT_SO_RCVBUF                6
-#define	CNT_SO_SNDLOWAT              7
-#define	CNT_SO_RCVLOWAT              8
-#define	CNT_SO_SNDTIMEO              9
-#define	CNT_SO_RCVTIMEO              10
-#define	CNT_SO_UDPLITE_SEND_CSCOV    11
 
 struct conf_map_t {
 	int          conf_code;
