@@ -774,7 +774,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 				print_usage(NULL, HELP_STR_GLOBAL, 1);
 
 			if (!scan_int(av[2], &optsp->buffer_size))
-				err_msg_die(EXIT_FAILOPT, "-w: writebuffersize must be a number");
+				err_msg_die(EXIT_FAILOPT, "-b: writebuffersize must be a number");
 
 			av += 2; ac -= 2;
 			continue;
