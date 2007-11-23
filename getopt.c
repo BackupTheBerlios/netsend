@@ -74,7 +74,7 @@ static const char const help_str[][4096] = {
     "Usage: netsend [OPTIONS] PROTOCOL MODE { COMMAND | HELP }\n"
 	" OPTIONS      := { -T FORMAT | -6 | -4 | -n | -d | -r RTTPROBE | -P SCHED-POLICY | -N level\n"
 	"                   -m MEM-ADVISORY | -V[version] | -v[erbose] LEVEL | -h[elp] | -a[ll-options] }\n"
-	"                   -s SETSOCKOPT_OPTNAME _OPTVAL -b READWRITE_BUFSIZE\n"
+	"                   -p PORT -s SETSOCKOPT_OPTNAME _OPTVAL -b READWRITE_BUFSIZE\n"
 	" PROTOCOL     := { tcp | udp | dccp | tipc | sctp | udplite }\n"
 	" MODE         := { receive | transmit }\n"
 	" FORMAT       := { human | machine }\n"
@@ -781,7 +781,6 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 		/* -b bufsize: -b readwritebufsize */
 		if (av[FIRST_ARG_INDEX][1] == 'b') {
-			puts("buffersizw");
 			if (!av[2])
 				print_usage(NULL, HELP_STR_GLOBAL, 1);
 
@@ -889,7 +888,16 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			av += 3; ac -= 3;
 			continue;
 		}
+		/* -p port: set TCP/UDP/DCCP/SCTP port number to use */
+		if (av[FIRST_ARG_INDEX][1] == 'p') {
+			if (!av[2])
+				print_usage(NULL, HELP_STR_GLOBAL, 1);
 
+			optsp->port = strdup(av[2]);
+
+			av += 2; ac -= 2;
+			continue;
+		}
 
 		/* -v { quitscent | gentle | loudish | stressful } */
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "v")) ) {

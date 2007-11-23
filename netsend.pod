@@ -49,6 +49,10 @@ netsend [OPTIONS] PROTOCOL MODE { COMMAND | HELP }
 
         followed by a memadvise(2) option: normal, sequential, random, willneed, dontneed, noreuse.
 
+=item B<-p>
+
+	followed by a number: set TCP/UDP/DCCP/SCTP port to use. Default is 6666.
+
 =item B<-P>
 
         followed by scheduling policy: sched_rr, sched_fifo, sched_batch or sched_other
