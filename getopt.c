@@ -126,10 +126,10 @@ static void print_usage(const char const *prefix_str,
 		unsigned int mode, int should_exit)
 {
 	if (prefix_str != NULL)
-		err_msg("%s%s\n", prefix_str, help_str[mode]);
+		fprintf(stderr, "%s%s\n", prefix_str, help_str[mode]);
 
 	else
-		err_msg("%s\n", help_str[mode]);
+		fprintf(stderr, "%s\n", help_str[mode]);
 
 	if (should_exit)
 		exit(EXIT_FAILOPT);
@@ -730,6 +730,11 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 		if (!av[FIRST_ARG_INDEX][1] || !isalnum(av[FIRST_ARG_INDEX][1]))
 			print_usage(NULL, HELP_STR_GLOBAL, 1);
+
+		if (!strncmp(&av[FIRST_ARG_INDEX][1], "h", 1)) {
+			print_usage(NULL, HELP_STR_GLOBAL, 0);
+			exit(0);
+				}
 
 		/* iterate over _short options_ and match relevant short options */
 		for (i = 0; short_opt[i].name; i++) {
