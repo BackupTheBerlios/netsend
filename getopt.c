@@ -56,7 +56,6 @@
  */
 
 extern struct opts opts;
-extern struct conf_map_t congestion_map[];
 extern struct conf_map_t memadvice_map[];
 extern struct conf_map_t io_call_map[];
 extern struct socket_options socket_options[];
@@ -83,8 +82,7 @@ static const char const help_str[][4096] = {
 	" SCHED-POLICY := { sched_rr | sched_fifo | sched_batch | sched_other } priority\n"
 	" LEVEL        := { quitscent | gentle | loudish | stressful }",
 #define	HELP_STR_TCP 1
-	" TCP-OPTIONS  := { -c CC-ALGORITHM } \n"
-	" CC-ALGORITHM := { bic | cubic | highspeed | htcp | hybla | scalable | vegas | westwood | reno }",
+	" CC-ALGORITHM := -s TCP_CONGESTION { bic | cubic | highspeed | htcp | hybla | scalable | vegas | westwood | reno }",
 #define	HELP_STR_UDP 2
 	" UDP-OPTIONS  := [ FIXME ]",
 #define	HELP_STR_UDPLITE 3
@@ -184,6 +182,7 @@ static const char *setsockopt_optvaltype_tostr(enum sockopt_val_types x)
 	case SVT_BOOL: /* fallthrough */
 	case SVT_ON: return "[ 0 | 1 ]";
 	case SVT_INT: return "number";
+	case SVT_STR: return "string";
 	}
 	return "";
 }
@@ -193,7 +192,7 @@ static const char *setsockopt_level_tostr(int level)
 {
 	switch (level) {
 	case SOL_SOCKET: return "SOL_SOCKET";
-	case IPPROTO_TCP: return "IPROTO_TCP";
+	case SOL_TCP: return "SOL_TCP";
 	case IPPROTO_SCTP: return "IPROTO_SCTP";
 	case IPPROTO_UDPLITE: return "IPPROTO_UDPLITE";
 	}
@@ -239,6 +238,10 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 					"(integer argument required);skipped",
 							optval, optname);
 		return;
+		case SVT_STR:
+			socket_options[i].value_ptr = optval;
+			socket_options[i].user_issue++;
+		return;
 		default:
 			err_msg("WARNING: Internal error: unrecognized "
 				"sockopt_type (%s %s) (%s:%u)",
@@ -259,8 +262,6 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
  */
 static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 {
-	int i;
-
 	/* tcp has some default values too, set them here */
 	optsp->perform_rtt_probe = 1;
 	optsp->protocol = IPPROTO_TCP;
@@ -280,30 +281,6 @@ static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 
 		if (!av[FIRST_ARG_INDEX][1] || !isalnum(av[FIRST_ARG_INDEX][1]))
 			print_usage(NULL, HELP_STR_TCP, 1);
-
-		/* -c congestion control algorithm */
-		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "c")) ) {
-
-			if (!av[2])
-				print_usage(NULL, HELP_STR_TCP, 1);
-
-			for (i = 0; i <= CA_MAX; i++ ) {
-				if (!strncasecmp(&av[FIRST_ARG_INDEX + 1][0],
-							congestion_map[i].conf_string,
-							max(strlen(congestion_map[i].conf_string),
-								strlen(&av[FIRST_ARG_INDEX + 1][0]))))
-				{
-					optsp->congestion = congestion_map[i].conf_code;
-					optsp->change_congestion++;
-				}
-			}
-
-			if (!optsp->change_congestion) /* option error */
-				print_usage(NULL, HELP_STR_TCP, 1);
-
-			av += 2; ac -= 2;
-			continue;
-		}
 
 	} while (1);
 #undef FIRST_ARG_INDEX
@@ -365,10 +342,6 @@ static void dump_tcp_opt(struct opts *optsp)
 			err_msg_die(EXIT_FAILMISC, "Programmed Failure");
 			break;
 	};
-
-	/* print congestion control options */
-	fprintf(stdout, "# congestion control: %s\n", optsp->change_congestion ?
-			tcp_ca_code2str(optsp->congestion) : "default");
 
 	if (optsp->perform_rtt_probe) {
 		fprintf(stdout, "# perform rtt probe: true\n");

@@ -132,15 +132,6 @@ char *xstrdup(const char *src)
 	return duplicate;
 }
 
-const char *tcp_ca_code2str(int ca_code)
-{
-	if (ca_code < 0 || ca_code > CA_MAX)
-		return NULL;
-
-	return congestion_map[ca_code].conf_string;
-}
-
-
 void xfstat(int filedes, struct stat *buf, const char *s)
 {
 	if (fstat(filedes, buf))

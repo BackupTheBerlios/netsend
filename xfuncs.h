@@ -23,8 +23,6 @@ void xsetsockopt(int, int, int, const void *, socklen_t, const char *);
 
 int xsnprintf(char *, size_t , const char *, ...);
 
-const char *tcp_ca_code2str(int);
-
 char *xstrdup(const char *src);
 
 void xfstat(int filedes, struct stat *buf, const char *str);

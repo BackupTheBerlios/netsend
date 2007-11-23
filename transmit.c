@@ -422,7 +422,9 @@ ss_sendfile(int file_fd, int connected_fd)
 
 static void set_socketopts(int fd)
 {
-	int i;
+	int i, ret;
+	void *optval;
+	socklen_t optlen;
 
 	/* loop over all selectable socket options */
 	for (i = 0; socket_options[i].sockopt_name; i++) {
@@ -460,18 +462,22 @@ static void set_socketopts(int fd)
 		switch (socket_options[i].sockopt_type) {
 		case SVT_BOOL:
 		case SVT_ON:
-		case SVT_INT: {
-			int ret = setsockopt(fd, socket_options[i].level, socket_options[i].option,
-				&socket_options[i].value, sizeof(socket_options[i].value));
-			if (ret)
-				err_sys("setsockopt option %d (name %s) failed", socket_options[i].sockopt_type,
-										socket_options[i].sockopt_name);
-			}
+		case SVT_INT:
+			optlen = sizeof(socket_options[i].value);
+			optval = &socket_options[i].value;
+		break;
+		case SVT_STR:
+			optlen = strlen(socket_options[i].value_ptr) + 1;
+			optval = socket_options[i].value_ptr;
 		break;
 		default:
 			err_msg_die(EXIT_FAILNET, "Unknown sockopt_type %d\n",
 					socket_options[i].sockopt_type);
 		}
+		ret = setsockopt(fd, socket_options[i].level, socket_options[i].option, optval, optlen);
+		if (ret)
+			err_sys("setsockopt option %d (name %s) failed", socket_options[i].sockopt_type,
+										socket_options[i].sockopt_name);
 	}
 }
 
@@ -569,9 +575,6 @@ instigate_ss(void)
 					err_msg_die(EXIT_FAILINT, "Programmed Failure");
 			}
 		}
-
-		if (opts.protocol == IPPROTO_TCP && opts.change_congestion)
-			change_congestion(fd);
 
 		/* We iterate over our commandline argument array - where the user
 		** set socketoption and set this on our socket

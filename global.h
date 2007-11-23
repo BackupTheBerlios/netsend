@@ -156,7 +156,8 @@
 enum sockopt_val_types {
 	SVT_BOOL = 0,
 	SVT_INT,
-	SVT_ON
+	SVT_ON,
+	SVT_STR
 };
 
 struct socket_options {
@@ -165,31 +166,16 @@ struct socket_options {
 	int   option;
 	int   sockopt_type;
 	int   user_issue;
-	int   value;
+	union {
+		int value;
+		const char *value_ptr;
+	};
 };
 
 struct conf_map_t {
 	int          conf_code;
 	const char  *conf_string;
 };
-
-/* Supported congestion algorithms by netsend */
-enum {
-	CA_BIC = 0,
-	CA_WESTWOOD,
-	CA_VEGAS,
-	CA_SCALABLE,
-	CA_HYBLA,
-	CA_HTCP,
-	CA_CUBIC,
-	CA_RENO,
-};
-#define CA_MAX CA_RENO
-
-/* CA defaults to bic (binary increase congestion avoidance) */
-#define	CA_DEFAULT CA_BIC
-
-
 
 /* supported posix_madvise / posix_fadvice hints */
 enum memaccess_advice {
@@ -283,8 +269,6 @@ struct opts {
 	int socktype;
 	int reuse;
 	int nodelay;
-	int change_congestion;
-	int congestion;
 	int mem_advice;
 	int change_mem_advise;
 
@@ -382,7 +366,6 @@ int parse_opts(int, char **, struct opts *);
 
 /* net.c */
 int get_sock_opts(int, struct net_stat *);
-void change_congestion(int fd);
 int set_nodelay(int, int);
 int get_tcp_info(int, struct tcp_info *);
 
