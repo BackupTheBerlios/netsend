@@ -189,13 +189,27 @@ static const char *setsockopt_optvaltype_tostr(enum sockopt_val_types x)
 }
 
 
+static const char *setsockopt_level_tostr(int level)
+{
+	switch (level) {
+	case SOL_SOCKET: return "SOL_SOCKET";
+	case IPPROTO_TCP: return "IPROTO_TCP";
+	case IPPROTO_SCTP: return "IPROTO_SCTP";
+	case IPPROTO_UDPLITE: return "IPPROTO_UDPLITE";
+	}
+	return NULL;
+}
+
+
 static void die_print_setsockopts(void)
 {
 	unsigned i;
 
 	fputs("Known setsockopt optnames:\n", stderr);
+	fputs("level\toptname\t\toptval\n", stderr);
 	for (i = 0; socket_options[i].sockopt_name; i++) {
-		fprintf(stderr, "%s\t\t%s\n",
+		fprintf(stderr, "%s\t%s\t\t%s\n",
+			setsockopt_level_tostr(socket_options[i].level),
 			socket_options[i].sockopt_name,
 			setsockopt_optvaltype_tostr(socket_options[i].sockopt_type));
 	}

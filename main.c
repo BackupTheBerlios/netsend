@@ -67,7 +67,7 @@ struct conf_map_t io_call_map[] = {
 	{ IO_RW,		"rw"		},
 };
 
-/* Don't arrange wild! Look at the CNT_* order! */
+
 struct socket_options socket_options[] = {
   {"SO_KEEPALIVE", SOL_SOCKET,  SO_KEEPALIVE, SVT_BOOL, 0, 0},
   {"SO_REUSEADDR", SOL_SOCKET,  SO_REUSEADDR, SVT_BOOL, 0, 0},
