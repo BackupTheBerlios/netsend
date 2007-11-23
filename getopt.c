@@ -115,7 +115,8 @@ static const char const help_str[][4096] = {
 };
 
 
-/* print_usage is our quick failure routine for cli parsing.
+/**
+ * print_usage is our quick failure routine for cli parsing.
  * You can specify an additional prefix, the mode for what the
  * the function should print the usage screen {all or protocol
  * specific} and last but not least if this function should be
@@ -326,7 +327,9 @@ static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 
 			break;
 		default:
-			err_msg_die(EXIT_FAILINT, "Internal, programmed error - unknown tranmit mode: %d\n", optsp->workmode);
+			err_msg_die(EXIT_FAILINT,
+					"Internal, programmed error - unknown tranmit mode: %d\n",
+					optsp->workmode);
 	}
 
 	return SUCCESS;
@@ -397,7 +400,8 @@ static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 
 	if (optsp->workmode == MODE_TRANSMIT) {
 		if (ac <= 1) {
-			print_usage("TIPC transmit mode requires socket type and input file name\n", HELP_STR_TIPC, 1);
+			print_usage("TIPC transmit mode requires socket type and input file name\n",
+					HELP_STR_TIPC, 1);
 			goto out;
 		}
 		--ac;
@@ -477,7 +481,9 @@ static int parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 		};
 		break;
 	default:
-		err_msg_die(EXIT_FAILINT, "Internal, programmed error - unknown tranmit mode: %d\n", optsp->workmode);
+		err_msg_die(EXIT_FAILINT,
+				"Internal, programmed error - unknown tranmit mode: %d\n",
+				optsp->workmode);
 	}
 	return SUCCESS;
 }
@@ -494,16 +500,19 @@ static int parse_dccp_opt(int ac, char *av[],struct opts *optsp)
 	optsp->socktype = SOCK_DCCP;
 
 	switch (optsp->workmode) {
-	case MODE_RECEIVE: break;
+	case MODE_RECEIVE:
+		break;
 	case MODE_TRANSMIT:
-	if (ac <= 1) {
-		print_usage("dccp transmit mode requires file and destination address\n", HELP_STR_DCCP, 1);
+		if (ac <= 1) {
+			print_usage("dccp transmit mode requires file and destination address\n",
+					HELP_STR_DCCP, 1);
+			return FAILURE;
+		}
+		optsp->infile = xstrdup(av[0]);
+		optsp->hostname = xstrdup(av[1]);
+		break;
+	case MODE_NONE:
 		return FAILURE;
-	}
-	optsp->infile = xstrdup(av[0]);
-	optsp->hostname = xstrdup(av[1]);
-	break;
-	case MODE_NONE: return FAILURE;
 	}
 	return SUCCESS;
 }
@@ -616,7 +625,9 @@ static int parse_rtt_string(const char *rtt_cmd, struct opts *optsp)
 		case 'm':
 			opts.rtt_probe_opt.deviation_filter = value;
 			if (value < 0 || value > 50) {
-				fprintf(stderr, "%ldms are nonsensical for the filter multiplier (default is %d)\n", value, DEFAULT_RTT_FILTER);
+				fprintf(stderr,
+						"%ldms are nonsensical for the filter multiplier (default is %d)\n",
+						value, DEFAULT_RTT_FILTER);
 				return FAILURE;
 			}
 			break;
@@ -628,7 +639,8 @@ static int parse_rtt_string(const char *rtt_cmd, struct opts *optsp)
 			}
 			break;
 		default:
-			fprintf(stderr, "short rtt option %s in %s not supported: %c not recognized\n", tok, rtt_cmd, *what);
+			fprintf(stderr, "short rtt option %s in %s not supported: %c not recognized\n",
+					tok, rtt_cmd, *what);
 			return FAILURE;
 		}
 		if (*what) what++;
