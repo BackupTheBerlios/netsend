@@ -121,8 +121,21 @@ write_len(int fd, const void *buf, size_t len)
 		ssize_t written = sock_callbacks.cb_write(fd, bufptr, len);
 		net_stat.total_tx_calls += 1;
 		if (written < 0) {
+			int real_errno;
+
 			if (errno == EINTR || errno == EAGAIN)
 				continue;
+
+			real_errno = errno;
+			err_msg("Could not write %u bytes: %s", len, strerror(errno));
+			if (opts.protocol == IPPROTO_SCTP && real_errno == EMSGSIZE) {
+				err_msg("for SCTP the maximum size of data that can be sent in a "
+					"single send call is limited by SO_SNDBUF.\n"
+					"Either increase send buffer size (-s SO_SNDBUF) or "
+					"lower the write buffer size (-b)");
+
+			}
+			errno = real_errno;
 			break;
 		}
 		total += written;
@@ -156,10 +169,8 @@ ss_rw(int file_fd, int connected_fd)
 
 	while ((cnt = read(file_fd, buf, buflen)) > 0) {
 		cnt_coll = write_len(connected_fd, buf, cnt);
-		if (cnt_coll == -1) {
-			err_sys("write failed");
+		if (cnt_coll == -1)
 			break;
-		}
 		/* correct statistics */
 		net_stat.total_tx_bytes += cnt_coll;
 
@@ -222,7 +233,6 @@ ss_mmap(int file_fd, int connected_fd)
 		rc = write_len(connected_fd, tmpbuf + written, write_cnt);
 		if (rc == -1) {
  write_fail:
-			err_sys("write failed");
 			touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
 			net_stat.total_tx_bytes = written;
 			return munmap(mmap_buf, stat_buf.st_size);

@@ -191,8 +191,8 @@ enum memaccess_advice {
 /* Supported io operations */
 
 enum io_call {
-	IO_MMAP = 0,
-	IO_SENDFILE,
+	IO_SENDFILE,	/* 0=default xmit method */
+	IO_MMAP,
 	IO_SPLICE,
 	IO_RW,
 };

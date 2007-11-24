@@ -811,7 +811,6 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 			for (i = 0; i <= IO_MAX; i++ ) {
 				if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], io_call_map[i].conf_string)) {
-					puts( io_call_map[i].conf_string );
 					opts.io_call = io_call_map[i].conf_code;
 					break;
 				}
