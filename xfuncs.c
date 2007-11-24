@@ -42,7 +42,6 @@
 #include "global.h"
 #include "xfuncs.h"
 
-extern struct conf_map_t congestion_map[];
 
 /* Simple malloc wrapper - prevent error checking */
 void *

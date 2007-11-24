@@ -73,7 +73,6 @@ static inline long splice(int fdin, loff_t *off_in, int fdout, loff_t *off_out,
 
 extern struct opts opts;
 extern struct net_stat net_stat;
-extern struct conf_map_t congestion_map[];
 extern struct conf_map_t io_call_map[];
 extern struct socket_options socket_options[];
 extern struct sock_callbacks sock_callbacks;
