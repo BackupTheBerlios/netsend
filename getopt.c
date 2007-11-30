@@ -293,7 +293,7 @@ static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 			/* sanity check first */
 			if (ac <= 1)
 				print_usage("tcp transmit mode required file and destination address\n",
-						HELP_STR_TCP, 1);
+						HELP_STR_GLOBAL, 1);
 
 			optsp->infile = xstrdup(av[0]);
 			optsp->hostname = xstrdup(av[1]);
