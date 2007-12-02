@@ -1,27 +1,52 @@
-#!/bin/bash -x
+#!/bin/sh 
 
 TESTFILE=$(mktemp /tmp/netsendXXXXXX)
 NETSEND_BIN=./netsend
 
-# generate a file for transfer
-echo Generate testfile
-dd if=/dev/zero of=${TESTFILE} bs=4k count=10000
 
-${NETSEND_BIN} tcp receive &
-RPID=$1
+pre()
+{
+  # generate a file for transfer
+  echo Generate testfile
+  dd if=/dev/zero of=${TESTFILE} bs=4k count=10000 1>/dev/null 2>&1
+}
 
-# give netsend 2 seconds to set up everything and
-# bind properly
-sleep 2
+case1()
+{
 
-${NETSEND_BIN} tcp transmit ${TESTFILE} localhost &
+  echo -n testcase 1 ...
 
-# wait for receiver and check return code
-wait $RPID
-if [ $? -ne 0] ; then
-  echo testcase 1 failed
-  exit 1
-fi
+  ${NETSEND_BIN} tcp receive &
+  RPID=$!
 
-echo Delete testfile
-rm -f ${TESTFILE}
+  # give netsend 2 seconds to set up everything and
+  # bind properly
+  sleep 2
+
+  ${NETSEND_BIN} tcp transmit ${TESTFILE} localhost &
+
+  # wait for receiver and check return code
+  wait $RPID
+  if [ $? -ne 0 ] ; then
+    echo testcase 1 failed
+    exit 1
+  fi
+
+  echo passed
+}
+
+
+post()
+{
+  echo Delete testfile
+  rm -f ${TESTFILE}
+}
+
+
+
+pre
+trap post INT
+case1
+post
+
+
