@@ -1,8 +1,7 @@
 #!/bin/bash -x
 
-TESTFILE=/tmp/testfile
+TESTFILE=$(mktemp /tmp/netsendXXXXXX)
 NETSEND_BIN=./netsend
-
 
 # generate a file for transfer
 echo Generate testfile
@@ -19,13 +18,10 @@ ${NETSEND_BIN} tcp transmit ${TESTFILE} localhost &
 
 # wait for receiver and check return code
 wait $RPID
-if (test $? -ne 0) ; then
+if [ $? -ne 0] ; then
   echo testcase 1 failed
   exit 1
 fi
 
-
-
-
 echo Delete testfile
-rm -rf ${TESTFILE}
+rm -f ${TESTFILE}
