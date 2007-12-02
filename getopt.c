@@ -43,6 +43,8 @@
  *		- parse the global (protocol independent arguments)
  *		- find the proper transport level protocol and branch
  *		  to this protocol (parse_tcp_opts, parse_tipc_opt, ...)
+ *		- set values gathered through parsing process (e.g. the cli
+ *		  switch -6 turn AF_INET into AF_INET6
  *	 parse_XXX_opts()
  *		- set protocol specific default values
  *		- parse protocol specific options
@@ -568,13 +570,9 @@ struct __short_opts_t {
 	unsigned long bitmask;
 	unsigned int min_cmp_length;
 } short_opt[] = {
-#define	SOPTS_VERSION (1 << 1)
 	{ "Version", SOPTS_VERSION, 1 },
-#define SOPTS_NUMERIC (1 << 2)
 	{ "n", SOPTS_NUMERIC, 1 },
-#define	SOPTS_IPV4    (1 << 3)
 	{ "4", SOPTS_IPV4, 1 },
-#define	SOPTS_IPV6    (1 << 4)
 	{ "6", SOPTS_IPV6, 1 },
 	{ NULL, ' ', 0 },
 };
@@ -964,6 +962,12 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 		ac--;
 
 	} while (1);
+
+	/* set values gathered in the parsing process */
+	if (optsp->short_opts_mask & SOPTS_IPV4)
+		opts.family = AF_INET;
+	if (optsp->short_opts_mask & SOPTS_IPV6)
+		opts.family = AF_INET6;
 
 	/* we need at least two arguments:
 	 * PROTOCOL and MODE

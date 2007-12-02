@@ -28,7 +28,7 @@ case1()
   # wait for receiver and check return code
   wait $RPID
   if [ $? -ne 0 ] ; then
-    echo testcase 1 failed
+    echo testcase failed
     exit 1
   fi
 

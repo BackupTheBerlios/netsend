@@ -150,7 +150,7 @@ static int instigate_cs_tipc(void)
 #endif
 
 
-/* Creates our client socket and initialize
+/* Creates our receive socket and initialize
 ** options
 **
 ** XXX: at the moment we can't release ourself from the mulicast channel
