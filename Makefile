@@ -61,6 +61,9 @@ distclean: clean
 man: $(POD)
 	pod2man -d $(TARGET) -c $(TARGET) $(POD) > $(MAN)
 
+test: unit_test.sh $(TARGET)
+	@./unit_test.sh
+
 DISTNAME=$(TARGET)
 
 release:

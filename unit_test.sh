@@ -43,6 +43,7 @@ post()
 }
 
 
+echo "\nnetsend unit test script - (C) 2007\n"
 
 pre
 trap post INT
