@@ -756,11 +756,11 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 				print_usage(NULL, HELP_STR_GLOBAL, 1);
 			}
 			if (!strcmp(&av[FIRST_ARG_INDEX + 1][0], "human")) {
-				fprintf(stderr, "HUMAN\n");
+				opts.statistics++;
 				av += 2; ac -= 2;
 				continue;
 			} else if (!strcmp(&av[FIRST_ARG_INDEX + 1][0], "machine")) {
-				fprintf(stderr, "MACHINE\n");
+				opts.machine_parseable++;
 				av += 2; ac -= 2;
 				continue;
 			} else {
@@ -964,8 +964,11 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	} while (1);
 
 	/* set values gathered in the parsing process */
+
 	if (optsp->short_opts_mask & SOPTS_IPV4)
 		opts.family = AF_INET;
+
+	/* -6 had precedence */
 	if (optsp->short_opts_mask & SOPTS_IPV6)
 		opts.family = AF_INET6;
 

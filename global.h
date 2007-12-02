@@ -261,10 +261,10 @@ struct sock_callbacks {
 #define HDR_MSK_DIGEST  (1 << 1)
 
 /* bitmask set for short_opts_mask */
-#define	SOPTS_VERSION (1 << 1)
-#define SOPTS_NUMERIC (1 << 2)
-#define	SOPTS_IPV4    (1 << 3)
-#define	SOPTS_IPV6    (1 << 4)
+#define	SOPTS_VERSION      (1 << 1)
+#define SOPTS_NUMERIC      (1 << 2)
+#define	SOPTS_IPV4         (1 << 3)
+#define	SOPTS_IPV6         (1 << 4)
 
 struct opts {
 
