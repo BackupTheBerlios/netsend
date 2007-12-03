@@ -72,13 +72,15 @@ extern struct socket_options socket_options[];
  */
 static const char const help_str[][4096] = {
 #define	HELP_STR_GLOBAL 0
-    "Usage: netsend [OPTIONS] PROTOCOL MODE { COMMAND | HELP }\n"
+    "Usage: netsend [OPTIONS] PROTOCOL MODE { COMMAND | HELP } [filename] [hostname]\n"
 	" OPTIONS      := { -T FORMAT | -6 | -4 | -n | -d | -r RTTPROBE | -P SCHED-POLICY | -N level\n"
 	"                   -m MEM-ADVISORY | -V[version] | -v[erbose] LEVEL | -h[elp] | -a[ll-options] }\n"
-	"                   -p PORT -s SETSOCKOPT_OPTNAME _OPTVAL -b READWRITE_BUFSIZE\n"
+	"                   -p PORT -s SETSOCKOPT_OPTNAME _OPTVAL -b READWRITE_BUFSIZE -u SEND-ROUTINE\n"
 	" PROTOCOL     := { tcp | udp | dccp | tipc | sctp | udplite }\n"
+	" COMMAND      := { UDP-OPTIONS | UDPL-OPTIONS | SCTP-OPTIONS | DCCP-OPTIONS | TIPC-OPTIONS | TCP-OPTIONS }\n"
 	" MODE         := { receive | transmit }\n"
 	" FORMAT       := { human | machine }\n"
+	" SEND-ROUTINE := { mmap | sendfile | splice | rw }\n"
 	" RTTPROBE     := { 10n,10d,10m,10f }\n"
 	" MEM-ADVISORY := { normal | sequential | random | willneed | dontneed | noreuse }\n"
 	" SCHED-POLICY := { sched_rr | sched_fifo | sched_batch | sched_other } priority\n"
@@ -268,6 +270,7 @@ static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 	optsp->perform_rtt_probe = 1;
 	optsp->protocol = IPPROTO_TCP;
 	optsp->socktype = SOCK_STREAM;
+
 
 	/* this do/while loop parse options in the form '-x'.
 	 * After the do/while loop the parse fork into transmit,
@@ -934,8 +937,6 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			/* OK - the policy seems fine. Now look for a valid
 			 * nice level
 			 */
-
-
 			if (!strcasecmp(&av[FIRST_ARG_INDEX + 2][0], "MAX")) {
 				optsp->priority = sched_get_priority_max(opts.sched_policy);
 			} else if (!strcasecmp(&av[FIRST_ARG_INDEX + 2][0], "MIN")) {
