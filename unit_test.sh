@@ -25,17 +25,20 @@ die()
 
 further_help()
 {
-  echo "\nOne or more testcases failed somewhere!"
-  echo "A series of causales are possible:"
-  echo "  o No kernel support for a specific protocol (e.g. tipc, ipv6, ...)"
-  echo "  o Architecture bugs (uncatched kernel, glibc or netsend bugs)"
-  echo "  o Last but not least: you triggered a real[tm] netsend error ;)"
-  echo "\nIf the testcases doesn't affect you you can skip the test"
-  echo "But if you want to dig into this corner you should start this script"
-  echo "via the debug mode (\"sh -x unit_test.sh\"), get out the executed netsend command"
-  echo "and execute them manually on the commandline and understand the failure message!"
-  echo "\nFor further information or help -> http://netsend.berlios.de"
+cat <<EOF
+One or more testcases failed somewhere!
+A series of causales are possible:
+   o No kernel support for a specific protocol (e.g. tipc, ipv6, ...)
+   o Architecture bugs (uncatched kernel, glibc or netsend bugs)
+   o Last but not least: you triggered a real[tm] netsend error ;)
 
+If the testcases doesn't affect you you can skip the test
+But if you want to dig into this corner you should start this script
+via the debug mode (\"sh -x unit_test.sh\"), get out the executed netsend command
+and execute them manually on the commandline and understand the failure message!
+
+For further information or help -> http://netsend.berlios.de
+EOF
 }
 
 case1()
@@ -113,7 +116,7 @@ case3()
   if [ $? -ne 0 ] ; then
     echo failed
     TEST_FAILED=1
-  else 
+  else
     echo passed
   fi
 
@@ -281,7 +284,7 @@ case7()
 case8()
 {
   echo -n "TIPC protocol tests ..."
-  
+
   L_ERR=0
 
   R_OPT="tipc receive -t SOCK_STREAM"
@@ -311,7 +314,7 @@ case8()
   fi
 }
 
-echo "\nnetsend unit test script - (C) 2007\n"
+echo -e "\nnetsend unit test script - (C) 2007\n"
 
 pre
 
