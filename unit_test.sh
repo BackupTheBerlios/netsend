@@ -34,7 +34,7 @@ A series of causales are possible:
 
 If the testcases doesn't affect you you can skip the test
 But if you want to dig into this corner you should start this script
-via the debug mode (\"sh -x unit_test.sh\"), get out the executed netsend command
+via the debug mode ("sh -x unit_test.sh"), get out the executed netsend command
 and execute them manually on the commandline and understand the failure message!
 
 For further information or help -> http://netsend.berlios.de
@@ -104,11 +104,11 @@ case3()
   # bind properly
   sleep 2
 
-  ${NETSEND_BIN} -6 tcp transmit ${TESTFILE} localhost 1>/dev/null 2>&1
+  ${NETSEND_BIN} -6 tcp transmit ${TESTFILE} ::1 1>/dev/null 2>&1
   if [ $? -ne 0 ] ; then
     TEST_FAILED=1
   else
-    passed
+    echo passed
   fi
 
   # wait for receiver and check return code
