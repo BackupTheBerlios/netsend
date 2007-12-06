@@ -60,7 +60,7 @@ get_tcp_info(int fd, struct tcp_info *tcp_info)
 {
 	int ret = 0; socklen_t ret_size = sizeof(struct tcp_info);
 
-	if (getsockopt(fd, IPPROTO_TCP, TCP_INFO, &tcp_info, &ret_size) < 0)
+	if (getsockopt(fd, IPPROTO_TCP, TCP_INFO, tcp_info, &ret_size) < 0)
 		return -1;
 
 	if (sizeof(struct tcp_info) != ret_size)
