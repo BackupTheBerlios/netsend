@@ -28,5 +28,4 @@ long sublong(long, long);
 
 #define TIME_GT(x,y) (x->tv_sec > y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec > y->tv_usec))
 #define TIME_LT(x,y) (x->tv_sec < y->tv_sec || (x->tv_sec == y->tv_sec && x->tv_usec < y->tv_usec))
-unsigned long long tsc_diff(unsigned long long, unsigned long long);
 int subtime(struct timeval *, struct timeval *, struct timeval *);

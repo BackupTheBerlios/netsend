@@ -438,7 +438,8 @@ gen_machine_analyse(char *buf, unsigned int max_buf_len)
 }
 
 
-unsigned long long
+#ifdef HAVE_RDTSCLL
+static unsigned long long
 tsc_diff(unsigned long long end, unsigned long long start)
 {
 	long long ret = end - start;
@@ -448,6 +449,8 @@ tsc_diff(unsigned long long end, unsigned long long start)
 
 	return (ULLONG_MAX - start) + end;
 }
+#endif
+
 
 int
 subtime(struct timeval *op1, struct timeval *op2, struct timeval *result)
