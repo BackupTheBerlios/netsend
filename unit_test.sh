@@ -254,8 +254,8 @@ case7()
 
   L_ERR=0
 
-  R_OPT="dccp receive"
-  T_OPT="dccp transmit ${TESTFILE} localhost"
+  R_OPT="sctp receive"
+  T_OPT="sctp transmit ${TESTFILE} localhost"
 
   ${NETSEND_BIN} ${R_OPT} 1>/dev/null 2>&1 &
   RPID=$!
