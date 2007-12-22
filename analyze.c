@@ -169,6 +169,21 @@ static const char *io_call_to_str(enum io_call code)
 	return "";
 }
 
+
+#ifdef HAVE_RDTSCLL
+static unsigned long long
+tsc_diff(unsigned long long end, unsigned long long start)
+{
+	long long ret = end - start;
+
+	if (ret >= 0)
+		return ret;
+
+	return (ULLONG_MAX - start) + end;
+}
+#endif
+
+
 void
 gen_human_analyse(char *buf, unsigned int max_buf_len)
 {
@@ -436,20 +451,6 @@ gen_machine_analyse(char *buf, unsigned int max_buf_len)
 	/* trailing newline */
 	len += xsnprintf(buf + len, max_buf_len - len, "%s", "\n");
 }
-
-
-#ifdef HAVE_RDTSCLL
-static unsigned long long
-tsc_diff(unsigned long long end, unsigned long long start)
-{
-	long long ret = end - start;
-
-	if (ret >= 0)
-		return ret;
-
-	return (ULLONG_MAX - start) + end;
-}
-#endif
 
 
 int
