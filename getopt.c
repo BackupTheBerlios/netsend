@@ -727,7 +727,6 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 		/* iterate over _short options_ and match relevant short options */
 		for (i = 0; short_opt[i].name; i++) {
 			if (!strncmp(&av[FIRST_ARG_INDEX][1], short_opt[i].name, short_opt[i].min_cmp_length)) {
-				fprintf(stderr, "Found short option %s\n", short_opt[i].name);
 				optsp->short_opts_mask |= short_opt[i].bitmask;
 				break;
 			}
