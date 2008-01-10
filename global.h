@@ -384,6 +384,5 @@ void receive_mode(void);
 
 /* transmit.c */
 void transmit_mode(void);
-ssize_t write_len(int, const void *, size_t);
 
 /* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */

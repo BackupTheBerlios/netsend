@@ -147,7 +147,7 @@ write_len(int fd, const void *buf, size_t len)
 
 
 static ssize_t
-ss_rw(int file_fd, int connected_fd)
+udp_trans_rw(int file_fd, int connected_fd)
 {
 	int buflen;
 	ssize_t cnt, cnt_coll = 0;
@@ -190,7 +190,7 @@ ss_rw(int file_fd, int connected_fd)
 
 
 static ssize_t
-ss_mmap(int file_fd, int connected_fd)
+udp_trans_mmap(int file_fd, int connected_fd)
 {
 	int ret = 0;
 	ssize_t rc, written = 0, write_cnt;
@@ -244,7 +244,7 @@ ss_mmap(int file_fd, int connected_fd)
 	if (stat_buf.st_size != written) {
 		fprintf(stderr, "ERROR: Can't flush buffer within write call: %s!\n",
 				strerror(errno));
-		fprintf(stderr, " size: %lld written %lld\n", (long long)stat_buf.st_size, (long long) written);
+		fprintf(stderr, " size: %ld written %ld\n", (long)stat_buf.st_size, written);
 	}
 
 	ret = munmap(mmap_buf, stat_buf.st_size);
@@ -330,7 +330,7 @@ static ssize_t get_splice_size(int file_fd, struct stat *stat_buf)
 
 
 static ssize_t
-ss_splice(int file_fd, int connected_fd)
+udp_trans_splice(int file_fd, int connected_fd)
 {
 #ifdef HAVE_SPLICE
 	int pipefds[2];
@@ -382,7 +382,7 @@ ss_splice(int file_fd, int connected_fd)
 
 
 static ssize_t
-ss_sendfile(int file_fd, int connected_fd)
+udp_trans_sendfile(int file_fd, int connected_fd)
 {
 	struct stat stat_buf;
 	ssize_t rc, write_cnt;
@@ -432,7 +432,7 @@ ss_sendfile(int file_fd, int connected_fd)
 static void set_socketopts(int fd)
 {
 	int i, ret;
-	const void *optval;
+	void *optval;
 	socklen_t optlen;
 
 	/* loop over all selectable socket options */
@@ -495,7 +495,7 @@ static void set_socketopts(int fd)
 ** options
 */
 static int
-instigate_ss(void)
+init_udp_trans(void)
 {
 	bool use_multicast = false;
 	int fd = -1, ret;
@@ -620,37 +620,6 @@ instigate_ss(void)
 }
 
 
-
-static void print_tcp_info(struct tcp_info *tcp_info)
-{
-	fprintf(stderr, "\ntcp info:\n"
-		 "\tretransmits:   %d\n"
-		 "\tprobes:        %d\n"
-		 "\tbackoff:       %d\n",
-		 tcp_info->tcpi_retransmits, tcp_info->tcpi_probes,
-		 tcp_info->tcpi_backoff);
-	 fputs("\toptions:       ", stderr);
-	 /* see netinet/tcp.h for definition */
-	 if (tcp_info->tcpi_options & TCPI_OPT_TIMESTAMPS)
-		 fputs("TIMESTAMPS ", stderr);
-	 if (tcp_info->tcpi_options & TCPI_OPT_SACK)
-		 fputs("SACK ", stderr);
-	 if (tcp_info->tcpi_options & TCPI_OPT_WSCALE)
-		 fputs("WSCALE ", stderr);
-	 if (tcp_info->tcpi_options & TCPI_OPT_ECN)
-		 fputs("ECN", stderr);
-	 fprintf(stderr, "\n"
-		"\tsnd_wscale:    %d\n"
-		"\trcv_wscale:    %d\n"
-		"\trto:           %d\n"
-		"\tato:           %d\n"
-		"\tsnd_mss:       %d\n"
-		"\trcv_mss:       %d\n"
-		"\tunacked:       %d\n", tcp_info->tcpi_snd_wscale,
-			tcp_info->tcpi_rcv_wscale, tcp_info->tcpi_rto, tcp_info->tcpi_ato,
-			tcp_info->tcpi_snd_mss, tcp_info->tcpi_rcv_mss, tcp_info->tcpi_unacked);
-}
-
 /* *** Main Server Routine ***
 **
 ** o initialize server socket
@@ -660,7 +629,7 @@ static void print_tcp_info(struct tcp_info *tcp_info)
 ** o print diagnostic info
 */
 void
-transmit_mode(void)
+udp_trans_mode(void)
 {
 	int connected_fd, file_fd, child_status;
 	struct sigaction sa;
@@ -670,7 +639,7 @@ transmit_mode(void)
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
-	connected_fd = instigate_ss();
+	connected_fd = init_udp_trans();
 
 	sa.sa_handler = SIG_IGN;
 	sigemptyset(&sa.sa_mask);
@@ -687,23 +656,24 @@ transmit_mode(void)
 	gettimeofday(&opts.starttime, NULL);
 
 	switch (opts.io_call) {
-	case IO_SENDFILE: ss_sendfile(file_fd, connected_fd); break;
-	case IO_SPLICE: ss_splice(file_fd, connected_fd); break;
-	case IO_MMAP: ss_mmap(file_fd, connected_fd); break;
-	case IO_RW: ss_rw(file_fd, connected_fd); break;
+	case IO_SENDFILE:
+		udp_trans_sendfile(file_fd, connected_fd);
+		break;
+	case IO_SPLICE:
+		udp_trans_splice(file_fd, connected_fd);
+		break;
+	case IO_MMAP:
+		udp_trans_mmap(file_fd, connected_fd);
+		break;
+	case IO_RW:
+		udp_trans_rw(file_fd, connected_fd);
+		break;
 	default:
 		err_msg_die(EXIT_FAILINT, "Programmed Failure");
 	}
 
 	gettimeofday(&opts.endtime, NULL);
 
-	/* print tcp statistic if we run verbose (LOUDISCH) */
-	if (opts.protocol == IPPROTO_TCP && VL_LOUDISH(opts.verbose)) {
-		struct tcp_info tcp_info;
-
-		if (get_tcp_info(connected_fd, &tcp_info) >= 0)
-			print_tcp_info(&tcp_info);
-	}
 	/* if we spawn a child - reaping it here */
 	waitpid(-1, &child_status, 0);
 }

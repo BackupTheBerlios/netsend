@@ -526,6 +526,45 @@ static void dump_udplite_opt(struct opts *optsp)
 
 static int parse_udp_opt(int ac, char *av[],struct opts *optsp)
 {
+	optsp->protocol = IPPROTO_UDP;
+	optsp->socktype = SOCK_DGRAM;
+
+	if (opts.io_call != IO_RW) {
+		fprintf(stderr, "UDP requires read/write mode - netsend enforce this option\n");
+		opts.io_call = IO_RW;
+	}
+
+	switch (optsp->workmode) {
+	case MODE_RECEIVE:
+		switch (ac) {
+		case 0: /* nothing to do */
+			break;
+		case 2:
+			opts.hostname = xstrdup(av[1]);
+			/* fallthrough */
+		case 1:
+			opts.outfile = xstrdup(av[0]);
+			break;
+		default:
+			err_msg("You specify to many arguments!");
+			print_usage(NULL, HELP_STR_GLOBAL, 1);
+			break;
+		};
+		break;
+		break;
+	case MODE_TRANSMIT:
+		if (ac <= 1) {
+			print_usage("UDP transmit mode requires file and destination address\n",
+					HELP_STR_DCCP, 1);
+			return FAILURE;
+		}
+		optsp->infile = xstrdup(av[0]);
+		optsp->hostname = xstrdup(av[1]);
+		break;
+	case MODE_NONE:
+		return FAILURE;
+	}
+
 	return SUCCESS;
 }
 

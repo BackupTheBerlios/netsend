@@ -116,9 +116,30 @@ main(int argc, char *argv[])
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
 		case MODE_TRANSMIT:
-			transmit_mode();
+
+			switch (opts.protocol) {
+
+				case IPPROTO_TCP:
+					msg(LOUDISH, "branch to tcp_trans_mode()");
+					tcp_trans_mode();
+					break;
+
+				case IPPROTO_UDP:
+					msg(LOUDISH, "branch to udp_trans_mode()");
+					udp_trans_mode();
+					break;
+
+				default:
+					msg(LOUDISH, "branch to default mode -> FIXME");
+					transmit_mode();
+					break;
+			}
+
+
 			break;
 		case MODE_RECEIVE:
+
+
 			receive_mode();
 			break;
 		default:
