@@ -8,7 +8,7 @@ pre()
 {
   # generate a file for transfer
   echo Initialize test environment
-  dd if=/dev/zero of=${TESTFILE} bs=4k count=10000 1>/dev/null 2>&1
+  dd if=/dev/zero of=${TESTFILE} bs=1 count=1 1>/dev/null 2>&1
 }
 
 post()
@@ -314,6 +314,72 @@ case8()
   fi
 }
 
+case9()
+{
+  echo -n "UDP protocol tests ..."
+
+  L_ERR=0
+
+  R_OPT="udp receive"
+  T_OPT="udp transmit ${TESTFILE} localhost"
+
+  ${NETSEND_BIN} ${R_OPT} 1>/dev/null 2>&1 &
+  RPID=$!
+
+  sleep 2
+
+  ${NETSEND_BIN} ${T_OPT} 1>/dev/null 2>&1
+  if [ $? -ne 0 ] ; then
+    L_ERR=1
+  else
+    # ok, the send process seems fine. The workaround
+    # now comes through the fact the udp even doesn't
+    # know when the end of data is reached.
+    # We therefore kill simple the receiver ;(
+    kill -9 $RPID 1>/dev/null 2>&1
+  fi
+
+  if [ $L_ERR -ne 0 ] ; then
+    echo failed
+    TEST_FAILED=1
+  else
+    echo passed
+  fi
+}
+
+case10()
+{
+  echo -n "UDP Lite protocol tests ..."
+
+  L_ERR=0
+
+  R_OPT="udplite receive"
+  T_OPT="udplite transmit ${TESTFILE} localhost"
+
+  ${NETSEND_BIN} ${R_OPT} 1>/dev/null 2>&1 &
+  RPID=$!
+
+  sleep 2
+
+  ${NETSEND_BIN} ${T_OPT} 1>/dev/null 2>&1
+  if [ $? -ne 0 ] ; then
+    L_ERR=1
+  else
+    # ok, the send process seems fine. The workaround
+    # now comes through the fact the udp-lite even doesn't
+    # know when the end of data is reached.
+    # We therefore kill simple the receiver ;(
+    kill -9 $RPID 1>/dev/null 2>&1
+  fi
+
+  if [ $L_ERR -ne 0 ] ; then
+    echo failed
+    TEST_FAILED=1
+  else
+    echo passed
+  fi
+}
+
 echo -e "\nnetsend unit test script - (C) 2007\n"
 
 pre
@@ -328,6 +394,8 @@ case5
 case6
 case7
 case8
+case9
+case10
 
 post
 
