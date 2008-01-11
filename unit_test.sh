@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -v
 
 TESTFILE=$(mktemp /tmp/netsendXXXXXX)
 NETSEND_BIN=./netsend
@@ -14,6 +14,7 @@ pre()
 post()
 {
   echo Cleanup test environment
+  killall -9 netsend 1>/dev/null 2>&1
   rm -f ${TESTFILE}
 }
 
@@ -107,8 +108,6 @@ case3()
   ${NETSEND_BIN} -6 tcp transmit ${TESTFILE} ::1 1>/dev/null 2>&1
   if [ $? -ne 0 ] ; then
     TEST_FAILED=1
-  else
-    echo passed
   fi
 
   # wait for receiver and check return code
