@@ -310,6 +310,8 @@ struct opts {
 	int priority;
 	long nice;
 
+	long int udplite_checksum_coverage;
+
 #define	DEFAULT_RTT_FILTER 4
 
 	/* this stores option for the rtt probe commandline option '-R' */

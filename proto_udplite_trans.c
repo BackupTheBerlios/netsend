@@ -40,7 +40,6 @@
 # define __NR_sys_splice __NR_splice
 #endif
 
-
 static inline long splice(int fdin, loff_t *off_in, int fdout, loff_t *off_out,
 		                        size_t len, unsigned long flags)
 {
@@ -434,6 +433,22 @@ static void set_socketopts(int fd)
 	int i, ret;
 	void *optval;
 	socklen_t optlen;
+
+	/* first - UDPLite specific socket options */
+	if (opts.udplite_checksum_coverage != LONG_MAX) {
+
+		/* FIXME: add some check here - long to int */
+		i = opts.udplite_checksum_coverage;
+
+		msg(GENTLE, "set UDPLite checksum coverage for %d bytes", i);
+
+		ret = setsockopt(fd, IPPROTO_UDPLITE, UDPLITE_SEND_CSCOV, &i, sizeof(int));
+
+		if (ret)
+			err_sys("setsockopt option %d (name UDPLITE_SEND_CSCOV) failed",
+				UDPLITE_SEND_CSCOV);
+
+	}
 
 	/* loop over all selectable socket options */
 	for (i = 0; socket_options[i].sockopt_name; i++) {

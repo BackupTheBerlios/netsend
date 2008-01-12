@@ -519,6 +519,57 @@ static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 	optsp->protocol = IPPROTO_UDPLITE;
 	optsp->socktype = SOCK_DGRAM;
 
+	optsp->udplite_checksum_coverage = LONG_MAX;
+
+	/* this do/while loop parse options in the form '-x'.
+	 * After the do/while loop the parse fork into transmit,
+	 * receive specific code.
+	 */
+	do {
+		char *endptr;
+
+
+		/* break if we reach the end of the OPTIONS or we see
+		 * the special option '-' -> this indicate the special
+		 * output file "stdout" (therefore no option ;-) */
+		if ((!av[0] || av[0][0] != '-') ||
+			  av[0] && av[0][0] == '-' && !av[0][1])
+			break;
+
+		if (!av[0][1] || !isalnum(av[0][1]))
+			print_usage(NULL, HELP_STR_TCP, 1);
+
+		if (av[0][1] == 'C') {
+			if (!av[1]) {
+				print_usage("UDPLite option C requires an argument\n",
+						HELP_STR_UDPLITE, 1);
+				return FAILURE;
+			}
+
+			optsp->udplite_checksum_coverage = strtol(av[1], &endptr, 10);
+
+			if ((errno == ERANGE &&
+				(optsp->udplite_checksum_coverage == LONG_MAX ||
+				 optsp->udplite_checksum_coverage == LONG_MIN)) ||
+				(errno != 0 && optsp->udplite_checksum_coverage == 0)) {
+				print_usage("UDPLite option C requires an numeric argument\n",
+						HELP_STR_UDPLITE, 1);
+			}
+
+			msg(GENTLE, "parse UDPLite request to cover %ld bytes",
+					optsp->udplite_checksum_coverage);
+
+			ac -= 2;
+			av += 2;
+			continue;
+		}
+
+		ac--;
+		av++;
+
+	} while (1);
+
+
 	switch (optsp->workmode) {
 	case MODE_RECEIVE:
 		switch (ac) {
@@ -570,12 +621,12 @@ static int parse_udp_opt(int ac, char *av[],struct opts *optsp)
 			break;
 		case 2:
 			opts.hostname = xstrdup(av[1]);
-			/* fallthrough */
+			/* fall through */
 		case 1:
 			opts.outfile = xstrdup(av[0]);
 			break;
 		default:
-			err_msg("You specify to many arguments!");
+			err_msg("You specified to many arguments!");
 			print_usage(NULL, HELP_STR_GLOBAL, 1);
 			break;
 		};
