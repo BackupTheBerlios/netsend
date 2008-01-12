@@ -36,7 +36,7 @@
 #include "analyze.h"
 #include "global.h"
 #include "proto_tipc.h"
-#include "proto_udp.h"
+#include "proto_udp_recv.h"
 
 struct conf_map_t memadvice_map[] = {
 	{ MEMADV_NORMAL,	"normal" },

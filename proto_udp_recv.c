@@ -22,7 +22,7 @@
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#include "proto_udp.h"
+#include "proto_udp_recv.h"
 
 int udp_listen(int sockfd __attribute__((unused)),
 				int ignored __attribute__((unused)))
