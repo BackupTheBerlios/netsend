@@ -385,4 +385,8 @@ void receive_mode(void);
 /* transmit.c */
 void transmit_mode(void);
 
+void tcp_trans_mode(void);
+void udp_trans_mode(void);
+void udplite_trans_mode(void);
+
 /* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */

@@ -129,6 +129,11 @@ main(int argc, char *argv[])
 					udp_trans_mode();
 					break;
 
+				case IPPROTO_UDPLITE:
+					msg(LOUDISH, "branch to udplite_trans_mode()");
+					udplite_trans_mode();
+					break;
+
 				default:
 					msg(LOUDISH, "branch to default mode -> FIXME");
 					transmit_mode();
