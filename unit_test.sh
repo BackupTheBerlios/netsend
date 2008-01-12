@@ -1,4 +1,4 @@
-#!/bin/sh -v
+#!/bin/sh 
 
 TESTFILE=$(mktemp /tmp/netsendXXXXXX)
 NETSEND_BIN=./netsend

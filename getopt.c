@@ -519,11 +519,6 @@ static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 	optsp->protocol = IPPROTO_UDPLITE;
 	optsp->socktype = SOCK_DGRAM;
 
-	if (opts.io_call != IO_RW) {
-		fprintf(stderr, "UDP Lite requires read/write mode - netsend enforce this option\n");
-		opts.io_call = IO_RW;
-	}
-
 	switch (optsp->workmode) {
 	case MODE_RECEIVE:
 		switch (ac) {
@@ -567,11 +562,6 @@ static int parse_udp_opt(int ac, char *av[],struct opts *optsp)
 {
 	optsp->protocol = IPPROTO_UDP;
 	optsp->socktype = SOCK_DGRAM;
-
-	if (opts.io_call != IO_RW) {
-		fprintf(stderr, "UDP requires read/write mode - netsend enforce this option\n");
-		opts.io_call = IO_RW;
-	}
 
 	switch (optsp->workmode) {
 	case MODE_RECEIVE:
