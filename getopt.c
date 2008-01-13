@@ -90,11 +90,11 @@ static const char const help_str[][4096] = {
 #define	HELP_STR_UDP 2
 	" UDP-OPTIONS  := [ FIXME ]",
 #define	HELP_STR_UDPLITE 3
-	" UDPL-OPTIONS := [ FIXME ]",
+	" UDPL-OPTIONS := [ -C <checksum_coverage> ]",
 #define	HELP_STR_SCTP 4
 	" SCTP_DISABLE_FRAGMENTS "
 #define	HELP_STR_DCCP 5
-	" DCCP-OPTIONS := [ FIXME ]",
+	" DCCP-OPTIONS := { }",
 #define	HELP_STR_TIPC 6
 	" TIPC-OPTIONS := { -t TIPCSOCKTYP }\n"
 	" TIPCSOCKTYP  := { sock_rdm | sock_dgram | sock_stream | sock_seqpacket }",
@@ -107,13 +107,13 @@ static const char const help_str[][4096] = {
 	 */
 
 #define	HELP_STR_VERBOSE_LEVEL 7
-	"LEVEL := { quitscent | gentle | loudish | stressful }",
+	" LEVEL := { quitscent | gentle | loudish | stressful }",
 #define	HELP_STR_SCHED_POLICY 8
-	"SCHED-POLICY := { fifo | rr | batch | other }",
+	" SCHED-POLICY := { fifo | rr | batch | other }",
 #define	HELP_STR_MEM_ADVICE 9
-	"MEM-ADVISORY := { normal | sequential | random | willneed | dontneed | noreuse }",
+	" MEM-ADVISORY := { normal | sequential | random | willneed | dontneed | noreuse }",
 #define	HELP_STR_IO_ADVICE 10
-	"IO-CALL := { mmap | sendfile | splice | rw }"
+	" IO-CALL := { mmap | sendfile | splice | rw }"
 };
 
 

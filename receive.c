@@ -308,6 +308,17 @@ receive_mode(void)
 		}
 	}
 
+	switch (opts.protocol) {
+	case IPPROTO_UDPLITE:
+		ret = init_receive_socket_udplite(&opts, connected_fd);
+		if (ret != SUCCESS) {
+			err_msg_die(EXIT_FAILNET, "failure in initial phase of receive socket creation");
+		}
+		break;
+	default:
+		err_msg_die(EXIT_FAILNET, "Programmed error in switch statement");
+	}
+
 	/* read netsend header */
 	meta_exchange_rcv(connected_fd);
 

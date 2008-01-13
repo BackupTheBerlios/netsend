@@ -89,6 +89,10 @@
 # define UDPLITE_SEND_CSCOV   10
 #endif
 
+#ifndef UDPLITE_RECV_CSCOV
+# define UDPLITE_RECV_CSCOV   11
+#endif
+
 /* Our makros start here */
 
 #define NIPQUAD(addr)   ((unsigned char *)&addr)[0], \
@@ -390,5 +394,8 @@ void transmit_mode(void);
 void tcp_trans_mode(void);
 void udp_trans_mode(void);
 void udplite_trans_mode(void);
+
+/* proto_udplite_recv.c */
+int init_receive_socket_udplite(struct opts *, int);
 
 /* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */
