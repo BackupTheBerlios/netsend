@@ -306,9 +306,7 @@ receive_mode(void)
 			err_msg_die(EXIT_FAILNET, "getnameinfo error: %s",  gai_strerror(ret));
 		msg(GENTLE, "accept from %s", peer);
 		}
-	}
-
-	switch (opts.protocol) {
+		break;
 	case IPPROTO_UDPLITE:
 		ret = init_receive_socket_udplite(&opts, connected_fd);
 		if (ret != SUCCESS) {
