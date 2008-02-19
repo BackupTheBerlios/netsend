@@ -244,7 +244,7 @@ tcp_trans_mmap(int file_fd, int connected_fd)
 	if (stat_buf.st_size != written) {
 		fprintf(stderr, "ERROR: Can't flush buffer within write call: %s!\n",
 				strerror(errno));
-		fprintf(stderr, " size: %ld written %d\n", (long)stat_buf.st_size, written);
+		fprintf(stderr, " size: %ld written %zd\n", (long)stat_buf.st_size, written);
 	}
 
 	ret = munmap(mmap_buf, stat_buf.st_size);

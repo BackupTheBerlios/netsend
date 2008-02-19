@@ -533,7 +533,7 @@ static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 		 * the special option '-' -> this indicate the special
 		 * output file "stdout" (therefore no option ;-) */
 		if ((!av[0] || av[0][0] != '-') ||
-			  av[0] && av[0][0] == '-' && !av[0][1])
+			  (av[0] && av[0][0] == '-' && !av[0][1]))
 			break;
 
 		if (!av[0][1] || !isalnum(av[0][1]))
