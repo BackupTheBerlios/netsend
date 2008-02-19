@@ -421,7 +421,7 @@ static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 	return FAILURE;
 }
 
-static void dump_tipc_opt(struct opts *optsp)
+static void dump_tipc_opt(struct opts *optsp __attribute__((unused)))
 {
 }
 
@@ -481,7 +481,7 @@ static int parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 }
 
 
-static void dump_sctp_opt(struct opts *optsp)
+static void dump_sctp_opt(struct opts *optsp __attribute__((unused)))
 {
 }
 
@@ -509,7 +509,7 @@ static int parse_dccp_opt(int ac, char *av[],struct opts *optsp)
 	return SUCCESS;
 }
 
-static void dump_dccp_opt(struct opts *optsp)
+static void dump_dccp_opt(struct opts *optsp __attribute__((unused)))
 {
 }
 
@@ -604,7 +604,7 @@ static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 	return SUCCESS;
 }
 
-static void dump_udplite_opt(struct opts *optsp)
+static void dump_udplite_opt(struct opts *optsp __attribute__((unused)))
 {
 }
 
@@ -648,7 +648,7 @@ static int parse_udp_opt(int ac, char *av[],struct opts *optsp)
 	return SUCCESS;
 }
 
-static void dump_udp_opt(struct opts *optsp)
+static void dump_udp_opt(struct opts *optsp __attribute__((unused)))
 {
 }
 
@@ -706,7 +706,7 @@ static void print_complete_usage(void)
 		fprintf(stderr, "%s\n", help_str[i]);
 }
 
-static int parse_rtt_string(const char *rtt_cmd, struct opts *optsp)
+static int parse_rtt_string(const char *rtt_cmd, struct opts *optsp __attribute__((unused)))
 {
 	const char *tok = rtt_cmd;
 	char *what;
@@ -761,7 +761,7 @@ static int parse_rtt_string(const char *rtt_cmd, struct opts *optsp)
 	return SUCCESS;
 }
 
-static void dump_opts(struct opts *optsp)
+static void dump_opts(struct opts *optsp __attribute__((unused)))
 {
 
 }
