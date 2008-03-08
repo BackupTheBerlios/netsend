@@ -402,7 +402,6 @@ static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 	}
 	while (ac--) {
 		for (i=0; i < ARRAY_SIZE(socktype_map); i++) {
-			puts(socktype_map[i].sockname);
 			if (strcasecmp(socktype_map[i].sockname, av[ac]) == 0)
 				break;
 		}

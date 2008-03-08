@@ -232,6 +232,11 @@ ss_mmap(int file_fd, int connected_fd)
 		rc = write_len(connected_fd, tmpbuf + written, write_cnt);
 		if (rc == -1) {
  write_fail:
+			if (written == 0) {
+				err_msg("falling back to read/write");
+				munmap(mmap_buf, stat_buf.st_size);
+				return ss_rw(file_fd, connected_fd);
+			}
 			touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
 			net_stat.total_tx_bytes = written;
 			return munmap(mmap_buf, stat_buf.st_size);
@@ -405,15 +410,21 @@ ss_sendfile(int file_fd, int connected_fd)
 	while (stat_buf.st_size - offset - 1 >= write_cnt) {
 		rc = sendfile(connected_fd, file_fd, &offset, write_cnt);
 		if (rc == -1)
-			err_sys_die(EXIT_FAILNET, "Failure in sendfile routine");
+			goto sendfile_err;
 		net_stat.total_tx_calls += 1;
 	}
 	/* and write remaining bytes, if any */
 	write_cnt = stat_buf.st_size - offset - 1;
 	if (write_cnt >= 0) {
 		rc = sendfile(connected_fd, file_fd, &offset, write_cnt + 1);
-		if (rc == -1)
+		if (rc == -1) {
+ sendfile_err:
+			if (errno == ENOSYS || errno == EDESTADDRREQ) {
+				err_sys("sendfile not supported, falling back to mmap");
+				return ss_mmap(file_fd, connected_fd);
+			}
 			err_sys_die(EXIT_FAILNET, "Failure in sendfile routine");
+		}
 		net_stat.total_tx_calls += 1;
 	}
 
