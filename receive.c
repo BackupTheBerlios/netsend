@@ -87,7 +87,7 @@ cs_read(int file_fd, int connected_fd)
 }
 
 
-static void set_muticast4(int fd, struct ip_mreq *mreq)
+static void set_multicast4(int fd, struct ip_mreq *mreq)
 {
 	int on = 1;
 
@@ -99,7 +99,7 @@ static void set_muticast4(int fd, struct ip_mreq *mreq)
 }
 
 
-static void set_muticast6(int fd, struct ipv6_mreq *mreq6)
+static void set_multicast6(int fd, struct ipv6_mreq *mreq6)
 {
 	int on = 1;
 
@@ -231,10 +231,10 @@ instigate_cs(void)
 		if (use_multicast) {
 			switch (addrtmp->ai_family) {
 			case AF_INET6:
-				set_muticast6(fd, &mreq6);
+				set_multicast6(fd, &mreq6);
 				break;
 			case AF_INET:
-				set_muticast4(fd, &mreq);
+				set_multicast4(fd, &mreq);
 				break;
 			default:
 				err_msg_die(EXIT_FAILINT, "Programmed Failure");
