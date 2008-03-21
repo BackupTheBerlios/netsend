@@ -122,42 +122,55 @@ main(int argc, char *argv[])
 	case IPPROTO_UDP: case IPPROTO_UDPLITE:
 		sock_callbacks.cb_listen = udp_listen;
 	}
+
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
+
 		case MODE_TRANSMIT:
+			switch (opts.ns_proto) {
 
-			switch (opts.protocol) {
-
-				case IPPROTO_TCP:
+				case NS_PROTO_TCP:
 					msg(LOUDISH, "branch to tcp_trans_mode()");
 					tcp_trans_mode();
 					break;
 
-				case IPPROTO_UDP:
+				case NS_PROTO_UDP:
 					msg(LOUDISH, "branch to udp_trans_mode()");
 					udp_trans_mode();
 					break;
 
-				case IPPROTO_UDPLITE:
+				case NS_PROTO_UDPLITE:
 					msg(LOUDISH, "branch to udplite_trans_mode()");
 					udplite_trans_mode();
 					break;
 
+				case NS_PROTO_SCTP:
+					msg(LOUDISH, "branch to udplite_trans_mode()");
+					sctp_trans_mode();
+					break;
+
+				case NS_PROTO_DCCP:
+					msg(LOUDISH, "branch to udplite_trans_mode()");
+					dccp_trans_mode();
+					break;
+
+				case NS_PROTO_TIPC:
+					msg(LOUDISH, "branch to udplite_trans_mode()");
+					tipc_trans_mode();
+					break;
+
 				default:
-					msg(LOUDISH, "branch to default mode -> FIXME");
-					transmit_mode();
+					err_msg_die(EXIT_FAILINT, "Programmed Error");
 					break;
 			}
+		break;
 
-
-			break;
 		case MODE_RECEIVE:
+		receive_mode();
+		break;
 
-
-			receive_mode();
-			break;
 		default:
-			err_msg_die(EXIT_FAILMISC, "Programmed Failure");
+		err_msg_die(EXIT_FAILMISC, "Programmed Failure");
 	}
 
 	if (opts.statistics || opts.machine_parseable) {

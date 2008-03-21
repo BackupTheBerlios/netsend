@@ -147,7 +147,7 @@ write_len(int fd, const void *buf, size_t len)
 
 
 static ssize_t
-ss_rw(int file_fd, int connected_fd)
+tcp_trans_rw(int file_fd, int connected_fd)
 {
 	int buflen;
 	ssize_t cnt, cnt_coll = 0;
@@ -190,7 +190,7 @@ ss_rw(int file_fd, int connected_fd)
 
 
 static ssize_t
-ss_mmap(int file_fd, int connected_fd)
+tcp_trans_mmap(int file_fd, int connected_fd)
 {
 	int ret = 0;
 	ssize_t rc, written = 0, write_cnt;
@@ -232,11 +232,6 @@ ss_mmap(int file_fd, int connected_fd)
 		rc = write_len(connected_fd, tmpbuf + written, write_cnt);
 		if (rc == -1) {
  write_fail:
-			if (written == 0) {
-				err_msg("falling back to read/write");
-				munmap(mmap_buf, stat_buf.st_size);
-				return ss_rw(file_fd, connected_fd);
-			}
 			touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
 			net_stat.total_tx_bytes = written;
 			return munmap(mmap_buf, stat_buf.st_size);
@@ -249,7 +244,7 @@ ss_mmap(int file_fd, int connected_fd)
 	if (stat_buf.st_size != written) {
 		fprintf(stderr, "ERROR: Can't flush buffer within write call: %s!\n",
 				strerror(errno));
-		fprintf(stderr, " size: %lld written %lld\n", (long long)stat_buf.st_size, (long long) written);
+		fprintf(stderr, " size: %ld written %zd\n", (long)stat_buf.st_size, written);
 	}
 
 	ret = munmap(mmap_buf, stat_buf.st_size);
@@ -335,7 +330,7 @@ static ssize_t get_splice_size(int file_fd, struct stat *stat_buf)
 
 
 static ssize_t
-ss_splice(int file_fd, int connected_fd)
+tcp_trans_splice(int file_fd, int connected_fd)
 {
 #ifdef HAVE_SPLICE
 	int pipefds[2];
@@ -387,7 +382,7 @@ ss_splice(int file_fd, int connected_fd)
 
 
 static ssize_t
-ss_sendfile(int file_fd, int connected_fd)
+tcp_trans_sendfile(int file_fd, int connected_fd)
 {
 	struct stat stat_buf;
 	ssize_t rc, write_cnt;
@@ -410,21 +405,15 @@ ss_sendfile(int file_fd, int connected_fd)
 	while (stat_buf.st_size - offset - 1 >= write_cnt) {
 		rc = sendfile(connected_fd, file_fd, &offset, write_cnt);
 		if (rc == -1)
-			goto sendfile_err;
+			err_sys_die(EXIT_FAILNET, "Failure in sendfile routine");
 		net_stat.total_tx_calls += 1;
 	}
 	/* and write remaining bytes, if any */
 	write_cnt = stat_buf.st_size - offset - 1;
 	if (write_cnt >= 0) {
 		rc = sendfile(connected_fd, file_fd, &offset, write_cnt + 1);
-		if (rc == -1) {
- sendfile_err:
-			if (errno == ENOSYS || errno == EDESTADDRREQ) {
-				err_sys("sendfile not supported, falling back to mmap");
-				return ss_mmap(file_fd, connected_fd);
-			}
+		if (rc == -1)
 			err_sys_die(EXIT_FAILNET, "Failure in sendfile routine");
-		}
 		net_stat.total_tx_calls += 1;
 	}
 
@@ -481,6 +470,7 @@ static void set_socketopts(int fd)
 		/* ... and do the dirty: set the socket options */
 		switch (socket_options[i].sockopt_type) {
 		case SVT_BOOL:
+		case SVT_ON:
 		case SVT_INT:
 			optlen = sizeof(socket_options[i].value);
 			optval = &socket_options[i].value;
@@ -505,22 +495,13 @@ static void set_socketopts(int fd)
 ** options
 */
 static int
-instigate_ss(void)
+init_sctp_trans(void)
 {
 	bool use_multicast = false;
 	int fd = -1, ret;
 	struct addrinfo  hosthints, *hostres, *addrtmp;
 	struct protoent *protoent;
 
-#ifdef HAVE_AF_TIPC
-	if (opts.family == AF_TIPC) {
-		fd = tipc_socket_connect();
-		if (fd < 0)
-			err_sys_die(EXIT_FAILNET, "tipc_socket_connect");
-
-		return fd;
-	}
-#endif
 	memset(&hosthints, 0, sizeof(struct addrinfo));
 
 	/* probe our values */
@@ -639,7 +620,7 @@ instigate_ss(void)
 ** o print diagnostic info
 */
 void
-transmit_mode(void)
+sctp_trans_mode(void)
 {
 	int connected_fd, file_fd, child_status;
 	struct sigaction sa;
@@ -649,7 +630,7 @@ transmit_mode(void)
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
-	connected_fd = instigate_ss();
+	connected_fd = init_sctp_trans();
 
 	sa.sa_handler = SIG_IGN;
 	sigemptyset(&sa.sa_mask);
@@ -666,10 +647,18 @@ transmit_mode(void)
 	gettimeofday(&opts.starttime, NULL);
 
 	switch (opts.io_call) {
-	case IO_SENDFILE: ss_sendfile(file_fd, connected_fd); break;
-	case IO_SPLICE: ss_splice(file_fd, connected_fd); break;
-	case IO_MMAP: ss_mmap(file_fd, connected_fd); break;
-	case IO_RW: ss_rw(file_fd, connected_fd); break;
+	case IO_SENDFILE:
+		tcp_trans_sendfile(file_fd, connected_fd);
+		break;
+	case IO_SPLICE:
+		tcp_trans_splice(file_fd, connected_fd);
+		break;
+	case IO_MMAP:
+		tcp_trans_mmap(file_fd, connected_fd);
+		break;
+	case IO_RW:
+		tcp_trans_rw(file_fd, connected_fd);
+		break;
 	default:
 		err_msg_die(EXIT_FAILINT, "Programmed Failure");
 	}

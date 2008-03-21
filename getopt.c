@@ -264,6 +264,10 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
  */
 static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 {
+
+	/* memorize protocol */
+	optsp->ns_proto = NS_PROTO_TCP;
+
 	/* tcp has some default values too, set them here */
 	optsp->perform_rtt_probe = 1;
 	optsp->protocol = IPPROTO_TCP;
@@ -367,6 +371,9 @@ static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 #ifdef HAVE_AF_TIPC
 	unsigned i;
 
+	/* memorize protocol */
+	optsp->ns_proto = NS_PROTO_TIPC;
+
 	optsp->family = AF_TIPC;
 	optsp->socktype = 0;
 
@@ -406,6 +413,10 @@ static void dump_tipc_opt(struct opts *optsp __attribute__((unused)))
 
 static int parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 {
+
+	/* memorize protocol */
+	optsp->ns_proto = NS_PROTO_SCTP;
+
 	optsp->perform_rtt_probe = 1;
 	optsp->protocol = IPPROTO_SCTP;
 	optsp->socktype = SOCK_STREAM;
@@ -467,6 +478,10 @@ static void dump_sctp_opt(struct opts *optsp __attribute__((unused)))
 
 static int parse_dccp_opt(int ac, char *av[],struct opts *optsp)
 {
+
+	/* memorize protocol */
+	optsp->ns_proto = NS_PROTO_DCCP;
+
 	optsp->protocol = IPPROTO_DCCP;
 	optsp->socktype = SOCK_DCCP;
 
@@ -495,6 +510,9 @@ static void dump_dccp_opt(struct opts *optsp __attribute__((unused)))
 
 static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 {
+	/* memorize protocol */
+	optsp->ns_proto = NS_PROTO_UDPLITE;
+
 	optsp->protocol = IPPROTO_UDPLITE;
 	optsp->socktype = SOCK_DGRAM;
 
@@ -590,6 +608,9 @@ static void dump_udplite_opt(struct opts *optsp __attribute__((unused)))
 
 static int parse_udp_opt(int ac, char *av[],struct opts *optsp)
 {
+	/* memorize protocol */
+	optsp->ns_proto = NS_PROTO_UDP;
+
 	optsp->protocol = IPPROTO_UDP;
 	optsp->socktype = SOCK_DGRAM;
 
@@ -770,6 +791,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	}
 
 	/* first of all: set default values in optsp */
+	optsp->ns_proto = NS_PROTO_UNSPEC;
 	optsp->port = xstrdup(DEFAULT_PORT);
 	optsp->buffer_size = 0; /* 0 means that a _autodetection_ takes place */
 	optsp->workmode = MODE_NONE;

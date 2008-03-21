@@ -269,9 +269,21 @@ struct sock_callbacks {
 #define	SOPTS_IPV4         (1 << 3)
 #define	SOPTS_IPV6         (1 << 4)
 
+enum ns_proto {
+	NS_PROTO_UNSPEC = 0,
+	NS_PROTO_TCP,
+	NS_PROTO_UDP,
+	NS_PROTO_UDPLITE,
+	NS_PROTO_DCCP,
+	NS_PROTO_TIPC,
+	NS_PROTO_SCTP
+};
+
 struct opts {
 
 	unsigned long short_opts_mask;
+
+	enum ns_proto ns_proto;
 
 	int family;
 	int protocol;
@@ -393,6 +405,9 @@ void transmit_mode(void);
 void tcp_trans_mode(void);
 void udp_trans_mode(void);
 void udplite_trans_mode(void);
+void tipc_trans_mode(void);
+void dccp_trans_mode(void);
+void sctp_trans_mode(void);
 
 /* proto_udplite_recv.c */
 int init_receive_socket_udplite(struct opts *, int);
