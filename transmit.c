@@ -631,37 +631,6 @@ instigate_ss(void)
 }
 
 
-
-static void print_tcp_info(struct tcp_info *tcp_info)
-{
-	fprintf(stderr, "\ntcp info:\n"
-		 "\tretransmits:   %d\n"
-		 "\tprobes:        %d\n"
-		 "\tbackoff:       %d\n",
-		 tcp_info->tcpi_retransmits, tcp_info->tcpi_probes,
-		 tcp_info->tcpi_backoff);
-	 fputs("\toptions:       ", stderr);
-	 /* see netinet/tcp.h for definition */
-	 if (tcp_info->tcpi_options & TCPI_OPT_TIMESTAMPS)
-		 fputs("TIMESTAMPS ", stderr);
-	 if (tcp_info->tcpi_options & TCPI_OPT_SACK)
-		 fputs("SACK ", stderr);
-	 if (tcp_info->tcpi_options & TCPI_OPT_WSCALE)
-		 fputs("WSCALE ", stderr);
-	 if (tcp_info->tcpi_options & TCPI_OPT_ECN)
-		 fputs("ECN", stderr);
-	 fprintf(stderr, "\n"
-		"\tsnd_wscale:    %d\n"
-		"\trcv_wscale:    %d\n"
-		"\trto:           %d\n"
-		"\tato:           %d\n"
-		"\tsnd_mss:       %d\n"
-		"\trcv_mss:       %d\n"
-		"\tunacked:       %d\n", tcp_info->tcpi_snd_wscale,
-			tcp_info->tcpi_rcv_wscale, tcp_info->tcpi_rto, tcp_info->tcpi_ato,
-			tcp_info->tcpi_snd_mss, tcp_info->tcpi_rcv_mss, tcp_info->tcpi_unacked);
-}
-
 /* *** Main Server Routine ***
 **
 ** o initialize server socket
@@ -708,13 +677,6 @@ transmit_mode(void)
 
 	gettimeofday(&opts.endtime, NULL);
 
-	/* print tcp statistic if we run verbose (LOUDISCH) */
-	if (opts.protocol == IPPROTO_TCP && VL_LOUDISH(opts.verbose)) {
-		struct tcp_info tcp_info;
-
-		if (get_tcp_info(connected_fd, &tcp_info) >= 0)
-			print_tcp_info(&tcp_info);
-	}
 	/* if we spawn a child - reaping it here */
 	waitpid(-1, &child_status, 0);
 }
