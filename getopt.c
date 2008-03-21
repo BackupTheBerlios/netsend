@@ -272,24 +272,6 @@ static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 	optsp->socktype = SOCK_STREAM;
 
 
-	/* this do/while loop parse options in the form '-x'.
-	 * After the do/while loop the parse fork into transmit,
-	 * receive specific code.
-	 */
-	do {
-
-#define	FIRST_ARG_INDEX 0
-
-		/* break if we reach the end of the OPTIONS */
-		if (!av[FIRST_ARG_INDEX] || av[FIRST_ARG_INDEX][0] != '-')
-			break;
-
-		if (!av[FIRST_ARG_INDEX][1] || !isalnum(av[FIRST_ARG_INDEX][1]))
-			print_usage(NULL, HELP_STR_TCP, 1);
-
-	} while (1);
-#undef FIRST_ARG_INDEX
-
 	/* Now parse all transmit | receive specific code, plus the most
 	 * important options: the file- and hostname
 	 */
