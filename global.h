@@ -160,7 +160,6 @@
 enum sockopt_val_types {
 	SVT_BOOL = 0,
 	SVT_INT,
-	SVT_ON,
 	SVT_STR
 };
 

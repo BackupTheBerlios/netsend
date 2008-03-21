@@ -485,7 +485,6 @@ static void set_socketopts(int fd)
 		/* ... and do the dirty: set the socket options */
 		switch (socket_options[i].sockopt_type) {
 		case SVT_BOOL:
-		case SVT_ON:
 		case SVT_INT:
 			optlen = sizeof(socket_options[i].value);
 			optval = &socket_options[i].value;

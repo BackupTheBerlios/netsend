@@ -183,8 +183,7 @@ static int scan_int(const char *str, int *val)
 static const char *setsockopt_optvaltype_tostr(enum sockopt_val_types x)
 {
 	switch (x) {
-	case SVT_BOOL: /* fallthrough */
-	case SVT_ON: return "[ 0 | 1 ]";
+	case SVT_BOOL: return "[ 0 | 1 ]";
 	case SVT_INT: return "number";
 	case SVT_STR: return "string";
 	}
@@ -229,8 +228,7 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 			continue;
 
 		switch (socket_options[i].sockopt_type) {
-		case SVT_BOOL: /* fallthrough */
-		case SVT_ON:
+		case SVT_BOOL:
 			socket_options[i].value = parse_yesno(optname, optval);
 			socket_options[i].user_issue++;
 		return;
