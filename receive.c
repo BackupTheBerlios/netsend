@@ -261,7 +261,6 @@ instigate_cs(void)
 static void
 tcp_set_md5sig_option(int fd)
 {
-	struct sockaddr_in sin;
 	static const char key[] = "netsend";
 	struct tcp_md5sig sig = { .tcpm_keylen = sizeof(key) };
 	struct addrinfo hints = { .ai_flags = AI_ADDRCONFIG };
@@ -273,8 +272,6 @@ tcp_set_md5sig_option(int fd)
 
 	xgetaddrinfo(opts.tcp_md5sig_peeraddr, NULL, &hints, &res0);
 
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = INADDR_ANY; //inet_addr("0.0.0.0");
 	memcpy(&sig.tcpm_addr, res0->ai_addr, min(sizeof(sig.tcpm_addr), res0->ai_addrlen));
 
 	freeaddrinfo(res0);
