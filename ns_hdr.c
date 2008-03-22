@@ -419,10 +419,7 @@ meta_exchange_rcv(int peer_fd, struct peer_header_info **hi)
 	memset(&ns_hdr, 0, sizeof(struct ns_hdr));
 
 	/* allocate info header */
-	phi = malloc(sizeof(struct peer_header_info));
-	if (!phi)
-		err_sys_die(EXIT_FAILMEM, "Can't allocate memory");
-	memset(phi, 0, sizeof(struct peer_header_info));
+	phi = xzalloc(sizeof(struct peer_header_info));
 	*hi = phi;
 
 	ptr = (unsigned char *) &ns_hdr;
