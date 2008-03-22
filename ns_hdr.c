@@ -273,15 +273,6 @@ meta_exchange_snd(int connected_fd, int file_fd)
 	struct stat stat_buf;
 	int perform_rtt;
 
-	/* currently the header exchange (rtt gather service, etc.)
-	** work only for tcp - but in next releases this should be
-	** fixed
-	*/
-	if (opts.socktype != SOCK_STREAM) {
-		msg(STRESSFUL, "skipping rtt probing: not SOCK_STREAM");
-		return 0;
-	}
-
 	memset(&ns_hdr, 0, sizeof(struct ns_hdr));
 
 	/* fetch file size */
@@ -423,11 +414,6 @@ meta_exchange_rcv(int peer_fd)
 	unsigned char *ptr;
 	ssize_t rc = 0, to_read = sizeof(struct ns_hdr);
 	struct ns_hdr ns_hdr;
-
-	if (opts.socktype != SOCK_STREAM) {
-		msg(STRESSFUL, "skipping rtt probing: not SOCK_STREAM");
-		return 0;
-	}
 
 	memset(&ns_hdr, 0, sizeof(struct ns_hdr));
 
