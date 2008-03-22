@@ -55,7 +55,7 @@ extern struct sock_callbacks sock_callbacks;
 ** and write to the file descriptor
 */
 static ssize_t
-cs_read(int file_fd, int connected_fd)
+cs_read(int file_fd, int connected_fd, struct peer_header_info *phi)
 {
 	int buflen;
 	ssize_t rc;
@@ -73,14 +73,26 @@ cs_read(int file_fd, int connected_fd)
 		ssize_t ret;
 		net_stat.total_rx_calls++;
 		net_stat.total_rx_bytes += rc;
-		do
+		do {
 			ret = write(file_fd, buf, rc);
-		while (ret == -1 && errno == EINTR);
+		} while (ret == -1 && errno == EINTR);
 
 		if (ret != rc) {
 			err_sys("write failed");
 			break;
 		}
+
+		if (net_stat.total_rx_bytes >= phi->data_size && phi->data_size != 0) {
+
+			/* we are at the end of the
+			 * announced data amount. Protocols like
+			 * TCP indicate the end of the data stream.
+			 * Datagramm based protocols like UDP or
+			 * UDPLite not. So we break here if we received
+			 * the former announced amount of data */
+			break;
+		}
+
 	}
 
 	touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
@@ -291,6 +303,7 @@ receive_mode(void)
 {
 	int ret, file_fd, connected_fd = -1, server_fd;
 	struct sockaddr_storage sa;
+	struct peer_header_info *phi = NULL;
 	socklen_t sa_len = sizeof sa;
 	struct sigaction sigterm_sa;
 
@@ -342,14 +355,14 @@ receive_mode(void)
 	}
 
 	/* read netsend header */
-	meta_exchange_rcv(connected_fd);
+	meta_exchange_rcv(connected_fd, &phi);
 
 	/* take the transmit start time for diff */
 	gettimeofday(&opts.starttime, NULL);
 
 	msg(LOUDISH, "block in read");
 
-	cs_read(file_fd, connected_fd);
+	cs_read(file_fd, connected_fd, phi);
 
 	msg(LOUDISH, "done");
 
@@ -363,6 +376,8 @@ receive_mode(void)
 	*/
 	fsync(file_fd);
 
+	if (phi != NULL)
+		free(phi);
 }
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

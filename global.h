@@ -243,6 +243,14 @@ struct net_stat {
 	struct use_stat use_stat_end;
 };
 
+/* this struct collect all information
+ * sent by the peer (transmiter) and contain
+ * information like data size, rtt information,
+ * ... */
+struct peer_header_info {
+	unsigned int data_size; /* < the size of the incoming data */
+};
+
 /* Command-line options */
 
 #define	BIT_UNIT  1
@@ -398,7 +406,7 @@ int get_tcp_info(int, struct tcp_info *);
 
 /* ns_hdr.c */
 int meta_exchange_snd(int, int);
-int meta_exchange_rcv(int );
+int meta_exchange_rcv(int, struct peer_header_info **);
 
 /* receive.c */
 void receive_mode(void);

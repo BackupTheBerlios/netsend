@@ -406,16 +406,24 @@ process_nonxt(int peer_fd, uint16_t nse_len)
 
 /* return -1 if a failure occure, zero apart from that */
 int
-meta_exchange_rcv(int peer_fd)
+meta_exchange_rcv(int peer_fd, struct peer_header_info **hi)
 {
 	int ret;
 	int invalid_ext_seen = 0;
 	uint16_t extension_type, extension_size;
+	struct peer_header_info *phi;
 	unsigned char *ptr;
 	ssize_t rc = 0, to_read = sizeof(struct ns_hdr);
 	struct ns_hdr ns_hdr;
 
 	memset(&ns_hdr, 0, sizeof(struct ns_hdr));
+
+	/* allocate info header */
+	phi = malloc(sizeof(struct peer_header_info));
+	if (!phi)
+		err_sys_die(EXIT_FAILMEM, "Can't allocate memory");
+	memset(phi, 0, sizeof(struct peer_header_info));
+	*hi = phi;
 
 	ptr = (unsigned char *) &ns_hdr;
 
@@ -433,6 +441,8 @@ meta_exchange_rcv(int peer_fd)
 
 	msg(STRESSFUL, "header info (magic: %d, version: %d, data_size: %d)",
 			ntohs(ns_hdr.magic), ntohs(ns_hdr.version), ntohl(ns_hdr.data_size));
+
+	phi->data_size = ntohl(ns_hdr.data_size);
 
 
 	extension_type = ntohs(ns_hdr.nse_nxt_hdr);
