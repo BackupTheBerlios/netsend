@@ -22,6 +22,7 @@
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
+#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -39,6 +40,7 @@
  #include <signal.h>
 
 #include "global.h"
+#include "tcp_md5sig.h"
 #include "xfuncs.h"
 #include "proto_tipc.h"
 
@@ -256,6 +258,30 @@ instigate_cs(void)
 }
 
 
+static void
+tcp_set_md5sig_option(int fd)
+{
+	struct sockaddr_in sin;
+	static const char key[] = "netsend";
+	struct tcp_md5sig sig = { .tcpm_keylen = sizeof(key) };
+	struct addrinfo hints = { .ai_flags = AI_ADDRCONFIG };
+	struct addrinfo *res0;
+
+	assert(opts.protocol == IPPROTO_TCP);
+
+	memcpy(sig.tcpm_key, key, sizeof(key));
+
+	xgetaddrinfo(opts.tcp_md5sig_peeraddr, NULL, &hints, &res0);
+
+	sin.sin_family = AF_INET;
+	sin.sin_addr.s_addr = INADDR_ANY; //inet_addr("0.0.0.0");
+	memcpy(&sig.tcpm_addr, res0->ai_addr, min(sizeof(sig.tcpm_addr), res0->ai_addrlen));
+
+	freeaddrinfo(res0);
+	xsetsockopt(fd, IPPROTO_TCP, TCP_MD5SIG, &sig, sizeof(sig), "TCP_MD5SIG");
+}
+
+
 /* *** Main Client Routine ***
 **
 ** o initialize client socket
@@ -294,6 +320,9 @@ receive_mode(void)
 	case IPPROTO_DCCP:
 	case IPPROTO_SCTP: {
 		char peer[1024];
+
+		if (opts.tcp_use_md5sig)
+			tcp_set_md5sig_option(server_fd);
 
 		connected_fd = accept(server_fd, (struct sockaddr *) &sa, &sa_len);
 		if (connected_fd == -1) {

@@ -46,6 +46,7 @@
 #include "global.h"
 #include "xfuncs.h"
 #include "proto_tipc.h"
+#include "tcp_md5sig.h"
 
 extern struct opts opts;
 extern struct net_stat net_stat;
@@ -54,11 +55,23 @@ extern struct socket_options socket_options[];
 extern struct sock_callbacks sock_callbacks;
 
 
-static void set_socketopts(int fd)
+static void set_socketopts(int fd, const struct sockaddr *sa)
 {
 	int i, ret;
 	const void *optval;
 	socklen_t optlen;
+
+	if (opts.tcp_use_md5sig) {
+		static const char key[] = "netsend";
+		struct tcp_md5sig sig = { .tcpm_keylen = sizeof(key) };
+
+		memcpy(sig.tcpm_key, key, sizeof(key));
+
+		memcpy(&sig.tcpm_addr, (const struct sockaddr_storage *) sa,
+				min(sizeof(sig.tcpm_addr), sizeof(*sa)));
+
+		xsetsockopt(fd, IPPROTO_TCP, TCP_MD5SIG, &sig, sizeof(sig), "TCP_MD5SIG");
+	}
 
 	/* loop over all selectable socket options */
 	for (i = 0; socket_options[i].sockopt_name; i++) {
@@ -89,7 +102,7 @@ static void set_socketopts(int fd)
 		default:
 		/* and exit if socketoption and sockettype did not match */
 		err_msg_die(EXIT_FAILMISC, "You selected an socket option which isn't "
-					"compatible with this particular socket option");
+					"compatible with this particular socket type");
 		}
 
 		/* ... and do the dirty: set the socket options */
@@ -217,7 +230,7 @@ static int init_tcp_trans(void)
 		** option! Now you realize why we send the socketoption before we call
 		** connect.    --HGN
 		*/
-		set_socketopts(fd);
+		set_socketopts(fd, addrtmp->ai_addr);
 
 		/* Connect to peer
 		** There are three advantages to call connect for all types

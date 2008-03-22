@@ -273,7 +273,24 @@ static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 	optsp->protocol = IPPROTO_TCP;
 	optsp->socktype = SOCK_STREAM;
 
+	while (av[0] && av[0][0] == '-') {
+		if (av[0][1] == 'C')
+			optsp->tcp_use_md5sig = true;
 
+		if (optsp->workmode == MODE_RECEIVE) {
+			/* need peer ip address */
+			if (!av[1] || av[1][0] == '-')
+				err_msg_die(EXIT_FAILOPT, "Option -C needs an argument (Peer IP Address)");
+			optsp->tcp_md5sig_peeraddr = av[1];
+			ac--;
+			av++;
+		}
+		ac--;
+		av++;
+	}
+
+	if (optsp->tcp_use_md5sig)
+		msg(GENTLE, "Enabled TCP_MD5SIG option");
 	/* Now parse all transmit | receive specific code, plus the most
 	 * important options: the file- and hostname
 	 */

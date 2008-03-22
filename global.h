@@ -23,6 +23,7 @@
 */
 
 
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netdb.h>
@@ -326,6 +327,9 @@ struct opts {
 	long nice;
 
 	long int udplite_checksum_coverage;
+
+	bool tcp_use_md5sig;
+	const char *tcp_md5sig_peeraddr; /* receive mode: need ip addr of peer allowed to connect */
 
 #define	DEFAULT_RTT_FILTER 4
 

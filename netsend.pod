@@ -111,6 +111,17 @@ Send file largefile via TCP with output in machine parseable format:
 
 =back
 
+=over 1
+
+Receive data via TCP with MD5SIG from peer 10.0.0.1:
+
+=over 4
+
+./netsend tcp receive -C 10.0.0.1
+
+=back
+
+
 =head1 EXIT STATUS
 
 netsend returns a zero exist status if it succeeds.
