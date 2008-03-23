@@ -31,7 +31,6 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <netinet/in.h>
 
 #include "debug.h"
@@ -157,8 +156,7 @@ static int init_tcp_trans(void)
 }
 
 
-/* *** Main Server Routine ***
-**
+/*
 ** o initialize server socket
 ** o fstat and open our sending-file
 ** o block in socket and wait for client
@@ -167,7 +165,7 @@ static int init_tcp_trans(void)
 */
 void tcp_trans_mode(void)
 {
-	int connected_fd, file_fd, child_status;
+	int connected_fd, file_fd;
 
 	msg(GENTLE, "transmit mode (file: %s  -  hostname: %s)",
 		opts.infile, opts.hostname);
@@ -188,9 +186,6 @@ void tcp_trans_mode(void)
 	trans_start(file_fd, connected_fd);
 
 	gettimeofday(&opts.endtime, NULL);
-
-	/* if we spawn a child - reaping it here */
-	waitpid(-1, &child_status, 0);
 }
 
 /* vim:set ts=4 sw=4 tw=78 noet: */
