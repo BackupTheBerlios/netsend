@@ -21,7 +21,6 @@ Protocol is one of
 
 When using tipc, you must also specify a socket type, e.g. B<netsend tipc MODE -t SOCK_STREAM>.
 
-=back
 
 =head1 MODE
 
@@ -86,6 +85,13 @@ Mode is either B<receive> or B<transmit>.
 
         followed by either human or machine: sets output format
 
+=item B<-u>
+
+	followed by the transmit function to use. One of sendfile, mmap, splice or rw.
+
+	Note that not all protocols support all transfer methods, e.g. TIPCs connectionless sockets (SOCK_RDM and SOCK_DGRAM)
+	do not support the sendfile system call. Also, the amount of data that can be sent in a single operation may be limited
+	by the network protocol used.
 
 =back
 
