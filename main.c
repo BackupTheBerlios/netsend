@@ -25,6 +25,7 @@
 #include <sched.h>
 #include <limits.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -85,6 +86,16 @@ struct sock_callbacks sock_callbacks = {
 #define	MAX_STATLEN 4096
 
 
+static void
+ignore_sigpipe(void)
+{
+	struct sigaction sa = { .sa_handler = SIG_IGN };
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGPIPE, &sa, NULL);
+}
+
+
 int
 main(int argc, char *argv[])
 {
@@ -111,6 +122,8 @@ main(int argc, char *argv[])
 	case IPPROTO_UDP: case IPPROTO_UDPLITE:
 		sock_callbacks.cb_listen = udp_listen;
 	}
+
+	ignore_sigpipe();
 
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {

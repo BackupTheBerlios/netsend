@@ -159,7 +159,6 @@ static int init_sctp_trans(void)
 void sctp_trans_mode(void)
 {
 	int connected_fd, file_fd, child_status;
-	struct sigaction sa;
 
 	msg(GENTLE, "transmit mode (file: %s  -  hostname: %s)",
 		opts.infile, opts.hostname);
@@ -167,11 +166,6 @@ void sctp_trans_mode(void)
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
 	connected_fd = init_sctp_trans();
-
-	sa.sa_handler = SIG_IGN;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
-	sigaction(SIGPIPE, &sa, NULL);
 
 	/* fetch sockopt before the first byte  */
 	get_sock_opts(connected_fd, &net_stat);

@@ -32,11 +32,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
- /* signale stuff */
- #define __GNU_SOURCE
- #include <string.h>
- #include <signal.h>
-
 #include "global.h"
 #include "tcp_md5sig.h"
 #include "xfuncs.h"
@@ -302,13 +297,7 @@ receive_mode(void)
 	int ret, file_fd, connected_fd = -1, server_fd;
 	struct sockaddr_storage sa;
 	struct peer_header_info *phi = NULL;
-	socklen_t sa_len = sizeof sa;
-	struct sigaction sigterm_sa;
-
-	sigterm_sa.sa_handler = SIG_IGN;
-	sigemptyset(&sigterm_sa.sa_mask);
-	sigterm_sa.sa_flags = 0;
-	sigaction(SIGPIPE, &sigterm_sa, NULL);
+	socklen_t sa_len = sizeof(sa);
 
 	msg(GENTLE, "receiver mode");
 
