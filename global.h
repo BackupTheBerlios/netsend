@@ -195,12 +195,12 @@ enum memaccess_advice {
 /* Supported io operations */
 
 enum io_call {
-	IO_SENDFILE,	/* 0=default xmit method */
+	IO_RW,/* 0=default xmit method */
+	IO_SENDFILE,
 	IO_MMAP,
-	IO_SPLICE,
-	IO_RW,
+	IO_SPLICE
 };
-#define	IO_MAX IO_RW
+#define	IO_MAX IO_SPLICE
 
 /* Centralize our statistic data */
 

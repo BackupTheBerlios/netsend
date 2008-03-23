@@ -88,7 +88,7 @@ Mode is either B<receive> or B<transmit>.
 =item B<-u>
 
 	followed by the transmit function to use. One of sendfile, mmap, splice or rw.
-
+ 	When not specified, rw (read/write) is used.
 	Note that not all protocols support all transfer methods, e.g. TIPCs connectionless sockets (SOCK_RDM and SOCK_DGRAM)
 	do not support the sendfile system call. Also, the amount of data that can be sent in a single operation may be limited
 	by the network protocol used.
