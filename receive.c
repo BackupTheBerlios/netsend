@@ -1,6 +1,4 @@
 /*
-** $Id$
-**
 ** netsend - a high performance filetransfer and diagnostic tool
 ** http://netsend.berlios.de
 **
@@ -375,9 +373,7 @@ receive_mode(void)
 	** measurement.
 	*/
 	fsync(file_fd);
-
-	if (phi != NULL)
-		free(phi);
+	free(phi);
 }
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

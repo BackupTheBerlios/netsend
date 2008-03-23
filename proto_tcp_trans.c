@@ -1,6 +1,4 @@
 /*
-** $Id$
-**
 ** netsend - a high performance filetransfer and diagnostic tool
 ** http://netsend.berlios.de
 **
@@ -55,12 +53,8 @@ extern struct socket_options socket_options[];
 extern struct sock_callbacks sock_callbacks;
 
 
-static void set_socketopts(int fd, const struct sockaddr *sa)
+static void tcp_set_socketopts(int fd, const struct sockaddr *sa)
 {
-	int i, ret;
-	const void *optval;
-	socklen_t optlen;
-
 	if (opts.tcp_use_md5sig) {
 		static const char key[] = "netsend";
 		struct tcp_md5sig sig = { .tcpm_keylen = sizeof(key) };
@@ -73,58 +67,7 @@ static void set_socketopts(int fd, const struct sockaddr *sa)
 		xsetsockopt(fd, IPPROTO_TCP, TCP_MD5SIG, &sig, sizeof(sig), "TCP_MD5SIG");
 	}
 
-	/* loop over all selectable socket options */
-	for (i = 0; socket_options[i].sockopt_name; i++) {
-		if (!socket_options[i].user_issue)
-			continue;
-		/*
-		 * this switch statement checks that the particular
-		 * socket option matches our selected socket-type
-		 */
-		switch (socket_options[i].level) {
-		case SOL_SOCKET: break; /* works on every socket */
-		/* fall-through begins here ... */
-		case IPPROTO_TCP:
-			if (opts.protocol == IPPROTO_TCP)
-				break;
-		case IPPROTO_UDP:
-			if (opts.protocol == IPPROTO_UDP)
-				break;
-		case IPPROTO_UDPLITE:
-			if (opts.protocol == IPPROTO_UDPLITE)
-				break;
-		case IPPROTO_SCTP:
-			if (opts.protocol == IPPROTO_SCTP)
-				break;
-		case SOL_DCCP:
-			if (opts.protocol == IPPROTO_DCCP)
-				break;
-		default:
-		/* and exit if socketoption and sockettype did not match */
-		err_msg_die(EXIT_FAILMISC, "You selected an socket option which isn't "
-					"compatible with this particular socket type");
-		}
-
-		/* ... and do the dirty: set the socket options */
-		switch (socket_options[i].sockopt_type) {
-		case SVT_BOOL:
-		case SVT_INT:
-			optlen = sizeof(socket_options[i].value);
-			optval = &socket_options[i].value;
-		break;
-		case SVT_STR:
-			optlen = strlen(socket_options[i].value_ptr) + 1;
-			optval = socket_options[i].value_ptr;
-		break;
-		default:
-			err_msg_die(EXIT_FAILNET, "Unknown sockopt_type %d\n",
-					socket_options[i].sockopt_type);
-		}
-		ret = setsockopt(fd, socket_options[i].level, socket_options[i].option, optval, optlen);
-		if (ret)
-			err_sys("setsockopt option %d (name %s) failed", socket_options[i].sockopt_type,
-										socket_options[i].sockopt_name);
-	}
+	set_socketopts(fd);
 }
 
 
@@ -221,16 +164,7 @@ static int init_tcp_trans(void)
 			}
 		}
 
-		/* We iterate over our commandline argument array - where the user
-		** set socketoption and set this on our socket
-		** NOTE: it is necessary to set the soketoption before we call
-		** connect, which will invoke a syn packet!
-		** Example: if we set the receive buffer size to a greater value, tcp
-		** must handle this case and send in the initial packet a window scale
-		** option! Now you realize why we send the socketoption before we call
-		** connect.    --HGN
-		*/
-		set_socketopts(fd, addrtmp->ai_addr);
+		tcp_set_socketopts(fd, addrtmp->ai_addr);
 
 		/* Connect to peer
 		** There are three advantages to call connect for all types

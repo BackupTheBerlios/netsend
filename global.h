@@ -403,6 +403,7 @@ int parse_opts(int, char **, struct opts *);
 int get_sock_opts(int, struct net_stat *);
 int set_nodelay(int, int);
 int get_tcp_info(int, struct tcp_info *);
+void set_socketopts(int fd);
 
 /* ns_hdr.c */
 int meta_exchange_snd(int, int);

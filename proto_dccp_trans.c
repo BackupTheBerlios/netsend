@@ -1,6 +1,4 @@
 /*
-** $Id$
-**
 ** netsend - a high performance filetransfer and diagnostic tool
 ** http://netsend.berlios.de
 **
@@ -50,69 +48,7 @@
 extern struct opts opts;
 extern struct net_stat net_stat;
 extern struct conf_map_t io_call_map[];
-extern struct socket_options socket_options[];
 extern struct sock_callbacks sock_callbacks;
-
-
-static void set_socketopts(int fd)
-{
-	int i, ret;
-	const void *optval;
-	socklen_t optlen;
-
-	/* loop over all selectable socket options */
-	for (i = 0; socket_options[i].sockopt_name; i++) {
-		if (!socket_options[i].user_issue)
-			continue;
-		/*
-		 * this switch statement checks that the particular
-		 * socket option matches our selected socket-type
-		 */
-		switch (socket_options[i].level) {
-		case SOL_SOCKET: break; /* works on every socket */
-		/* fall-through begins here ... */
-		case IPPROTO_TCP:
-			if (opts.protocol == IPPROTO_TCP)
-				break;
-		case IPPROTO_UDP:
-			if (opts.protocol == IPPROTO_UDP)
-				break;
-		case IPPROTO_UDPLITE:
-			if (opts.protocol == IPPROTO_UDPLITE)
-				break;
-		case IPPROTO_SCTP:
-			if (opts.protocol == IPPROTO_SCTP)
-				break;
-		case SOL_DCCP:
-			if (opts.protocol == IPPROTO_DCCP)
-				break;
-		default:
-		/* and exit if socketoption and sockettype did not match */
-		err_msg_die(EXIT_FAILMISC, "You selected an socket option which isn't "
-					"compatible with this particular socket option");
-		}
-
-		/* ... and do the dirty: set the socket options */
-		switch (socket_options[i].sockopt_type) {
-		case SVT_BOOL:
-		case SVT_INT:
-			optlen = sizeof(socket_options[i].value);
-			optval = &socket_options[i].value;
-		break;
-		case SVT_STR:
-			optlen = strlen(socket_options[i].value_ptr) + 1;
-			optval = socket_options[i].value_ptr;
-		break;
-		default:
-			err_msg_die(EXIT_FAILNET, "Unknown sockopt_type %d\n",
-					socket_options[i].sockopt_type);
-		}
-		ret = setsockopt(fd, socket_options[i].level, socket_options[i].option, optval, optlen);
-		if (ret)
-			err_sys("setsockopt option %d (name %s) failed", socket_options[i].sockopt_type,
-										socket_options[i].sockopt_name);
-	}
-}
 
 
 /* Creates our server socket and initialize

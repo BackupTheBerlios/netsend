@@ -1,6 +1,4 @@
 /*
-** $Id$
-**
 ** netsend - a high performance filetransfer and diagnostic tool
 ** http://netsend.berlios.de
 **
