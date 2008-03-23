@@ -74,6 +74,7 @@ static const char const help_str[][4096] = {
 	" OPTIONS      := { -T FORMAT | -6 | -4 | -n | -d | -r RTTPROBE | -P SCHED-POLICY | -N level\n"
 	"                   -m MEM-ADVISORY | -V[version] | -v[erbose] LEVEL | -h[elp] | -a[ll-options] }\n"
 	"                   -p PORT -s SETSOCKOPT_OPTNAME _OPTVAL -b READWRITE_BUFSIZE -u SEND-ROUTINE\n"
+	"                   -P <processing-threads>\n"
 	" PROTOCOL     := { tcp | udp | dccp | tipc | sctp | udplite }\n"
 	" COMMAND      := { UDP-OPTIONS | UDPL-OPTIONS | SCTP-OPTIONS | DCCP-OPTIONS | TIPC-OPTIONS | TCP-OPTIONS }\n"
 	" MODE         := { receive | transmit }\n"
@@ -127,7 +128,7 @@ static void print_usage(const char const *prefix_str,
 		unsigned int mode, int should_exit)
 {
 	if (prefix_str != NULL)
-		fprintf(stderr, "%s%s\n", prefix_str, help_str[mode]);
+		fprintf(stderr, "%s\n%s\n", prefix_str, help_str[mode]);
 
 	else
 		fprintf(stderr, "%s\n", help_str[mode]);
@@ -986,6 +987,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 			optsp->threads = strtol(&av[FIRST_ARG_INDEX + 1][0], &endptr, 10);
 
+			/* sanity checks */
 			if ((errno == ERANGE &&
 				(optsp->threads == LONG_MAX || optsp->threads == LONG_MIN)) ||
 				(errno != 0 && optsp->threads == 0)) {
@@ -994,6 +996,10 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			if (endptr == &av[FIRST_ARG_INDEX + 1][0]) {
 				//FIXME err_msg("No digits were found\n");
 				exit(EXIT_FAILOPT);
+			}
+
+			if (optsp->threads <= 0) {
+				print_usage("Number of threads must be greater then 0", HELP_STR_GLOBAL, 1);
 			}
 
 			av += 2; ac -= 2;
