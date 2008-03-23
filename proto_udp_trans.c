@@ -60,21 +60,12 @@ static int init_udp_trans(void)
 	struct addrinfo  hosthints, *hostres, *addrtmp;
 	struct protoent *protoent;
 
-#ifdef HAVE_AF_TIPC
-	if (opts.family == AF_TIPC) {
-		fd = tipc_socket_connect();
-		if (fd < 0)
-			err_sys_die(EXIT_FAILNET, "tipc_socket_connect");
-
-		return fd;
-	}
-#endif
 	memset(&hosthints, 0, sizeof(struct addrinfo));
 
 	/* probe our values */
 	hosthints.ai_family   = opts.family;
 	hosthints.ai_socktype = opts.socktype;
-	hosthints.ai_protocol = opts.protocol;
+	hosthints.ai_protocol = IPPROTO_UDP;
 	hosthints.ai_flags    = AI_ADDRCONFIG;
 
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
@@ -101,23 +92,22 @@ static int init_udp_trans(void)
 				protoent->p_name, protoent->p_proto);
 
 		/* mulicast checks */
-		if (addrtmp->ai_protocol == IPPROTO_UDP) {
-			switch (addrtmp->ai_family) {
-				case AF_INET6:
-					if (IN6_IS_ADDR_MULTICAST(&((struct sockaddr_in6 *)
-									addrtmp->ai_addr)->sin6_addr)) {
-						use_multicast = true;
-					}
-					break;
-				case AF_INET:
-					if (IN_MULTICAST(ntohl(((struct sockaddr_in *)
-									addrtmp->ai_addr)->sin_addr.s_addr))) {
-						use_multicast = true;
-					}
-					break;
-				default:
-					err_msg_die(EXIT_FAILINT, "Programmed Failure");
+		assert(addrtmp->ai_protocol == IPPROTO_UDP);
+		switch (addrtmp->ai_family) {
+		case AF_INET6:
+			if (IN6_IS_ADDR_MULTICAST(&((struct sockaddr_in6 *)
+							addrtmp->ai_addr)->sin6_addr)) {
+				use_multicast = true;
 			}
+			break;
+		case AF_INET:
+			if (IN_MULTICAST(ntohl(((struct sockaddr_in *)
+				addrtmp->ai_addr)->sin_addr.s_addr))) {
+				use_multicast = true;
+			}
+			break;
+		default:
+			err_msg_die(EXIT_FAILINT, "Programmed Failure");
 		}
 
 		if (use_multicast) {
@@ -143,15 +133,6 @@ static int init_udp_trans(void)
 			}
 		}
 
-		/* We iterate over our commandline argument array - where the user
-		** set socketoption and set this on our socket
-		** NOTE: it is necessary to set the soketoption before we call
-		** connect, which will invoke a syn packet!
-		** Example: if we set the receive buffer size to a greater value, tcp
-		** must handle this case and send in the initial packet a window scale
-		** option! Now you realize why we send the socketoption before we call
-		** connect.    --HGN
-		*/
 		set_socketopts(fd);
 
 		/* Connect to peer

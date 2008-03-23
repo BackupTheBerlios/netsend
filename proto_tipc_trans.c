@@ -74,7 +74,6 @@ static int init_tipc_trans(void)
 	/* probe our values */
 	hosthints.ai_family   = opts.family;
 	hosthints.ai_socktype = opts.socktype;
-	hosthints.ai_protocol = opts.protocol;
 	hosthints.ai_flags    = AI_ADDRCONFIG;
 
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
@@ -99,26 +98,6 @@ static int init_tipc_trans(void)
 		if (protoent)
 			msg(LOUDISH, "socket created - protocol %s(%d)",
 				protoent->p_name, protoent->p_proto);
-
-		/* mulicast checks */
-		if (addrtmp->ai_protocol == IPPROTO_UDP) {
-			switch (addrtmp->ai_family) {
-				case AF_INET6:
-					if (IN6_IS_ADDR_MULTICAST(&((struct sockaddr_in6 *)
-									addrtmp->ai_addr)->sin6_addr)) {
-						use_multicast = true;
-					}
-					break;
-				case AF_INET:
-					if (IN_MULTICAST(ntohl(((struct sockaddr_in *)
-									addrtmp->ai_addr)->sin_addr.s_addr))) {
-						use_multicast = true;
-					}
-					break;
-				default:
-					err_msg_die(EXIT_FAILINT, "Programmed Failure");
-			}
-		}
 
 		if (use_multicast) {
 			int hops_ttl = 30;

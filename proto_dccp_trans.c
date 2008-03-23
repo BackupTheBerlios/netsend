@@ -67,7 +67,7 @@ init_dccp_trans(void)
 	/* probe our values */
 	hosthints.ai_family   = opts.family;
 	hosthints.ai_socktype = opts.socktype;
-	hosthints.ai_protocol = opts.protocol;
+	hosthints.ai_protocol = IPPROTO_DCCP;
 	hosthints.ai_flags    = AI_ADDRCONFIG;
 
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
@@ -93,29 +93,9 @@ init_dccp_trans(void)
 			msg(LOUDISH, "socket created - protocol %s(%d)",
 				protoent->p_name, protoent->p_proto);
 
-		/* mulicast checks */
-		if (addrtmp->ai_protocol == IPPROTO_UDP) {
-			switch (addrtmp->ai_family) {
-				case AF_INET6:
-					if (IN6_IS_ADDR_MULTICAST(&((struct sockaddr_in6 *)
-									addrtmp->ai_addr)->sin6_addr)) {
-						use_multicast = true;
-					}
-					break;
-				case AF_INET:
-					if (IN_MULTICAST(ntohl(((struct sockaddr_in *)
-									addrtmp->ai_addr)->sin_addr.s_addr))) {
-						use_multicast = true;
-					}
-					break;
-				default:
-					err_msg_die(EXIT_FAILINT, "Programmed Failure");
-			}
-		}
-
 		if (use_multicast) {
 			int hops_ttl = 30;
-				int on = 1;
+			int on = 1;
 			switch (addrtmp->ai_family) {
 				case AF_INET6:
 					xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *)&hops_ttl,
@@ -136,15 +116,6 @@ init_dccp_trans(void)
 			}
 		}
 
-		/* We iterate over our commandline argument array - where the user
-		** set socketoption and set this on our socket
-		** NOTE: it is necessary to set the soketoption before we call
-		** connect, which will invoke a syn packet!
-		** Example: if we set the receive buffer size to a greater value, tcp
-		** must handle this case and send in the initial packet a window scale
-		** option! Now you realize why we send the socketoption before we call
-		** connect.    --HGN
-		*/
 		set_socketopts(fd);
 
 		/* Connect to peer
