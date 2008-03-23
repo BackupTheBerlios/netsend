@@ -21,11 +21,6 @@
 
 #include "config.h"
 
-#define _XOPEN_SOURCE 600	/* needed for posix_madvise/fadvise */
-#include <sys/mman.h>
-#include <fcntl.h>
-#undef _XOPEN_SOURCE
-
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
