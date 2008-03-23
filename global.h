@@ -428,12 +428,6 @@ void sctp_trans_mode(void);
 int init_receive_socket_udplite(struct opts *, int);
 
 /* trans_common.c */
-int get_mem_adv_m(int);
-int get_mem_adv_f(int);
-ssize_t write_len(int, const void *, size_t);
-ssize_t trans_rw(int, int);
-ssize_t trans_mmap(int, int);
-ssize_t trans_splice(int, int);
-ssize_t trans_sendfile(int, int);
+void trans_start(int, int);
 
 /* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */

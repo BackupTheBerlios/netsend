@@ -205,22 +205,7 @@ void udplite_trans_mode(void)
 	/* take the transmit start time for diff */
 	gettimeofday(&opts.starttime, NULL);
 
-	switch (opts.io_call) {
-	case IO_SENDFILE:
-		trans_sendfile(file_fd, connected_fd);
-		break;
-	case IO_SPLICE:
-		trans_splice(file_fd, connected_fd);
-		break;
-	case IO_MMAP:
-		trans_mmap(file_fd, connected_fd);
-		break;
-	case IO_RW:
-		trans_rw(file_fd, connected_fd);
-		break;
-	default:
-		err_msg_die(EXIT_FAILINT, "Programmed Failure");
-	}
+	trans_start(file_fd, connected_fd);
 
 	gettimeofday(&opts.endtime, NULL);
 

@@ -52,7 +52,7 @@ extern struct conf_map_t io_call_map[];
 extern struct socket_options socket_options[];
 extern struct sock_callbacks sock_callbacks;
 
-int get_mem_adv_m(int adv)
+static int get_mem_adv_m(int adv)
 {
 	switch (adv) {
 		case MEMADV_SEQUENTIAL: return POSIX_MADV_SEQUENTIAL;
@@ -68,7 +68,7 @@ int get_mem_adv_m(int adv)
 }
 
 
-int get_mem_adv_f(int adv)
+static int get_mem_adv_f(int adv)
 {
 	switch (adv) {
 		case MEMADV_SEQUENTIAL: return POSIX_FADV_SEQUENTIAL;
@@ -84,7 +84,7 @@ int get_mem_adv_f(int adv)
 }
 
 
-ssize_t write_len(int fd, const void *buf, size_t len)
+static ssize_t write_len(int fd, const void *buf, size_t len)
 {
 	const char *bufptr = buf;
 	ssize_t total = 0;
@@ -118,7 +118,7 @@ ssize_t write_len(int fd, const void *buf, size_t len)
 }
 
 
-ssize_t trans_rw(int file_fd, int connected_fd)
+static ssize_t trans_rw(int file_fd, int connected_fd)
 {
 	int buflen;
 	ssize_t cnt, cnt_coll = 0;
@@ -160,7 +160,7 @@ ssize_t trans_rw(int file_fd, int connected_fd)
 }
 
 
-ssize_t trans_mmap(int file_fd, int connected_fd)
+static ssize_t trans_mmap(int file_fd, int connected_fd)
 {
 	int ret = 0;
 	ssize_t rc, written = 0, write_cnt;
@@ -299,7 +299,7 @@ static ssize_t get_splice_size(int file_fd, struct stat *stat_buf)
 #endif
 
 
-ssize_t trans_splice(int file_fd, int connected_fd)
+static ssize_t trans_splice(int file_fd, int connected_fd)
 {
 #ifdef HAVE_SPLICE
 	int pipefds[2];
@@ -350,7 +350,7 @@ ssize_t trans_splice(int file_fd, int connected_fd)
 }
 
 
-ssize_t trans_sendfile(int file_fd, int connected_fd)
+static ssize_t trans_sendfile(int file_fd, int connected_fd)
 {
 	struct stat stat_buf;
 	ssize_t rc, write_cnt;
@@ -396,6 +396,26 @@ ssize_t trans_sendfile(int file_fd, int connected_fd)
 	return rc;
 }
 
+
+void trans_start(int file_fd, int connected_fd)
+{
+	switch (opts.io_call) {
+	case IO_SENDFILE:
+		trans_sendfile(file_fd, connected_fd);
+		break;
+	case IO_SPLICE:
+		trans_splice(file_fd, connected_fd);
+		break;
+	case IO_MMAP:
+		trans_mmap(file_fd, connected_fd);
+		break;
+	case IO_RW:
+		trans_rw(file_fd, connected_fd);
+		break;
+	default:
+		err_msg_die(EXIT_FAILINT, "Programmed Failure");
+	}
+}
 
 
 /* vim:set ts=4 sw=4 tw=78 noet: */
