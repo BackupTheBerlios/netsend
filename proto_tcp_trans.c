@@ -34,7 +34,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include <sys/sendfile.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
