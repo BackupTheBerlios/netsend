@@ -304,6 +304,8 @@ struct opts {
 
 	long ext_hdr_mask;
 
+	long threads; /* < number of threads to parallelize transmit stream */
+
 	int  verbose;
 	int  statistics;
 	int  machine_parseable;

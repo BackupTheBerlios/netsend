@@ -798,12 +798,12 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	int ret, i, dump_defaults = 0;
 
 	/* Zero out opts struct and set program name */
-	memset(&opts, 0, sizeof(struct opts));
+	memset(optsp, 0, sizeof(struct opts));
 	if ((tmp = strrchr(av[0], '/')) != NULL) {
 		tmp++;
-		opts.me = xstrdup(tmp);
+		optsp->me = xstrdup(tmp);
 	} else {
-		opts.me = xstrdup(av[0]);
+		optsp->me = xstrdup(av[0]);
 	}
 
 	/* first of all: set default values in optsp */
@@ -815,9 +815,13 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	optsp->stat_prefix = STAT_PREFIX_BINARY;
 	optsp->family = AF_UNSPEC;
 
+	/* per default only one transmit, respective receive
+	 * thread will do the whole work */
+	optsp->threads = 1;
+
 
 	/* if opts.nice is equal INT_MAX nobody change something - hopefully */
-	opts.nice = INT_MAX;
+	optsp->nice = INT_MAX;
 
 
 	/* Catch a special case:
@@ -894,11 +898,11 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 				print_usage(NULL, HELP_STR_GLOBAL, 1);
 			}
 			if (!strcmp(&av[FIRST_ARG_INDEX + 1][0], "human")) {
-				opts.statistics++;
+				optsp->statistics++;
 				av += 2; ac -= 2;
 				continue;
 			} else if (!strcmp(&av[FIRST_ARG_INDEX + 1][0], "machine")) {
-				opts.machine_parseable++;
+				optsp->machine_parseable++;
 				av += 2; ac -= 2;
 				continue;
 			} else {
@@ -927,8 +931,8 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 			for (i = 0; i <= MEMADV_MAX; i++ ) {
 				if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], memadvice_map[i].conf_string)) {
-					opts.mem_advice = memadvice_map[i].conf_code;
-					opts.change_mem_advise++;
+					optsp->mem_advice = memadvice_map[i].conf_code;
+					optsp->change_mem_advise++;
 				}
 			}
 
@@ -947,7 +951,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 			for (i = 0; i <= IO_MAX; i++ ) {
 				if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], io_call_map[i].conf_string)) {
-					opts.io_call = io_call_map[i].conf_code;
+					optsp->io_call = io_call_map[i].conf_code;
 					break;
 				}
 			}
@@ -971,6 +975,31 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			av += 2; ac -= 2;
 			continue;
 		}
+
+		/* -P threads */
+		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "P")) ) {
+			char *endptr;
+
+			if (!av[FIRST_ARG_INDEX + 1]) {
+				print_usage(NULL, HELP_STR_GLOBAL, 1);
+			}
+
+			optsp->threads = strtol(&av[FIRST_ARG_INDEX + 1][0], &endptr, 10);
+
+			if ((errno == ERANGE &&
+				(optsp->threads == LONG_MAX || optsp->threads == LONG_MIN)) ||
+				(errno != 0 && optsp->threads == 0)) {
+			}
+
+			if (endptr == &av[FIRST_ARG_INDEX + 1][0]) {
+				//FIXME err_msg("No digits were found\n");
+				exit(EXIT_FAILOPT);
+			}
+
+			av += 2; ac -= 2;
+			continue;
+		}
+
 
 		/* -N nice-level */
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "N")) ) {
@@ -1073,17 +1102,17 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			 * nice level
 			 */
 			if (!strcasecmp(&av[FIRST_ARG_INDEX + 2][0], "MAX")) {
-				optsp->priority = sched_get_priority_max(opts.sched_policy);
+				optsp->priority = sched_get_priority_max(optsp->sched_policy);
 			} else if (!strcasecmp(&av[FIRST_ARG_INDEX + 2][0], "MIN")) {
-				optsp->priority = sched_get_priority_min(opts.sched_policy);
+				optsp->priority = sched_get_priority_min(optsp->sched_policy);
 			} else {
 				optsp->priority = strtol(&av[FIRST_ARG_INDEX + 2][0], (char **)NULL, 10);
-				if (!(optsp->priority <= sched_get_priority_max(opts.sched_policy) &&
-					  optsp->priority >= sched_get_priority_min(opts.sched_policy))) {
+				if (!(optsp->priority <= sched_get_priority_max(optsp->sched_policy) &&
+					  optsp->priority >= sched_get_priority_min(optsp->sched_policy))) {
 					fprintf(stderr, "Priority not valid!\nValid values are in the range between"
 							" %d and %d for %s (you selected %d)\n",
-							sched_get_priority_min(opts.sched_policy),
-							sched_get_priority_max(opts.sched_policy),
+							sched_get_priority_min(optsp->sched_policy),
+							sched_get_priority_max(optsp->sched_policy),
 							&av[FIRST_ARG_INDEX + 1][0], optsp->priority);
 					print_usage(NULL, HELP_STR_SCHED_POLICY, 1);
 				}
@@ -1102,11 +1131,11 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	/* set values gathered in the parsing process */
 
 	if (optsp->short_opts_mask & SOPTS_IPV4)
-		opts.family = AF_INET;
+		optsp->family = AF_INET;
 
 	/* -6 had precedence */
 	if (optsp->short_opts_mask & SOPTS_IPV6)
-		opts.family = AF_INET6;
+		optsp->family = AF_INET6;
 
 	/* we need at least two arguments:
 	 * PROTOCOL and MODE
