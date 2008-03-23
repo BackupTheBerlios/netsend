@@ -317,7 +317,6 @@ struct opts {
 	char           *hostname;
 	char           *infile;
 	char		   *outfile;
-	char           *execstring;
 	enum workmode  workmode;
 	enum io_call   io_call;
 

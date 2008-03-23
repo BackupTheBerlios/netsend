@@ -41,53 +41,14 @@ open_input_file(void)
 	int fd, ret;
 	struct stat stat_buf;
 
-	if (!strncmp(opts.infile, "-", 1)) {
+	if (!strncmp(opts.infile, "-", 1))
 		return STDIN_FILENO;
-	}
 
-	/* We don't want to read from a regular file
-	** rather we want to execute a program and take
-	** this output as our data source.
-	*/
-	if (opts.execstring) {
-		pid_t pid;
-		int pipefd[2];
-
-		xpipe(pipefd);
-
-		switch (pid = fork()) {
-			case -1:
-				err_sys_die(EXIT_FAILMISC, "Can't fork");
-			case 0:
-				close(STDOUT_FILENO);
-				close(STDERR_FILENO);
-				close(pipefd[0]);
-				dup(pipefd[1]);
-				dup(pipefd[1]);
-				system(opts.execstring);
-				exit(0);
-				break;
-			default:
-				close(pipefd[1]);
-				return pipefd[0];
-				break;
-		}
-
-	}
-
-	/* Thats the normal case: we open a regular file and take
-	** the content as our source.
-	*/
+	/* open a regular file and take the content as our source. */
 	ret = stat(opts.infile, &stat_buf);
 	if (ret == -1)
 		err_sys_die(EXIT_FAILMISC, "Can't stat file %s", opts.infile);
 
-#if 0
-	if (!(stat_buf.st_mode & S_IFREG)) {
-		err_sys("Not an regular file %s", opts.infile);
-		exit(EXIT_FAILOPT);
-	}
-#endif
 #ifdef O_NOATIME
 	fd = open(opts.infile, O_RDONLY|O_NOATIME);
 #else
