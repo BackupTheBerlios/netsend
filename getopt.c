@@ -74,7 +74,9 @@ static const char const help_str[][4096] = {
 	" OPTIONS      := { -T FORMAT | -6 | -4 | -n | -d | -r RTTPROBE | -P SCHED-POLICY | -N level\n"
 	"                   -m MEM-ADVISORY | -V[version] | -v[erbose] LEVEL | -h[elp] | -a[ll-options] }\n"
 	"                   -p PORT -s SETSOCKOPT_OPTNAME _OPTVAL -b READWRITE_BUFSIZE -u SEND-ROUTINE\n"
-	"                   -P <processing-threads>\n"
+#if 0
+	"                   -P <processing-threads>\n" /* not implemented */
+#endif
 	" PROTOCOL     := { tcp | udp | dccp | tipc | sctp | udplite }\n"
 	" COMMAND      := { UDP-OPTIONS | UDPL-OPTIONS | SCTP-OPTIONS | DCCP-OPTIONS | TIPC-OPTIONS | TCP-OPTIONS }\n"
 	" MODE         := { receive | transmit }\n"
