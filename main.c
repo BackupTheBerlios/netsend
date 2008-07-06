@@ -34,6 +34,7 @@
 
 #include "analyze.h"
 #include "global.h"
+#include "proto_tcp.h"
 #include "proto_tipc.h"
 #include "proto_udp_recv.h"
 

@@ -197,7 +197,7 @@ static const char *setsockopt_level_tostr(int level)
 {
 	switch (level) {
 	case SOL_SOCKET: return "SOL_SOCKET";
-	case SOL_TCP: return "SOL_TCP";
+	case IPPROTO_TCP: return "IPPROTO_TCP";
 	case IPPROTO_SCTP: return "IPROTO_SCTP";
 	case IPPROTO_UDPLITE: return "IPPROTO_UDPLITE";
 	}

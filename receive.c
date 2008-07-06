@@ -35,6 +35,7 @@
 #include "global.h"
 #include "tcp_md5sig.h"
 #include "xfuncs.h"
+#include "proto_tcp.h"
 #include "proto_tipc.h"
 
 extern struct opts opts;
@@ -344,19 +345,23 @@ receive_mode(void)
 	/* read netsend header */
 	meta_exchange_rcv(connected_fd, &phi);
 
+	msg(LOUDISH, "block in read");
+
 	/* take the transmit start time for diff */
 	gettimeofday(&opts.starttime, NULL);
 
-	msg(LOUDISH, "block in read");
-
 	cs_read(file_fd, connected_fd, phi);
-
-	msg(LOUDISH, "done");
 
 	gettimeofday(&opts.endtime, NULL);
 
-	/* FIXME: print statistic here */
+	msg(LOUDISH, "done");
 
+	if (opts.protocol == IPPROTO_TCP && VL_LOUDISH(opts.verbose)) {
+		struct tcp_info tcp_info;
+
+		if (tcp_get_info(connected_fd, &tcp_info))
+			tcp_print_info(&tcp_info);
+	}
 	/* We sync the file descriptor here because in a worst
 	** case this call block and sophisticate the time
 	** measurement.

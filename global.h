@@ -219,18 +219,11 @@ struct sock_stat {
 	/* ip attributes */
 };
 
-#define __USE_MISC 1
-#include <netinet/tcp.h> /* for struct tcp_info */
-
 struct net_stat {
-
 	struct rtt_probe {
 		double usec;
 		double variance;
 	} rtt_probe;
-
-	struct tcp_info tcp_info;
-
 	struct sock_stat sock_stat;
 
 	unsigned int total_rx_calls;
@@ -403,7 +396,6 @@ int parse_opts(int, char **, struct opts *);
 /* net.c */
 int get_sock_opts(int, struct net_stat *);
 int set_nodelay(int, int);
-int get_tcp_info(int, struct tcp_info *);
 void set_socketopts(int fd);
 
 /* ns_hdr.c */
@@ -416,7 +408,6 @@ void receive_mode(void);
 /* transmit.c */
 void transmit_mode(void);
 
-void tcp_trans_mode(void);
 void udp_trans_mode(void);
 void udplite_trans_mode(void);
 void tipc_trans_mode(void);

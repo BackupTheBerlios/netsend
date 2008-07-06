@@ -36,7 +36,7 @@
 #include "debug.h"
 #include "global.h"
 #include "xfuncs.h"
-#include "proto_tipc.h"
+#include "proto_tcp.h"
 #include "tcp_md5sig.h"
 
 extern struct opts opts;
@@ -186,6 +186,13 @@ void tcp_trans_mode(void)
 	trans_start(file_fd, connected_fd);
 
 	gettimeofday(&opts.endtime, NULL);
+
+	if (VL_LOUDISH(opts.verbose)) {
+		struct tcp_info tcp_info;
+
+		if (tcp_get_info(connected_fd, &tcp_info))
+			tcp_print_info(&tcp_info);
+	}
 }
 
 /* vim:set ts=4 sw=4 tw=78 noet: */
