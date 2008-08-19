@@ -1,6 +1,4 @@
 /*
-** $Id$
-**
 ** netsend - a high performance filetransfer and diagnostic tool
 ** http://netsend.berlios.de
 **
@@ -319,9 +317,6 @@ struct opts {
 	*/
 	int buffer_size;
 	int multiple_barrier;
-
-	struct timeval starttime;
-	struct timeval endtime;
 
 	int	sched_user; /* this is true if user wan't to change scheduling */
 	int sched_policy;

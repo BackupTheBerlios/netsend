@@ -200,12 +200,7 @@ void udplite_trans_mode(void)
 	/* construct and send netsend header to peer */
 	meta_exchange_snd(connected_fd, file_fd);
 
-	/* take the transmit start time for diff */
-	gettimeofday(&opts.starttime, NULL);
-
 	trans_start(file_fd, connected_fd);
-
-	gettimeofday(&opts.endtime, NULL);
 }
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

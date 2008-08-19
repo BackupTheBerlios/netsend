@@ -347,12 +347,7 @@ receive_mode(void)
 
 	msg(LOUDISH, "block in read");
 
-	/* take the transmit start time for diff */
-	gettimeofday(&opts.starttime, NULL);
-
 	cs_read(file_fd, connected_fd, phi);
-
-	gettimeofday(&opts.endtime, NULL);
 
 	msg(LOUDISH, "done");
 
