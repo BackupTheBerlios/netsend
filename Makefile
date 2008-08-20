@@ -19,6 +19,9 @@ MAN = netsend.1
 
 LIBS = -lm
 
+# use 64 bit off_t etc. even on 32 bit systems
+CFLAGS += -D_FILE_OFFSET_BITS=64 
+
 # Inline workaround:
 # max-inline-insns-single specified the maximum size
 # of a function (counted in internal gcc instructions).
