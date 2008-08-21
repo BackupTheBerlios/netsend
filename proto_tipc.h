@@ -14,6 +14,9 @@ int tipc_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 int tipc_listen(int sockfd, int);
 
 int tipc_socket_connect(void);
+
+void tipc_log_sockaddr(int level, const struct sockaddr_tipc *s);
+
 #else
 static inline int tipc_socket_bind(void) { return -1; }
 static inline int tipc_socket_connect(void) { return -1; }

@@ -138,6 +138,29 @@ int tipc_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 	return -1;
 }
 
+void tipc_log_sockaddr(int level, const struct sockaddr_tipc *s)
+{
+	uint32_t a;
+
+	switch (s->addrtype) {
+	case TIPC_ADDR_NAMESEQ:
+		msg(level, "NAMESEQ, type %u (%u:%u)",
+			s->addr.nameseq.type, s->addr.nameseq.lower, s->addr.nameseq.upper);
+	break;
+	case TIPC_ADDR_NAME:
+		msg(level, "ADDR_NAME type %u instance %u",
+			s->addr.name.name.type, s->addr.name.name.instance);
+	break;
+	case TIPC_ADDR_ID:
+		a = s->addr.id.node;
+		msg(level, "ADDR_ID %d.%d.%d ref %u",
+			tipc_zone(a), tipc_cluster(a), tipc_node(a), s->addr.id.ref);
+	break;
+	default:
+		err_msg("Warning: Unrecognized TIPC addrtype %d", (int) s->addrtype);
+	break;
+	}
+}
 
 ssize_t tipc_write(int sockfd, const void *buf, size_t buflen)
 {

@@ -311,6 +311,12 @@ receive_mode(void)
 		connected_fd = tipc_accept(server_fd, (struct sockaddr *) &sa, &sa_len);
 		if (connected_fd == -1)
 			err_sys_die(EXIT_FAILNET, "accept");
+		if (VL_GENTLE(opts.verbose) &&
+			(opts.socktype == SOCK_STREAM || opts.socktype == SOCK_SEQPACKET))
+		{
+			struct sockaddr_tipc *tipcpeer = (struct sockaddr_tipc*) &sa;
+			tipc_log_sockaddr(GENTLE, tipcpeer);
+		}
 	}
 #endif
 	switch (opts.protocol) {
