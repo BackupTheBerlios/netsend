@@ -1068,19 +1068,19 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			if (!av[FIRST_ARG_INDEX + 1]) {
 				print_usage(NULL, HELP_STR_GLOBAL, 1);
 			}
-			if (!strcmp(&av[FIRST_ARG_INDEX + 1][0], "quitscent")) {
+			if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], "quitscent")) {
 				optsp->verbose = 0;
 				av += 2; ac -= 2;
 				continue;
-			} else if (!strcmp(&av[FIRST_ARG_INDEX + 1][0], "gentle")) {
+			} else if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], "gentle")) {
 				optsp->verbose = 1;
 				av += 2; ac -= 2;
 				continue;
-			} else if (!strcmp(&av[FIRST_ARG_INDEX + 1][0], "loudish")) {
+			} else if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], "loudish")) {
 				optsp->verbose = 2;
 				av += 2; ac -= 2;
 				continue;
-			} else if (!strcmp(&av[FIRST_ARG_INDEX + 1][0], "stressful")) {
+			} else if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], "stressful")) {
 				optsp->verbose = 3;
 				av += 2; ac -= 2;
 				continue;
