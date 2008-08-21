@@ -317,7 +317,7 @@ receive_mode(void)
 	case IPPROTO_TCP:
 	case IPPROTO_DCCP:
 	case IPPROTO_SCTP: {
-		char peer[1024];
+		char peer[1024], portstr[8];
 
 		if (opts.tcp_use_md5sig)
 			tcp_set_md5sig_option(server_fd);
@@ -328,10 +328,10 @@ receive_mode(void)
 			exit(EXIT_FAILNET);
 		}
 		ret = getnameinfo((struct sockaddr *)&sa, sa_len, peer,
-				sizeof(peer), NULL, 0, 0);
+				sizeof(peer), portstr, sizeof(portstr), NI_NUMERICSERV);
 		if (ret != 0)
 			err_msg_die(EXIT_FAILNET, "getnameinfo error: %s",  gai_strerror(ret));
-		msg(GENTLE, "accept from %s", peer);
+		msg(GENTLE, "accept from %s:%s", peer, portstr);
 		}
 		break;
 	case IPPROTO_UDPLITE:
