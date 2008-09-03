@@ -23,7 +23,7 @@
 #include "config.h"
 
 #include <stdio.h>
-#include <errno.h>
+#include <limits.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,7 +36,6 @@
 #include "debug.h"
 #include "global.h"
 #include "xfuncs.h"
-#include "proto_tipc.h"
 
 extern struct opts opts;
 extern struct net_stat net_stat;
