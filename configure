@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 # $Id$
 
 ### Default Values
@@ -153,7 +153,8 @@ create_make_rules()
 check_for_alloca()
 {
 	echo -n "checking for alloca..."
-	TMPDIR=`mktemp -d`
+	TMPDIR=`mktemp -d /tmp/netsend-$$-XXXXXX`
+
 	cat > "$TMPDIR"/alloca.c <<EOF
 #include <alloca.h>
 int main(int argc, char **argv){
@@ -177,7 +178,7 @@ EOF
 check_for_rdtscll()
 {
 	echo -n "checking for rdtscll..."
-	TMPDIR=`mktemp -d`
+	TMPDIR=`mktemp -d /tmp/netsend-$$-XXXXXX`
 	cat > "$TMPDIR"/rdtscll.c <<EOF
 #define rdtscll(val) \
      __asm__ __volatile__("rdtsc" : "=A" (val))
@@ -206,7 +207,7 @@ EOF
 check_for_af_tipc()
 {
 	echo -n "checking for TIPC support..."
-	TMPDIR=`mktemp -d`
+	TMPDIR=`mktemp -d  /tmp/netsend-$$-XXXXXX`
 	cat > "$TMPDIR"/tipc.c <<EOF
 #include <stdio.h>
 #include <linux/tipc.h>
@@ -233,7 +234,7 @@ EOF
 check_for_splice()
 {
 	echo -n "checking for splice..."
-	TMPDIR=`mktemp -d`
+	TMPDIR=`mktemp -d  /tmp/netsend-$$-XXXXXX`
 	cat > "$TMPDIR"/splice.c <<EOF
 #define _GNU_SOURCE
 #include <fcntl.h>
@@ -256,7 +257,31 @@ EOF
 }
 
 
-
+check_tcp_md5sig()
+{
+	FNAME=md5sig.c
+	echo -n "checking if tcp.h has struct tcp_md5sig..."
+	TMPDIR=`mktemp -d  /tmp/netsend-$$-XXXXXX`
+	cat > "$TMPDIR"/$FNAME <<EOF
+#include <netinet/tcp.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+int main(void) {
+	struct tcp_md5sig sig = { .tcpm_keylen = 16 };
+	return setsockopt(0, 6, TCP_MD5SIG, &sig, sizeof(sig), "TCP_MD5SIG");
+}
+EOF
+	gcc -o /dev/null "$TMPDIR"/$FNAME >/dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		echo " yes"
+		echo "#define HAVE_TCP_MD5SIG 1" >> config.h
+	else
+		echo " no"
+		echo "#undef HAVE_TCP_MD5SIG" >> config.h
+	fi
+	rm -f "$TMPDIR"/$FNAME
+	rmdir "$TMPDIR"
+}
 
 
 print_config()
@@ -284,7 +309,7 @@ check_for_alloca
 check_for_rdtscll
 check_for_splice
 check_for_af_tipc
-
+check_tcp_md5sig
 
 print_config
 

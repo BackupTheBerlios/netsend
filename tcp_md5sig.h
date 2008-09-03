@@ -1,7 +1,10 @@
-#include <stdint.h>
-#include <sys/socket.h>
+#include <netinet/tcp.h>
 
-#ifndef TCP_MD5SIG_MAXKEYLEN
+#include "config.h"
+
+#ifndef HAVE_TCP_MD5SIG
+#define HAVE_TCP_MD5SIG 1
+#include <sys/socket.h>
 
 #define TCP_MD5SIG 14      /* TCP MD5 Signature (RFC2385) */
 #define TCP_MD5SIG_MAXKEYLEN    80
@@ -13,6 +16,5 @@ struct tcp_md5sig {
 	uint8_t    tcpm_key[TCP_MD5SIG_MAXKEYLEN];         /* key (binary) */
 };
 
-#endif
-
+#endif /* HAVE_TCP_MD5SIG */
 
