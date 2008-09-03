@@ -87,7 +87,7 @@ static const char const help_str[][4096] = {
 	" SCHED-POLICY := { sched_rr | sched_fifo | sched_batch | sched_other } priority\n"
 	" LEVEL        := { quitscent | gentle | loudish | stressful }",
 #define	HELP_STR_TCP 1
-	" CC-ALGORITHM := -s TCP_CONGESTION { bic | cubic | highspeed | htcp | hybla | scalable | vegas | westwood | reno }\n"
+	" CC-ALGORITHM := -s TCP_CONGESTION { bic | cubic | highspeed | htcp | hybla | illinois | scalable | vegas | westwood | reno | YeAH }\n"
 	" TCP_MD5SIG := -C [ peer-IP-Address ] (receive mode only)",
 #define	HELP_STR_UDP 2
 	" UDP-OPTIONS  := [ FIXME ]",
