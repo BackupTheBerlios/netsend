@@ -268,7 +268,7 @@ check_tcp_md5sig()
 #include <sys/socket.h>
 int main(void) {
 	struct tcp_md5sig sig = { .tcpm_keylen = 16 };
-	return setsockopt(0, 6, TCP_MD5SIG, &sig, sizeof(sig), "TCP_MD5SIG");
+	return setsockopt(0, 6, TCP_MD5SIG, &sig, sizeof(sig));
 }
 EOF
 	gcc -o /dev/null "$TMPDIR"/$FNAME >/dev/null 2>&1
