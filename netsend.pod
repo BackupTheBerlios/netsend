@@ -124,6 +124,7 @@ Receive data via TCP with MD5SIG from peer 10.0.0.1:
 =over 4
 
 ./netsend tcp transmit -C largefile ffff::10.0.0.1
+
 ./netsend tcp receive -C ffff::10.0.0.1
 
 =back
