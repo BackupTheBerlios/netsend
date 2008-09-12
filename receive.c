@@ -348,6 +348,8 @@ receive_mode(void)
 		break;
 	}
 
+	set_socketopts(connected_fd);
+
 	/* read netsend header */
 	meta_exchange_rcv(connected_fd, &phi);
 
