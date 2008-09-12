@@ -176,6 +176,10 @@ void set_socketopts(int fd)
 			optlen = sizeof(socket_options[i].value);
 			optval = &socket_options[i].value;
 		break;
+		case SVT_TIMEVAL:
+			optlen = sizeof(socket_options[i].tv);
+			optval = &socket_options[i].tv;
+		break;
 		case SVT_STR:
 			optlen = strlen(socket_options[i].value_ptr) + 1;
 			optval = socket_options[i].value_ptr;

@@ -187,6 +187,7 @@ static const char *setsockopt_optvaltype_tostr(enum sockopt_val_types x)
 	switch (x) {
 	case SVT_BOOL: return "[ 0 | 1 ]";
 	case SVT_INT: return "number";
+	case SVT_TIMEVAL: return "seconds:microseconds";
 	case SVT_STR: return "string";
 	}
 	return "";
@@ -241,6 +242,29 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 				err_msg("%s: unrecognized optval \"%s\" "
 					"(integer argument required);skipped",
 							optval, optname);
+		case SVT_TIMEVAL: {
+			int seconds, usecs = 0;
+			int parsed = scan_int(optval, &seconds);
+
+			if (parsed == 0) {
+				err_msg("%s: unrecognized optval \"%s\" "
+					"(integer argument required);skipped",
+							optval, optname);
+				return;
+			}
+			if (optval[parsed] == ':') {
+				parsed = scan_int(&optval[parsed+1], &usecs);
+				if (parsed == 0) {
+					err_msg("%s: unrecognized optval \"%s\" "
+					"(integer argument required after ':');skipped",
+							optval, optname);
+					return;
+				}
+			}
+			socket_options[i].user_issue++;
+			socket_options[i].tv.tv_sec = seconds;
+			socket_options[i].tv.tv_usec = usecs;
+		}
 		return;
 		case SVT_STR:
 			socket_options[i].value_ptr = optval;

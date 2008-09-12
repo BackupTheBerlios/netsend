@@ -159,6 +159,7 @@
 enum sockopt_val_types {
 	SVT_BOOL = 0,
 	SVT_INT,
+	SVT_TIMEVAL,
 	SVT_STR
 };
 
@@ -170,6 +171,7 @@ struct socket_options {
 	int   user_issue;
 	union {
 		int value;
+		struct timeval tv;
 		const char *value_ptr;
 	};
 };
