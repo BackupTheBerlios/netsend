@@ -92,13 +92,6 @@
 # define UDPLITE_RECV_CSCOV   11
 #endif
 
-/* Our makros start here */
-
-#define NIPQUAD(addr)   ((unsigned char *)&addr)[0], \
-                        ((unsigned char *)&addr)[1], \
-                        ((unsigned char *)&addr)[2], \
-                        ((unsigned char *)&addr)[3]
-
 /* Forces a function to be always inlined
 ** 'must inline' - so that they get inlined even
 ** if optimizing for size
