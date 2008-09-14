@@ -236,11 +236,11 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 		switch (socket_options[i].sockopt_type) {
 		case SVT_BOOL:
 			socket_options[i].value = parse_yesno(optname, optval);
-			socket_options[i].user_issue++;
+			socket_options[i].user_issue = true;
 		return;
 		case SVT_INT:
 			if (scan_int(optval, &socket_options[i].value))
-				socket_options[i].user_issue++;
+				socket_options[i].user_issue = true;
 			else
 				err_msg("%s: unrecognized optval \"%s\" "
 					"(integer argument required);skipped",
@@ -264,14 +264,14 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 					return;
 				}
 			}
-			socket_options[i].user_issue++;
+			socket_options[i].user_issue = true;
 			socket_options[i].tv.tv_sec = seconds;
 			socket_options[i].tv.tv_usec = usecs;
 		}
 		return;
 		case SVT_STR:
 			socket_options[i].value_ptr = optval;
-			socket_options[i].user_issue++;
+			socket_options[i].user_issue = true;
 		return;
 		default:
 			err_msg("WARNING: Internal error: unrecognized "

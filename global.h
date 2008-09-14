@@ -161,7 +161,7 @@ struct socket_options {
 	int   level;
 	int   option;
 	int   sockopt_type;
-	int   user_issue;
+	bool  user_issue;
 	union {
 		int value;
 		struct timeval tv;
