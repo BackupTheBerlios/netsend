@@ -17,17 +17,15 @@ o Socket option processing
 	SO_DONTROUTE
 	SO_BROADCAST
 	SO_REUSEADDR
-	SO_KEEPALIVE
 	SO_TYPE
 	SO_ERROR
 	SO_OOBINLINE
 	SO_NO_CHECK
 	SO_PRIORITY
 	SO_LINGER
-	SO_BSDCOMPAT ;-)
+	SO_BSDCOMPAT (obolete, ignored since Linux 2.4)
 	SO_TIMESTAMP
-	SO_RCVLOWAT
-	SO_SNDLOWAT
+	SO_SNDLOWAT  (always fails with ENOPROTOOPT on Linux)
 	SO_PASSCRED
 	SO_PEERCRED
 	SO_PEERNAME
@@ -36,15 +34,9 @@ o Socket option processing
 	
 	TCP:
 	
-	TCP_KEEPIDLE
-	TCP_KEEPINTVL
-	TCP_KEEPCNT
-	TCP_SYNCNT
 	TCP_LINGER2
-	TCP_DEFER_ACCEPT
-	TCP_WINDOW_CLAMP
+	TCP_DEFER_ACCEPT	(must be set before accept())
 	TCP_QUICKACK
-	TCP_INFO
  
 o Collect Failures and document for user help
 
