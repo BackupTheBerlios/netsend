@@ -143,6 +143,8 @@ static void print_usage(const char const *prefix_str,
 static int
 parse_yesno(const char *optname, const char *optval)
 {
+	int ret;
+
 	if (strcmp(optval, "1") == 0)
 		return 1;
 	if (strcmp(optval, "0") == 0)
@@ -156,9 +158,10 @@ parse_yesno(const char *optname, const char *optval)
 	if (strcasecmp(optval, "off") == 0)
 		return 0;
 
-	err_msg("%s: unrecognized optval \"%s\" (only 0/1 allowed); assuming 0",
-								optname, optval);
-	return 0;
+	ret = atoi(optval) != 0;
+	err_msg("%s: unrecognized optval \"%s\" (only 0/1 allowed); assuming %d",
+								optname, optval, ret);
+	return ret;
 }
 
 /* return number of characters parsed (ie amount of digits) */
