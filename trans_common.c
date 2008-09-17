@@ -526,7 +526,7 @@ void ip_stream_trans_mode(struct opts *optsp, int ipproto)
 	int connected_fd, file_fd;
 
 	msg(GENTLE, "transmit mode (file: %s  -  hostname: %s)",
-		opts.infile, opts.hostname);
+		optsp->infile, optsp->hostname);
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
@@ -540,7 +540,7 @@ void ip_stream_trans_mode(struct opts *optsp, int ipproto)
 
 	trans_start(file_fd, connected_fd);
 
-	if (ipproto == IPPROTO_TCP && VL_LOUDISH(opts.verbose)) {
+	if (ipproto == IPPROTO_TCP && VL_LOUDISH(optsp->verbose)) {
 		struct tcp_info tcp_info;
 
 		if (tcp_get_info(connected_fd, &tcp_info))
