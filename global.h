@@ -297,12 +297,12 @@ struct opts {
 	int  machine_parseable;
 	int  stat_unit;
 	int  stat_prefix;
-	char *me;
+	const char *me;
 
-	char           *port;
-	char           *hostname;
-	char           *infile;
-	char		   *outfile;
+	const char *port;
+	const char *hostname;
+	const char *infile;
+	const char *outfile;
 	enum workmode  workmode;
 	enum io_call   io_call;
 

@@ -118,23 +118,6 @@ int xsnprintf(char *str, size_t size, const char *format, ...)
 }
 
 
-char *xstrdup(const char *src)
-{
-	size_t len;
-	char *duplicate;
-
-	if (src == NULL)
-		return NULL;
-
-	len = strlen(src) + 1;
-
-	if (!len) /* integer overflow */
-		err_msg_die(EXIT_FAILINT, "xstrdup: string execeeds size_t range");
-	duplicate = xmalloc(len);
-	memcpy(duplicate, src, len);
-	return duplicate;
-}
-
 void xfstat(int filedes, struct stat *buf, const char *s)
 {
 	if (fstat(filedes, buf))

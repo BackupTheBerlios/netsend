@@ -735,14 +735,14 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	memset(optsp, 0, sizeof(struct opts));
 	if ((tmp = strrchr(av[0], '/')) != NULL) {
 		tmp++;
-		optsp->me = xstrdup(tmp);
+		optsp->me = tmp;
 	} else {
-		optsp->me = xstrdup(av[0]);
+		optsp->me = av[0];
 	}
 
 	/* first of all: set default values in optsp */
 	optsp->ns_proto = NS_PROTO_UNSPEC;
-	optsp->port = xstrdup(DEFAULT_PORT);
+	optsp->port = DEFAULT_PORT;
 	optsp->buffer_size = 0; /* 0 means that a _autodetection_ takes place */
 	optsp->workmode = MODE_NONE;
 	optsp->stat_unit = BYTE_UNIT;

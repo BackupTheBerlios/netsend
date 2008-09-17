@@ -23,8 +23,6 @@ void xsetsockopt(int, int, int, const void *, socklen_t, const char *);
 
 int xsnprintf(char *, size_t , const char *, ...);
 
-char *xstrdup(const char *src);
-
 void xfstat(int filedes, struct stat *buf, const char *str);
 
 void xpipe(int filedes[2]);

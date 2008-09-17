@@ -169,7 +169,7 @@ static int instigate_cs_tipc(void)
 static int
 instigate_cs(void)
 {
-	char *hostname = NULL;
+	const char *hostname = NULL;
 	bool use_multicast = false;
 	int fd = -1, ret;
 	struct addrinfo hosthints, *hostres, *addrtmp;
