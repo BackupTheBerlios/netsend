@@ -19,7 +19,7 @@ Protocol is one of
 
 =back
 
-When using tipc, you must also specify a socket type, e.g. B<netsend tipc MODE -t SOCK_STREAM>.
+When using tipc, you must also specify a socket type, e.g. B<netsend tipc MODE SOCK_STREAM>.
 
 
 =head1 MODE
@@ -103,7 +103,7 @@ Listen for incoming SCTP connections, incoming data goes to stdout:
 
 =over 4
 
-./netsend -T human -v stressful sctp receive
+netsend -T human -v stressful sctp receive
 
 =back
 
@@ -113,7 +113,7 @@ Send file largefile via TCP with output in machine parseable format:
 
 =over 4
 
-./netsend -T machine tcp transmit largefile host.example.org
+netsend -T machine tcp transmit largefile host.example.org
 
 =back
 
@@ -123,9 +123,21 @@ Receive data via TCP with MD5SIG from peer 10.0.0.1:
 
 =over 4
 
-./netsend tcp transmit -C largefile ffff::10.0.0.1
+netsend tcp transmit -C largefile ffff::10.0.0.1
 
-./netsend tcp receive -C ffff::10.0.0.1
+netsend tcp receive -C ffff::10.0.0.1
+
+=back
+
+=over 1
+
+receive and transmit a file using TIPC seqpacket socket:
+
+=over 4
+
+netsend tipc receive SOCK_SEQPACKET /tmp/recvFile
+
+netsend tipc transmit SOCK_SEQPACKET /path/to/sendFile
 
 =back
 
@@ -143,6 +155,10 @@ are implemented:
   4 - network error
   5 - failure in netsend header (maybe corrupted hardware)
   6 - netsend internal error (should never happen[tm])
+
+=head1 BUGS
+
+  please report bugs to <fw-bugs-netsend@strlen.de>.
 
 =head1 AUTHOR
 
