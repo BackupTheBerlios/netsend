@@ -597,6 +597,7 @@ static void parse_udp_opt(int ac, char *av[],struct opts *optsp)
 	parse_filename(ac, av, optsp, HELP_STR_UDPLITE);
 }
 
+
 static void dump_udp_opt(struct opts *optsp __attribute__((unused)))
 {
 }
@@ -664,7 +665,7 @@ static int parse_rtt_string(const char *rtt_cmd, struct opts *optsp __attribute_
 		long value = strtol(tok, &what, 10);
 		switch (*what) {
 		case 'n':
-			opts.rtt_probe_opt.iterations = value;
+			optsp->rtt_probe_opt.iterations = value;
 			if (value <= 0 || value > 100) {
 				fprintf(stderr, "You want %ld rtt probe iterations - that's not sensible! "
 						"Valid range is between 1 and 100 probe iterations\n", value);
@@ -672,14 +673,14 @@ static int parse_rtt_string(const char *rtt_cmd, struct opts *optsp __attribute_
 			}
 			break;
 		case 'd':
-			opts.rtt_probe_opt.data_size = value;
+			optsp->rtt_probe_opt.data_size = value;
 			if (value <= 0) {
 				fprintf(stderr, "%ld not a valid data size for our rtt probe\n", value);
 				return FAILURE;
 			}
 			break;
 		case 'm':
-			opts.rtt_probe_opt.deviation_filter = value;
+			optsp->rtt_probe_opt.deviation_filter = value;
 			if (value < 0 || value > 50) {
 				fprintf(stderr,
 						"%ldms are nonsensical for the filter multiplier (default is %d)\n",
@@ -688,7 +689,7 @@ static int parse_rtt_string(const char *rtt_cmd, struct opts *optsp __attribute_
 			}
 			break;
 		case 'f':
-			opts.rtt_probe_opt.force_ms = value;
+			optsp->rtt_probe_opt.force_ms = value;
 			if (value < 0) {
 				fprintf(stderr, "%ldms are nonsensical for a rtt\n", value);
 				return FAILURE;
@@ -752,7 +753,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	 * thread will do the whole work */
 	optsp->threads = 1;
 
-	/* if opts.nice is equal INT_MAX nobody change something - hopefully */
+	/* if opts->nice is INT_MAX, the nice level option wasn't specified on the command line */
 	optsp->nice = INT_MAX;
 
 	/* Catch a special case:
