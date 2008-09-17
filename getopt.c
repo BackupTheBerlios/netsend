@@ -99,7 +99,7 @@ static const char const help_str[][4096] = {
 	" DCCP-OPTIONS := { }",
 #define	HELP_STR_TIPC 6
 	" TIPC-OPTIONS := { TIPCSOCKTYPE }\n"
-	" TIPCSOCKTYP  := { sock_rdm | sock_dgram | sock_stream | sock_seqpacket }",
+	" TIPCSOCKTYPE := { sock_rdm | sock_dgram | sock_stream | sock_seqpacket }",
 
 #define	HELP_STR_MAX HELP_STR_TIPC
 
@@ -206,6 +206,26 @@ static const char *setsockopt_level_tostr(int level)
 	case IPPROTO_UDPLITE: return "IPPROTO_UDPLITE";
 	}
 	return NULL;
+}
+
+
+static void die_print_cong_alg(void)
+{
+	static const char avail_cg[]="/proc/sys/net/ipv4/tcp_available_congestion_control";
+	FILE *f;
+	const char *data;
+	char buf[4096];
+
+	f = fopen(avail_cg, "r");
+	if (!f)
+		err_sys_die(EXIT_FAILMISC, "open %s", avail_cg);
+
+	fputs("Known congestion control algorithms on this machine:\n", stderr);
+	while ((data = fgets(buf, sizeof(buf), f)))
+		fputs(buf, stderr);
+
+	fclose(f);
+	exit(EXIT_FAILOPT);
 }
 
 
@@ -417,7 +437,7 @@ static void tipc_print_socktypes(void)
 #endif /* HAVE_AF_TIPC */
 
 
-static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
+static int parse_tipc_opt(int ac, char *av[], struct opts *optsp)
 {
 #ifdef HAVE_AF_TIPC
 	unsigned i;
@@ -450,6 +470,7 @@ static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 			optsp->outfile = av[ac];
 		}
 		break;
+	case MODE_NONE: break;
 	}
 
 	while (ac--) {
@@ -1048,6 +1069,8 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			optval = av[FIRST_ARG_INDEX + 2];
 			if (!optval || !*optval) {
 				fputs("need optval after optname\n", stderr);
+				if (strcmp(optname, "TCP_CONGESTION") == 0)
+					die_print_cong_alg();
 				die_print_setsockopts();
 			}
 
