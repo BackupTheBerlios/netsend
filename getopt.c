@@ -31,6 +31,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "debug.h"
 #include "global.h"
 #include "xfuncs.h"
 
@@ -119,24 +120,25 @@ static const char const help_str[][4096] = {
 };
 
 
-/**
+/*
  * print_usage is our quick failure routine for cli parsing.
- * You can specify an additional prefix, the mode for what the
- * the function should print the usage screen {all or protocol
- * specific} and last but not least if this function should be
- * the exit function
+ * You can specify an additional prefix and the mode for what the
+ * function should print the usage screen {all or protocol specific}
  */
-static void print_usage(const char const *prefix_str,
-		unsigned int mode, int should_exit)
+static void print_usage(const char const *prefix_str, unsigned int mode)
 {
 	if (prefix_str != NULL)
 		fprintf(stderr, "%s\n%s\n", prefix_str, help_str[mode]);
 
 	else
 		fprintf(stderr, "%s\n", help_str[mode]);
+}
 
-	if (should_exit)
-		exit(EXIT_FAILOPT);
+
+static void die_usage(const char const *prefix_str, unsigned int mode)
+{
+	print_usage(prefix_str, mode);
+	exit(EXIT_FAILOPT);
 }
 
 
@@ -304,6 +306,18 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 }
 
 
+static void parse_transmit_filename(int ac, char *av[], struct opts *optsp, int helpt)
+{
+	if (optsp->workmode != MODE_TRANSMIT)
+		return;
+
+	if (ac <= 1)
+		die_usage("transmit mode requires file and destination address\n", helpt);
+
+	optsp->infile = av[0];
+	optsp->hostname = av[1];
+}
+
 
 static void parse_receive_filename(int ac, char *av[], struct opts *optsp)
 {
@@ -319,7 +333,7 @@ static void parse_receive_filename(int ac, char *av[], struct opts *optsp)
 		return;
 	default:
 		err_msg("You specified too many arguments!");
-		print_usage(NULL, HELP_STR_GLOBAL, 1);
+		die_usage(NULL, HELP_STR_GLOBAL);
 	};
 }
 
@@ -331,9 +345,8 @@ static void parse_receive_filename(int ac, char *av[], struct opts *optsp)
  * related options first and within the switch/case statement we handle
  * transmit | receive specific options.
  */
-static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
+static void parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 {
-
 	/* memorize protocol */
 	optsp->ns_proto = NS_PROTO_TCP;
 
@@ -364,26 +377,14 @@ static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 	 * important options: the file- and hostname
 	 */
 	switch (optsp->workmode) {
-		case MODE_TRANSMIT:
-			/* sanity check first */
-			if (ac <= 1)
-				print_usage("tcp transmit mode required file and destination address\n",
-						HELP_STR_GLOBAL, 1);
-
-			optsp->infile = xstrdup(av[0]);
-			optsp->hostname = xstrdup(av[1]);
-
-			break;
-		case MODE_RECEIVE:
-			parse_receive_filename(ac, av, optsp);
-			break;
-		default:
-			err_msg_die(EXIT_FAILINT,
-					"Internal, programmed error - unknown tranmit mode: %d\n",
-					optsp->workmode);
+	case MODE_TRANSMIT:
+		parse_transmit_filename(ac, av, optsp, HELP_STR_GLOBAL);
+		break;
+	case MODE_RECEIVE:
+		parse_receive_filename(ac, av, optsp);
+		break;
+	case MODE_NONE: assert(0);
 	}
-
-	return SUCCESS;
 }
 
 static void dump_tcp_opt(struct opts *optsp)
@@ -437,7 +438,7 @@ static void tipc_print_socktypes(void)
 #endif /* HAVE_AF_TIPC */
 
 
-static int parse_tipc_opt(int ac, char *av[], struct opts *optsp)
+static void parse_tipc_opt(int ac, char *av[], struct opts *optsp)
 {
 #ifdef HAVE_AF_TIPC
 	unsigned i;
@@ -452,7 +453,7 @@ static int parse_tipc_opt(int ac, char *av[], struct opts *optsp)
 	case MODE_TRANSMIT:
 		if (ac <= 1) {
 			print_usage("TIPC transmit mode requires socket type and input file name\n",
-					HELP_STR_TIPC, 1);
+					HELP_STR_TIPC);
 			goto out;
 		}
 		--ac;
@@ -470,7 +471,7 @@ static int parse_tipc_opt(int ac, char *av[], struct opts *optsp)
 			optsp->outfile = av[ac];
 		}
 		break;
-	case MODE_NONE: break;
+	case MODE_NONE: assert(0);
 	}
 
 	while (ac--) {
@@ -481,22 +482,20 @@ static int parse_tipc_opt(int ac, char *av[], struct opts *optsp)
 			}
 		}
 		if (optsp->socktype)
-			return SUCCESS;
+			return;
 	}
-
  out:
 	fputs("You must specify a TIPC socket type. Known values:\n", stderr);
 	tipc_print_socktypes();
-	exit(EXIT_FAILOPT);
 #endif
-	return FAILURE;
+	exit(EXIT_FAILOPT);
 }
 
 static void dump_tipc_opt(struct opts *optsp __attribute__((unused)))
 {
 }
 
-static int parse_sctp_opt(int ac, char *av[],struct opts *optsp)
+static void parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 {
 
 	/* memorize protocol */
@@ -517,29 +516,19 @@ static int parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 			break;
 
 		if (!av[FIRST_ARG_INDEX][1] || !isalnum(av[FIRST_ARG_INDEX][1]))
-			print_usage(NULL, HELP_STR_TCP, 1);
+			die_usage(NULL, HELP_STR_SCTP);
 	}
 #undef FIRST_ARG_INDEX
 
 	switch (optsp->workmode) {
 	case MODE_TRANSMIT:
-		/* sanity check first */
-		if (ac <= 1)
-			print_usage("sctp transmit mode requires file and destination address\n",
-				HELP_STR_SCTP, 1);
-
-		optsp->infile = xstrdup(av[0]);
-		optsp->hostname = xstrdup(av[1]);
-	break;
+		parse_transmit_filename(ac, av, optsp, HELP_STR_SCTP);
+		break;
 	case MODE_RECEIVE:
 		parse_receive_filename(ac, av, optsp);
 		break;
-	default:
-		err_msg_die(EXIT_FAILINT,
-				"Internal, programmed error - unknown tranmit mode: %d\n",
-				optsp->workmode);
+	case MODE_NONE: assert(0);
 	}
-	return SUCCESS;
 }
 
 
@@ -548,7 +537,7 @@ static void dump_sctp_opt(struct opts *optsp __attribute__((unused)))
 }
 
 
-static int parse_dccp_opt(int ac, char *av[],struct opts *optsp)
+static void parse_dccp_opt(int ac, char *av[],struct opts *optsp)
 {
 
 	/* memorize protocol */
@@ -561,18 +550,11 @@ static int parse_dccp_opt(int ac, char *av[],struct opts *optsp)
 	case MODE_RECEIVE:
 		break;
 	case MODE_TRANSMIT:
-		if (ac <= 1) {
-			print_usage("dccp transmit mode requires file and destination address\n",
-					HELP_STR_DCCP, 1);
-			return FAILURE;
-		}
-		optsp->infile = xstrdup(av[0]);
-		optsp->hostname = xstrdup(av[1]);
+		parse_transmit_filename(ac, av, optsp, HELP_STR_DCCP);
 		break;
 	case MODE_NONE:
-		return FAILURE;
+		assert(0);
 	}
-	return SUCCESS;
 }
 
 static void dump_dccp_opt(struct opts *optsp __attribute__((unused)))
@@ -580,7 +562,7 @@ static void dump_dccp_opt(struct opts *optsp __attribute__((unused)))
 }
 
 
-static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
+static void parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 {
 	/* memorize protocol */
 	optsp->ns_proto = NS_PROTO_UDPLITE;
@@ -597,7 +579,6 @@ static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 	do {
 		char *endptr;
 
-
 		/* break if we reach the end of the OPTIONS or we see
 		 * the special option '-' -> this indicate the special
 		 * output file "stdout" (therefore no option ;-) */
@@ -606,14 +587,12 @@ static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 			break;
 
 		if (!av[0][1] || !isalnum(av[0][1]))
-			print_usage(NULL, HELP_STR_TCP, 1);
+			die_usage(NULL, HELP_STR_TCP);
 
 		if (av[0][1] == 'C') {
-			if (!av[1]) {
-				print_usage("UDPLite option C requires an argument\n",
-						HELP_STR_UDPLITE, 1);
-				return FAILURE;
-			}
+			if (!av[1])
+				die_usage("UDPLite option C requires an argument\n",
+						HELP_STR_UDPLITE);
 
 			optsp->udplite_checksum_coverage = strtol(av[1], &endptr, 10);
 
@@ -621,8 +600,8 @@ static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 				(optsp->udplite_checksum_coverage == LONG_MAX ||
 				 optsp->udplite_checksum_coverage == LONG_MIN)) ||
 				(errno != 0 && optsp->udplite_checksum_coverage == 0)) {
-				print_usage("UDPLite option C requires an numeric argument\n",
-						HELP_STR_UDPLITE, 1);
+				die_usage("UDPLite option C requires an numeric argument\n",
+						HELP_STR_UDPLITE);
 			}
 
 			msg(GENTLE, "parse UDPLite request to cover %ld bytes",
@@ -635,7 +614,6 @@ static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 
 		ac--;
 		av++;
-
 	} while (1);
 
 
@@ -644,19 +622,10 @@ static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 		parse_receive_filename(ac, av, optsp);
 		break;
 	case MODE_TRANSMIT:
-		if (ac <= 1) {
-			print_usage("UDP Lite transmit mode requires file and destination address\n",
-					HELP_STR_UDPLITE, 1);
-			return FAILURE;
-		}
-		optsp->infile = xstrdup(av[0]);
-		optsp->hostname = xstrdup(av[1]);
+		parse_transmit_filename(ac, av, optsp, HELP_STR_UDPLITE);
 		break;
-	case MODE_NONE:
-		return FAILURE;
+	case MODE_NONE: assert(0);
 	}
-
-	return SUCCESS;
 }
 
 static void dump_udplite_opt(struct opts *optsp __attribute__((unused)))
@@ -664,7 +633,7 @@ static void dump_udplite_opt(struct opts *optsp __attribute__((unused)))
 }
 
 
-static int parse_udp_opt(int ac, char *av[],struct opts *optsp)
+static void parse_udp_opt(int ac, char *av[],struct opts *optsp)
 {
 	/* memorize protocol */
 	optsp->ns_proto = NS_PROTO_UDP;
@@ -677,19 +646,10 @@ static int parse_udp_opt(int ac, char *av[],struct opts *optsp)
 		parse_receive_filename(ac, av, optsp);
 		break;
 	case MODE_TRANSMIT:
-		if (ac <= 1) {
-			print_usage("UDP transmit mode requires file and destination address\n",
-					HELP_STR_UDP, 1);
-			return FAILURE;
-		}
-		optsp->infile = xstrdup(av[0]);
-		optsp->hostname = xstrdup(av[1]);
+		parse_transmit_filename(ac, av, optsp, HELP_STR_UDP);
 		break;
-	case MODE_NONE:
-		return FAILURE;
+	case MODE_NONE: assert(0);
 	}
-
-	return SUCCESS;
 }
 
 static void dump_udp_opt(struct opts *optsp __attribute__((unused)))
@@ -702,7 +662,7 @@ struct __protocol_map_t {
 	int protocol;
 	const char *protoname;
 	const char *helptext;
-	int (*parse_proto)(int, char *[], struct opts *);
+	void (*parse_proto)(int, char *[], struct opts *);
 	void (*dump_proto)(struct opts *);
 } protocol_map[] = {
 	{ 0, "tipc", help_str[HELP_STR_TIPC] , parse_tipc_opt, dump_tipc_opt },
@@ -819,11 +779,11 @@ static void dump_opts(struct opts *optsp __attribute__((unused)))
  * occurred. In the case of an error parse_opts
  * will exit with exit value EXIT_FAILOPTS
  */
-int
+void
 parse_opts(int ac, char *av[], struct opts *optsp)
 {
 	char *tmp;
-	int ret, i, dump_defaults = 0;
+	int i, dump_defaults = 0;
 
 	/* Zero out opts struct and set program name */
 	memset(optsp, 0, sizeof(struct opts));
@@ -847,10 +807,8 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	 * thread will do the whole work */
 	optsp->threads = 1;
 
-
 	/* if opts.nice is equal INT_MAX nobody change something - hopefully */
 	optsp->nice = INT_MAX;
-
 
 	/* Catch a special case:
 	 * 1) the user want all options -a.*
@@ -860,7 +818,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 		if (av[1][1] == 'a') {
 			print_complete_usage(); exit(0);
 		} else {
-			print_usage(NULL, HELP_STR_GLOBAL, 1);
+			die_usage(NULL, HELP_STR_GLOBAL);
 		}
 	}
 
@@ -868,7 +826,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	 * and transport mode (transmit | receive)
 	 */
 	if (ac < 3)
-		print_usage(NULL, HELP_STR_GLOBAL, 1);
+		die_usage(NULL, HELP_STR_GLOBAL);
 
 	/* Pre-control OPTIONS - if any
 	 * The loop differentiate between short OPTIONS like -6
@@ -885,12 +843,12 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			break;
 
 		if (!av[FIRST_ARG_INDEX][1] || !isalnum(av[FIRST_ARG_INDEX][1]))
-			print_usage(NULL, HELP_STR_GLOBAL, 1);
+			die_usage(NULL, HELP_STR_GLOBAL);
 
 		if (!strncmp(&av[FIRST_ARG_INDEX][1], "h", 1)) {
-			print_usage(NULL, HELP_STR_GLOBAL, 0);
+			print_usage(NULL, HELP_STR_GLOBAL);
 			exit(0);
-				}
+		}
 
 		/* iterate over _short options_ and match relevant short options */
 		for (i = 0; short_opt[i].name; i++) {
@@ -906,7 +864,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			print_complete_usage();
 			exit(1);
 		} else if (!strncmp(&av[FIRST_ARG_INDEX][1], "help", strlen(&av[FIRST_ARG_INDEX][1])) ) {
-			print_usage(NULL, HELP_STR_GLOBAL, 0);
+			print_usage(NULL, HELP_STR_GLOBAL);
 			exit(0);
 		}
 
@@ -922,9 +880,9 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 		 /* -T { human | machine } */
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "T"))) {
-			if (!av[2]) {
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
-			}
+			if (!av[2])
+				die_usage(NULL, HELP_STR_GLOBAL);
+
 			if (!strcmp(&av[FIRST_ARG_INDEX + 1][0], "human")) {
 				optsp->statistics++;
 				av += 2; ac -= 2;
@@ -934,15 +892,14 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 				av += 2; ac -= 2;
 				continue;
 			} else {
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
-				exit(1);
+				die_usage(NULL, HELP_STR_GLOBAL);
 			}
 		}
 
 		/* -b bufsize: -b readwritebufsize */
 		if (av[FIRST_ARG_INDEX][1] == 'b') {
 			if (!av[2])
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
+				die_usage(NULL, HELP_STR_GLOBAL);
 
 			if (!scan_int(av[2], &optsp->buffer_size))
 				err_msg_die(EXIT_FAILOPT, "-b: writebuffersize must be a number");
@@ -955,7 +912,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "m")) ) {
 
 			if (!av[FIRST_ARG_INDEX + 1])
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
+				die_usage(NULL, HELP_STR_GLOBAL);
 
 			for (i = 0; i <= MEMADV_MAX; i++ ) {
 				if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], memadvice_map[i].conf_string)) {
@@ -965,7 +922,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			}
 
 			if (!optsp->change_mem_advise) /* option error */
-				print_usage(NULL, HELP_STR_MEM_ADVICE, 1);
+				die_usage(NULL, HELP_STR_MEM_ADVICE);
 
 			av += 2; ac -= 2;
 			continue;
@@ -975,7 +932,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "u")) ) {
 
 			if (!av[FIRST_ARG_INDEX + 1])
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
+				die_usage(NULL, HELP_STR_GLOBAL);
 
 			for (i = 0; i <= IO_MAX; i++ ) {
 				if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], io_call_map[i].conf_string)) {
@@ -985,7 +942,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			}
 
 			if (i > IO_MAX) /* option error */
-				print_usage(NULL, HELP_STR_IO_ADVICE, 1);
+				die_usage(NULL, HELP_STR_IO_ADVICE);
 
 			av += 2; ac -= 2;
 			continue;
@@ -994,11 +951,11 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 		/* -r rtt probe */
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "r")) ) {
 			if (!av[FIRST_ARG_INDEX + 1]) {
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
+				die_usage(NULL, HELP_STR_GLOBAL);
 			}
 
 			if (parse_rtt_string(av[FIRST_ARG_INDEX + 1], optsp) != SUCCESS)
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
+				die_usage(NULL, HELP_STR_GLOBAL);
 
 			av += 2; ac -= 2;
 			continue;
@@ -1009,7 +966,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			char *endptr;
 
 			if (!av[FIRST_ARG_INDEX + 1]) {
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
+				die_usage(NULL, HELP_STR_GLOBAL);
 			}
 
 			optsp->threads = strtol(&av[FIRST_ARG_INDEX + 1][0], &endptr, 10);
@@ -1026,7 +983,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			}
 
 			if (optsp->threads <= 0) {
-				print_usage("Number of threads must be greater then 0", HELP_STR_GLOBAL, 1);
+				die_usage("Number of threads must be greater then 0", HELP_STR_GLOBAL);
 			}
 
 			av += 2; ac -= 2;
@@ -1038,9 +995,8 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "N")) ) {
 			char *endptr;
 
-			if (!av[FIRST_ARG_INDEX + 1]) {
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
-			}
+			if (!av[FIRST_ARG_INDEX + 1])
+				die_usage(NULL, HELP_STR_GLOBAL);
 
 			optsp->nice = strtol(&av[FIRST_ARG_INDEX + 1][0], &endptr, 10);
 
@@ -1082,7 +1038,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 		/* -p port: set TCP/UDP/DCCP/SCTP port number to use */
 		if (av[FIRST_ARG_INDEX][1] == 'p') {
 			if (!av[2])
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
+				die_usage(NULL, HELP_STR_GLOBAL);
 
 			optsp->port = strdup(av[2]);
 
@@ -1093,7 +1049,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 		/* -v { quitscent | gentle | loudish | stressful } */
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "v")) ) {
 			if (!av[FIRST_ARG_INDEX + 1]) {
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
+				die_usage(NULL, HELP_STR_GLOBAL);
 			}
 			if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], "quitscent")) {
 				optsp->verbose = 0;
@@ -1112,17 +1068,16 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 				av += 2; ac -= 2;
 				continue;
 			} else {
-				print_usage("ERROR" , HELP_STR_VERBOSE_LEVEL, 0);
-				print_usage(NULL, HELP_STR_GLOBAL, 1);
-				exit(1);
+				print_usage("ERROR" , HELP_STR_VERBOSE_LEVEL);
+				die_usage(NULL, HELP_STR_GLOBAL);
 			}
 		}
 
 		/* scheduler policy: -P { RR | FIFO | BATCH | OTHER } priority */
 		if ((!strcmp(&av[FIRST_ARG_INDEX + 1][1], "P")) ) {
-			if (!av[FIRST_ARG_INDEX + 1] && !av[FIRST_ARG_INDEX + 2]) {
-				print_usage(NULL, HELP_STR_SCHED_POLICY, 1);
-			}
+			if (!av[FIRST_ARG_INDEX + 1] && !av[FIRST_ARG_INDEX + 2])
+				die_usage(NULL, HELP_STR_SCHED_POLICY);
+
 			for (i = 0; sched_policymap[i].name; i++) {
 				if (!strcasecmp(&av[FIRST_ARG_INDEX + 1][0], sched_policymap[i].name)) {
 					optsp->sched_policy = sched_policymap[i].no;
@@ -1131,7 +1086,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			}
 
 			if (!optsp->sched_user) /* option error */
-				print_usage(NULL, HELP_STR_SCHED_POLICY, 1);
+				die_usage(NULL, HELP_STR_SCHED_POLICY);
 
 			/* OK - the policy seems fine. Now look for a valid
 			 * nice level
@@ -1149,7 +1104,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 							sched_get_priority_min(optsp->sched_policy),
 							sched_get_priority_max(optsp->sched_policy),
 							&av[FIRST_ARG_INDEX + 1][0], optsp->priority);
-					print_usage(NULL, HELP_STR_SCHED_POLICY, 1);
+					die_usage(NULL, HELP_STR_SCHED_POLICY);
 				}
 			}
 
@@ -1176,42 +1131,35 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 	 * PROTOCOL and MODE
 	 */
 	if (ac < 3)
-		print_usage(NULL, HELP_STR_GLOBAL, 1);
+		die_usage(NULL, HELP_STR_GLOBAL);
 
 	/* now we branch to our final, protocol specific parse routine */
 	for (i = 0; protocol_map[i].protoname; i++) {
 		if (!strcasecmp(protocol_map[i].protoname, av[FIRST_ARG_INDEX])) {
 			if (!strncasecmp(av[FIRST_ARG_INDEX + 1], "transmit", strlen(av[2]))) {
 				optsp->workmode = MODE_TRANSMIT;
-				ret = protocol_map[i].parse_proto(ac - 3, av + 3, optsp);
+				protocol_map[i].parse_proto(ac - 3, av + 3, optsp);
 				if (dump_defaults) {
 					dump_opts(optsp);
 					protocol_map[i].dump_proto(optsp);
 				}
-				return ret;
+				return;
 			} else if (!strncasecmp(av[FIRST_ARG_INDEX + 1], "receive", strlen(av[FIRST_ARG_INDEX + 1]))) {
 				optsp->workmode = MODE_RECEIVE;
-				ret = protocol_map[i].parse_proto(ac - 3, av + 3, optsp);
+				protocol_map[i].parse_proto(ac - 3, av + 3, optsp);
 				if (dump_defaults) {
 					dump_opts(optsp);
 					protocol_map[i].dump_proto(optsp);
 				}
-				return ret;
+				return;
 			} else {
-				print_usage("MODE isn't permitted:\n", HELP_STR_GLOBAL, 1);
+				die_usage("MODE isn't permitted:\n", HELP_STR_GLOBAL);
 			}
 		}
 	}
-
-	print_usage("PROTOCOL isn't permitted!\n", HELP_STR_GLOBAL, 1);
-
-	exit(EXIT_FAILOPT);
-
-	return 0;
+	die_usage("PROTOCOL isn't permitted!\n", HELP_STR_GLOBAL);
 }
 
 #undef FIRST_ARG_INDEX
-
-
 
 /* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */

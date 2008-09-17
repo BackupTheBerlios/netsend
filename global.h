@@ -381,7 +381,7 @@ int open_output_file(void);
 
 /* getopt.c */
 void usage(void);
-int parse_opts(int, char **, struct opts *);
+void parse_opts(int, char **, struct opts *);
 
 /* net.c */
 int get_sock_opts(int, struct net_stat *);
