@@ -306,35 +306,32 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 }
 
 
-static void parse_transmit_filename(int ac, char *av[], struct opts *optsp, int helpt)
+static void parse_filename(int ac, char *av[], struct opts *optsp, int helpt)
 {
-	if (optsp->workmode != MODE_TRANSMIT)
-		return;
+	switch (optsp->workmode) {
+	case MODE_TRANSMIT:
+		if (ac <= 1)
+			die_usage("transmit mode requires file and destination address", helpt);
 
-	if (ac <= 1)
-		die_usage("transmit mode requires file and destination address", helpt);
-
-	optsp->infile = av[0];
-	optsp->hostname = av[1];
-}
-
-
-static void parse_receive_filename(int ac, char *av[], struct opts *optsp)
-{
-	if (optsp->workmode != MODE_RECEIVE)
-		return;
-	switch (ac) {
-	case 0: return;
-	case 2:
+		optsp->infile = av[0];
 		optsp->hostname = av[1];
-		/* fallthrough */
-	case 1:
-		optsp->outfile = av[0];
-		return;
-	default:
-		err_msg("You specified too many arguments!");
-		die_usage(NULL, HELP_STR_GLOBAL);
-	};
+	break;
+	case MODE_RECEIVE:
+		switch (ac) {
+		case 0: return; /* write to stdout */
+		case 2:
+			optsp->hostname = av[1];
+			/* fallthrough */
+		case 1:
+			optsp->outfile = av[0];
+			return;
+		default:
+			err_msg("You specified too many arguments!");
+			die_usage(NULL, HELP_STR_GLOBAL);
+		}
+	break;
+	case MODE_NONE: assert(0);
+	}
 }
 
 
@@ -376,15 +373,7 @@ static void parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 	/* Now parse all transmit | receive specific code, plus the most
 	 * important options: the file- and hostname
 	 */
-	switch (optsp->workmode) {
-	case MODE_TRANSMIT:
-		parse_transmit_filename(ac, av, optsp, HELP_STR_GLOBAL);
-		break;
-	case MODE_RECEIVE:
-		parse_receive_filename(ac, av, optsp);
-		break;
-	case MODE_NONE: assert(0);
-	}
+	parse_filename(ac, av, optsp, HELP_STR_GLOBAL);
 }
 
 static void dump_tcp_opt(struct opts *optsp)
@@ -509,15 +498,7 @@ static void parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 	}
 #undef FIRST_ARG_INDEX
 
-	switch (optsp->workmode) {
-	case MODE_TRANSMIT:
-		parse_transmit_filename(ac, av, optsp, HELP_STR_SCTP);
-		break;
-	case MODE_RECEIVE:
-		parse_receive_filename(ac, av, optsp);
-		break;
-	case MODE_NONE: assert(0);
-	}
+	parse_filename(ac, av, optsp, HELP_STR_GLOBAL);
 }
 
 
@@ -535,16 +516,7 @@ static void parse_dccp_opt(int ac, char *av[],struct opts *optsp)
 	optsp->protocol = IPPROTO_DCCP;
 	optsp->socktype = SOCK_DCCP;
 
-	switch (optsp->workmode) {
-	case MODE_RECEIVE:
-		parse_receive_filename(ac, av, optsp, HELP_STR_DCCP);
-		break;
-	case MODE_TRANSMIT:
-		parse_transmit_filename(ac, av, optsp, HELP_STR_DCCP);
-		break;
-	case MODE_NONE:
-		assert(0);
-	}
+	parse_filename(ac, av, optsp, HELP_STR_GLOBAL);
 }
 
 static void dump_dccp_opt(struct opts *optsp __attribute__((unused)))
@@ -606,16 +578,7 @@ static void parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 		av++;
 	} while (1);
 
-
-	switch (optsp->workmode) {
-	case MODE_RECEIVE:
-		parse_receive_filename(ac, av, optsp);
-		break;
-	case MODE_TRANSMIT:
-		parse_transmit_filename(ac, av, optsp, HELP_STR_UDPLITE);
-		break;
-	case MODE_NONE: assert(0);
-	}
+	parse_filename(ac, av, optsp, HELP_STR_UDPLITE);
 }
 
 static void dump_udplite_opt(struct opts *optsp __attribute__((unused)))
@@ -631,15 +594,7 @@ static void parse_udp_opt(int ac, char *av[],struct opts *optsp)
 	optsp->protocol = IPPROTO_UDP;
 	optsp->socktype = SOCK_DGRAM;
 
-	switch (optsp->workmode) {
-	case MODE_RECEIVE:
-		parse_receive_filename(ac, av, optsp);
-		break;
-	case MODE_TRANSMIT:
-		parse_transmit_filename(ac, av, optsp, HELP_STR_UDP);
-		break;
-	case MODE_NONE: assert(0);
-	}
+	parse_filename(ac, av, optsp, HELP_STR_UDPLITE);
 }
 
 static void dump_udp_opt(struct opts *optsp __attribute__((unused)))
