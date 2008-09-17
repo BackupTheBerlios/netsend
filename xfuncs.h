@@ -1,10 +1,10 @@
 #include <stddef.h>
 #include <string.h>
+#include <netdb.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-
 
 void *xmalloc(size_t len);
 
@@ -15,7 +15,6 @@ static inline void *xzalloc(size_t len)
 		memset(p, 0, len);
 	return p;
 }
-
 
 void xgetaddrinfo(const char *, const char *, struct addrinfo *, struct addrinfo **);
 
