@@ -40,6 +40,7 @@
 #include "global.h"
 #include "xfuncs.h"
 
+#include "proto_udp.h"
 
 /* Simple malloc wrapper - prevent error checking */
 void *

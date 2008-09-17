@@ -7,11 +7,11 @@ endif
 TARGET = netsend
 OBJECTS = analyze.o error.o file.o \
 	getopt.o main.o net.o \
-	proto_tipc.o proto_udp_recv.o \
+	proto_tipc.o proto_udp.o \
 	receive.o trans_common.o \
 	ns_hdr.o xfuncs.o proto_tcp.o \
-	proto_udp_trans.o proto_udplite_trans.o \
-	proto_udplite_recv.o proto_dccp_trans.o \
+	proto_udp_trans.o \
+	proto_dccp_trans.o \
 	proto_tipc_trans.o
 
 POD = netsend.pod

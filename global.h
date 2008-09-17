@@ -76,20 +76,8 @@
 # define SCTP_MAXSEG    13
 #endif
 
-#ifndef IPPROTO_UDPLITE
-# define IPPROTO_UDPLITE 136
-#endif
-
 #ifndef SCTP_DISABLE_FRAGMENTS
 # define SCTP_DISABLE_FRAGMENTS	8
-#endif
-
-#ifndef UDPLITE_SEND_CSCOV
-# define UDPLITE_SEND_CSCOV   10
-#endif
-
-#ifndef UDPLITE_RECV_CSCOV
-# define UDPLITE_RECV_CSCOV   11
 #endif
 
 /* Forces a function to be always inlined
@@ -398,14 +386,10 @@ void receive_mode(void);
 /* transmit.c */
 void transmit_mode(void);
 
-void udp_trans_mode(void);
-void udplite_trans_mode(void);
+void udp_trans_mode(struct opts* , int ipproto);
+
 void tipc_trans_mode(void);
 void dccp_trans_mode(void);
-void sctp_trans_mode(void);
-
-/* proto_udplite_recv.c */
-int init_receive_socket_udplite(struct opts *, int);
 
 /* trans_common.c */
 void trans_start(int, int);

@@ -30,6 +30,7 @@
 #include <netinet/tcp.h>
 
 #include "proto_tipc.h"
+#include "proto_udp.h"
 #include "global.h"
 
 extern struct opts opts;

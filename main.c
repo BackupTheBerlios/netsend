@@ -36,7 +36,7 @@
 #include "global.h"
 #include "proto_tcp.h"
 #include "proto_tipc.h"
-#include "proto_udp_recv.h"
+#include "proto_udp.h"
 
 struct conf_map_t memadvice_map[] = {
 	{ MEMADV_NORMAL,	"normal" },
@@ -134,7 +134,6 @@ main(int argc, char *argv[])
 
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
-
 		case MODE_TRANSMIT:
 			switch (opts.ns_proto) {
 
@@ -144,13 +143,13 @@ main(int argc, char *argv[])
 					break;
 
 				case NS_PROTO_UDP:
-					msg(LOUDISH, "branch to udp_trans_mode()");
-					udp_trans_mode();
+					msg(LOUDISH, "branch to IPROTO_UDP");
+					udp_trans_mode(&opts, IPPROTO_UDP);
 					break;
 
 				case NS_PROTO_UDPLITE:
-					msg(LOUDISH, "branch to udplite_trans_mode()");
-					udplite_trans_mode();
+					msg(LOUDISH, "branch to IPPROTO_UDPLITE");
+					udp_trans_mode(&opts, IPPROTO_UDPLITE);
 					break;
 
 				case NS_PROTO_SCTP:

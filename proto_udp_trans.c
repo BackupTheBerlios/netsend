@@ -23,7 +23,7 @@
 #include "config.h"
 
 #include <stdio.h>
-#include <errno.h>
+#include <limits.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,17 +36,18 @@
 #include "debug.h"
 #include "global.h"
 #include "xfuncs.h"
-#include "proto_tipc.h"
+#include "proto_udp.h"
 
 extern struct opts opts;
 extern struct net_stat net_stat;
 extern struct conf_map_t io_call_map[];
 extern struct sock_callbacks sock_callbacks;
 
+
 /* Creates our server socket and initialize
 ** options
 */
-static int init_udp_trans(void)
+static int init_udp_trans(int ip_proto)
 {
 	bool use_multicast = false;
 	int fd = -1, ret;
@@ -58,7 +59,7 @@ static int init_udp_trans(void)
 	/* probe our values */
 	hosthints.ai_family   = opts.family;
 	hosthints.ai_socktype = opts.socktype;
-	hosthints.ai_protocol = IPPROTO_UDP;
+	hosthints.ai_protocol = ip_proto;
 	hosthints.ai_flags    = AI_ADDRCONFIG;
 
 	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
@@ -85,11 +86,11 @@ static int init_udp_trans(void)
 				protoent->p_name, protoent->p_proto);
 
 		/* mulicast checks */
-		assert(addrtmp->ai_protocol == IPPROTO_UDP);
+		assert(addrtmp->ai_protocol == ip_proto);
 		switch (addrtmp->ai_family) {
 		case AF_INET6:
 			if (IN6_IS_ADDR_MULTICAST(&((struct sockaddr_in6 *)
-							addrtmp->ai_addr)->sin6_addr)) {
+					addrtmp->ai_addr)->sin6_addr)) {
 				use_multicast = true;
 			}
 			break;
@@ -105,27 +106,29 @@ static int init_udp_trans(void)
 
 		if (use_multicast) {
 			int hops_ttl = 30;
-				int on = 1;
+			int on = 1;
 			switch (addrtmp->ai_family) {
-				case AF_INET6:
-					xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *)&hops_ttl,
-								sizeof(hops_ttl), "IPV6_MULTICAST_HOPS");
-					xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-							&on, sizeof(int), "IPV6_MULTICAST_LOOP");
-					break;
-				case AF_INET:
-					xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL,
-					         (char *)&hops_ttl, sizeof(hops_ttl), "IP_MULTICAST_TTL");
+			case AF_INET6:
+				xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *)&hops_ttl,
+							sizeof(hops_ttl), "IPV6_MULTICAST_HOPS");
+				xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+						&on, sizeof(int), "IPV6_MULTICAST_LOOP");
+				break;
+			case AF_INET:
+				xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL,
+				         (char *)&hops_ttl, sizeof(hops_ttl), "IP_MULTICAST_TTL");
 
-					xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
-							&on, sizeof(int), "IP_MULTICAST_LOOP");
-					msg(STRESSFUL, "set IP_MULTICAST_LOOP option");
-					break;
-				default:
-					err_msg_die(EXIT_FAILINT, "Programmed Failure");
+				xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
+						&on, sizeof(int), "IP_MULTICAST_LOOP");
+				msg(STRESSFUL, "set IP_MULTICAST_LOOP option");
+				break;
+			default:
+				err_msg_die(EXIT_FAILINT, "Programmed Failure");
 			}
 		}
 
+		if (ip_proto == IPPROTO_UDPLITE &&  opts.udplite_checksum_coverage != LONG_MAX)
+			udplite_setsockopt_send_csov(fd, opts.udplite_checksum_coverage);
 		set_socketopts(fd);
 
 		/* Connect to peer
@@ -160,16 +163,16 @@ static int init_udp_trans(void)
 ** o print diagnostic info
 */
 void
-udp_trans_mode(void)
+udp_trans_mode(struct opts *optsp, int ipproto)
 {
 	int connected_fd, file_fd;
 
 	msg(GENTLE, "transmit mode (file: %s  -  hostname: %s)",
-		opts.infile, opts.hostname);
+		optsp->infile, optsp->hostname);
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
-	connected_fd = init_udp_trans();
+	connected_fd = init_udp_trans(ipproto);
 
 	/* fetch sockopt before the first byte  */
 	get_sock_opts(connected_fd, &net_stat);

@@ -35,6 +35,8 @@
 #include "global.h"
 #include "xfuncs.h"
 
+#include "proto_udp.h"
+
 /* This is the overall parsing procedure:
  *
  *   parse_opts()

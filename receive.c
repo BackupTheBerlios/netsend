@@ -35,6 +35,7 @@
 #include "global.h"
 #include "xfuncs.h"
 #include "proto_tcp.h"
+#include "proto_udp.h"
 #include "proto_tipc.h"
 
 extern struct opts opts;
@@ -340,10 +341,8 @@ receive_mode(void)
 		}
 		break;
 	case IPPROTO_UDPLITE:
-		ret = init_receive_socket_udplite(&opts, connected_fd);
-		if (ret != SUCCESS) {
-			err_msg_die(EXIT_FAILNET, "failure in initial phase of receive socket creation");
-		}
+		if (opts.udplite_checksum_coverage != LONG_MAX)
+			udplite_setsockopt_recv_csov(connected_fd, opts.udplite_checksum_coverage);
 		break;
 	}
 
