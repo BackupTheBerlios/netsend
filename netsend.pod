@@ -48,7 +48,7 @@ Mode is either B<receive> or B<transmit>.
 
          For example: if you have measured rtt probes of 4, 5, 5, 6 and 15 ms. The
          average is 7. Covariance is 16.4 and deviation is 4.04. If you select 2 here as
-         the multiplier, then you filter all rtt probes with higher values then 8.08 (for 
+         the multiplier, then you filter all rtt probes with higher values then 8.08 (for
          this example you filer 15ms out).
 
          This will help to discard some nonesense probes who are evoked through cold code
@@ -91,7 +91,7 @@ Mode is either B<receive> or B<transmit>.
  	When not specified, rw (read/write) is used.
 	Note that not all protocols support all transfer methods, e.g. TIPCs connectionless sockets (SOCK_RDM and SOCK_DGRAM)
 	do not support the sendfile system call. Also, the amount of data that can be sent in a single operation may be limited
-	by the network protocol used.
+	by the network protocol used (in this case, you may split data using the -b option on the sender side).
 
 =back
 
@@ -99,9 +99,7 @@ Mode is either B<receive> or B<transmit>.
 
 =over 1
 
-Listen for incoming SCTP connections, incoming data goes to stdout:
-
-=over 4
+B<Listen for incoming SCTP connections, incoming data goes to stdout:>
 
 netsend -T human -v stressful sctp receive
 
@@ -109,9 +107,7 @@ netsend -T human -v stressful sctp receive
 
 =over 1
 
-Send file largefile via TCP with output in machine parseable format:
-
-=over 4
+B<Send file largefile via TCP with output in machine parseable format:>
 
 netsend -T machine tcp transmit largefile host.example.org
 
@@ -119,11 +115,7 @@ netsend -T machine tcp transmit largefile host.example.org
 
 =over 1
 
-Receive data via TCP with MD5SIG from peer 10.0.0.1:
-
-=over 4
-
-netsend tcp transmit -C largefile ffff::10.0.0.1
+B<Receive data via TCP with MD5SIG from peer 10.0.0.1:>
 
 netsend tcp receive -C ffff::10.0.0.1
 
@@ -131,9 +123,15 @@ netsend tcp receive -C ffff::10.0.0.1
 
 =over 1
 
-receive and transmit a file using TIPC seqpacket socket:
+B<Transmit using TCP with MD5SIG to 10.0.0.1 with hybla congestion control:>
 
-=over 4
+netsend -s TCP_CONGESTION hybla tcp transmit -C largefile \ ffff::10.0.0.1
+
+=back
+
+=over 1
+
+B<Receive and transmit a file using TIPC seqpacket socket:>
 
 netsend tipc receive SOCK_SEQPACKET /tmp/recvFile
 
