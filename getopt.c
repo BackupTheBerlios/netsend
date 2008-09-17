@@ -98,7 +98,7 @@ static const char const help_str[][4096] = {
 #define	HELP_STR_DCCP 5
 	" DCCP-OPTIONS := { }",
 #define	HELP_STR_TIPC 6
-	" TIPC-OPTIONS := { -t TIPCSOCKTYP }\n"
+	" TIPC-OPTIONS := { TIPCSOCKTYPE }\n"
 	" TIPCSOCKTYP  := { sock_rdm | sock_dgram | sock_stream | sock_seqpacket }",
 
 #define	HELP_STR_MAX HELP_STR_TIPC
@@ -284,6 +284,26 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 }
 
 
+
+static void parse_receive_filename(int ac, char *av[], struct opts *optsp)
+{
+	if (optsp->workmode != MODE_RECEIVE)
+		return;
+	switch (ac) {
+	case 0: return;
+	case 2:
+		optsp->hostname = av[1];
+		/* fallthrough */
+	case 1:
+		optsp->outfile = av[0];
+		return;
+	default:
+		err_msg("You specified too many arguments!");
+		print_usage(NULL, HELP_STR_GLOBAL, 1);
+	};
+}
+
+
 /* parse_tcp_opt set all tcp default values
  * within optsp and parse all tcp related options
  * ac is the number of arguments from MODE and av is
@@ -335,22 +355,7 @@ static int parse_tcp_opt(int ac, char *av[], struct opts *optsp)
 
 			break;
 		case MODE_RECEIVE:
-			switch (ac) {
-				case 0: /* nothing to do */
-					break;
-
-				case 2:
-					opts.hostname = xstrdup(av[1]);
-					/* fallthrough */
-				case 1:
-					opts.outfile = xstrdup(av[0]);
-					break;
-				default:
-					err_msg("You specify to many arguments!");
-					print_usage(NULL, HELP_STR_GLOBAL, 1);
-					break;
-			};
-
+			parse_receive_filename(ac, av, optsp);
 			break;
 		default:
 			err_msg_die(EXIT_FAILINT,
@@ -423,7 +428,8 @@ static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 	optsp->family = AF_TIPC;
 	optsp->socktype = 0;
 
-	if (optsp->workmode == MODE_TRANSMIT) {
+	switch (optsp->workmode) {
+	case MODE_TRANSMIT:
 		if (ac <= 1) {
 			print_usage("TIPC transmit mode requires socket type and input file name\n",
 					HELP_STR_TIPC, 1);
@@ -431,20 +437,32 @@ static int parse_tipc_opt(int ac, char *av[],struct opts *optsp)
 		}
 		--ac;
 		optsp->infile = av[ac];
-
+		break;
+	case MODE_RECEIVE:
+		if (ac < 1)
+			goto out;
+		if (ac >= 2) {
+			if (av[ac - 1][0] == '-')
+				break;
+			if (av[ac - 2][0] == '-')
+				break;
+			--ac;
+			optsp->outfile = av[ac];
+		}
+		break;
 	}
+
 	while (ac--) {
 		for (i=0; i < ARRAY_SIZE(socktype_map); i++) {
-			if (strcasecmp(socktype_map[i].sockname, av[ac]) == 0)
+			if (strcasecmp(socktype_map[i].sockname, av[ac]) == 0) {
+				optsp->socktype = socktype_map[i].socktype;
 				break;
+			}
 		}
-		if (i < ARRAY_SIZE(socktype_map)) {
-			optsp->socktype = socktype_map[i].socktype;
-			break;
-		}
+		if (optsp->socktype)
+			return SUCCESS;
 	}
-	if (optsp->socktype)
-		return SUCCESS;
+
  out:
 	fputs("You must specify a TIPC socket type. Known values:\n", stderr);
 	tipc_print_socktypes();
@@ -493,20 +511,7 @@ static int parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 		optsp->hostname = xstrdup(av[1]);
 	break;
 	case MODE_RECEIVE:
-		switch (ac) {
-		case 0: /* nothing to do */
-			break;
-		case 2:
-			opts.hostname = xstrdup(av[1]);
-			/* fallthrough */
-		case 1:
-			opts.outfile = xstrdup(av[0]);
-			break;
-		default:
-			err_msg("You specify to many arguments!");
-			print_usage(NULL, HELP_STR_GLOBAL, 1);
-			break;
-		};
+		parse_receive_filename(ac, av, optsp);
 		break;
 	default:
 		err_msg_die(EXIT_FAILINT,
@@ -615,21 +620,7 @@ static int parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 
 	switch (optsp->workmode) {
 	case MODE_RECEIVE:
-		switch (ac) {
-		case 0: /* nothing to do */
-			break;
-		case 2:
-			opts.hostname = xstrdup(av[1]);
-			/* fallthrough */
-		case 1:
-			opts.outfile = xstrdup(av[0]);
-			break;
-		default:
-			err_msg("You specify to many arguments!");
-			print_usage(NULL, HELP_STR_GLOBAL, 1);
-			break;
-		};
-		break;
+		parse_receive_filename(ac, av, optsp);
 		break;
 	case MODE_TRANSMIT:
 		if (ac <= 1) {
@@ -662,21 +653,7 @@ static int parse_udp_opt(int ac, char *av[],struct opts *optsp)
 
 	switch (optsp->workmode) {
 	case MODE_RECEIVE:
-		switch (ac) {
-		case 0: /* nothing to do */
-			break;
-		case 2:
-			opts.hostname = xstrdup(av[1]);
-			/* fall through */
-		case 1:
-			opts.outfile = xstrdup(av[0]);
-			break;
-		default:
-			err_msg("You specified to many arguments!");
-			print_usage(NULL, HELP_STR_GLOBAL, 1);
-			break;
-		};
-		break;
+		parse_receive_filename(ac, av, optsp);
 		break;
 	case MODE_TRANSMIT:
 		if (ac <= 1) {
@@ -916,7 +893,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 		 * instead we parse all options, exit if something isn't proper
 		 * and print all declared user options and all default values.
 		 * This is an nice option for automated test - but only qualified
-		 * as a additional command. For an machine parseable format the -t
+		 * as a additional command. For an machine parseable format the -T
 		 * machine is the preferred option
 		 */
 		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "d")))
