@@ -33,7 +33,6 @@
 #include <arpa/inet.h>
 
 #include "global.h"
-#include "tcp_md5sig.h"
 #include "xfuncs.h"
 #include "proto_tcp.h"
 #include "proto_tipc.h"

@@ -37,7 +37,6 @@
 #include "global.h"
 #include "xfuncs.h"
 #include "proto_tcp.h"
-#include "tcp_md5sig.h"
 
 extern struct opts opts;
 extern struct net_stat net_stat;
