@@ -95,7 +95,7 @@ static const char const help_str[][4096] = {
 #define	HELP_STR_UDPLITE 3
 	" UDPL-OPTIONS := [ -C <checksum_coverage> ]",
 #define	HELP_STR_SCTP 4
-	" SCTP_DISABLE_FRAGMENTS "
+	" SCTP_DISABLE_FRAGMENTS ",
 #define	HELP_STR_DCCP 5
 	" DCCP-OPTIONS := { }",
 #define	HELP_STR_TIPC 6
@@ -312,7 +312,7 @@ static void parse_transmit_filename(int ac, char *av[], struct opts *optsp, int 
 		return;
 
 	if (ac <= 1)
-		die_usage("transmit mode requires file and destination address\n", helpt);
+		die_usage("transmit mode requires file and destination address", helpt);
 
 	optsp->infile = av[0];
 	optsp->hostname = av[1];
@@ -427,14 +427,6 @@ static const struct {
 	{ SOCK_STREAM, "SOCK_STREAM" },
 	{ SOCK_SEQPACKET, "SOCK_SEQPACKET" }
 };
-
-
-static void tipc_print_socktypes(void)
-{
-	unsigned i;
-	for (i=0; i < ARRAY_SIZE(socktype_map); i++)
-		fprintf(stderr, "%s\n", socktype_map[i].sockname);
-}
 #endif /* HAVE_AF_TIPC */
 
 
@@ -451,11 +443,9 @@ static void parse_tipc_opt(int ac, char *av[], struct opts *optsp)
 
 	switch (optsp->workmode) {
 	case MODE_TRANSMIT:
-		if (ac <= 1) {
-			print_usage("TIPC transmit mode requires socket type and input file name\n",
+		if (ac <= 1)
+			die_usage("TIPC transmit mode requires socket type and input file name",
 					HELP_STR_TIPC);
-			goto out;
-		}
 		--ac;
 		optsp->infile = av[ac];
 		break;
@@ -485,8 +475,7 @@ static void parse_tipc_opt(int ac, char *av[], struct opts *optsp)
 			return;
 	}
  out:
-	fputs("You must specify a TIPC socket type. Known values:\n", stderr);
-	tipc_print_socktypes();
+	die_usage("You must specify a TIPC socket type", HELP_STR_TIPC);
 #endif
 	exit(EXIT_FAILOPT);
 }
@@ -548,6 +537,7 @@ static void parse_dccp_opt(int ac, char *av[],struct opts *optsp)
 
 	switch (optsp->workmode) {
 	case MODE_RECEIVE:
+		parse_receive_filename(ac, av, optsp, HELP_STR_DCCP);
 		break;
 	case MODE_TRANSMIT:
 		parse_transmit_filename(ac, av, optsp, HELP_STR_DCCP);
@@ -591,7 +581,7 @@ static void parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 
 		if (av[0][1] == 'C') {
 			if (!av[1])
-				die_usage("UDPLite option C requires an argument\n",
+				die_usage("UDPLite option C requires an argument",
 						HELP_STR_UDPLITE);
 
 			optsp->udplite_checksum_coverage = strtol(av[1], &endptr, 10);
@@ -600,7 +590,7 @@ static void parse_udplite_opt(int ac, char *av[],struct opts *optsp)
 				(optsp->udplite_checksum_coverage == LONG_MAX ||
 				 optsp->udplite_checksum_coverage == LONG_MIN)) ||
 				(errno != 0 && optsp->udplite_checksum_coverage == 0)) {
-				die_usage("UDPLite option C requires an numeric argument\n",
+				die_usage("UDPLite option C requires an numeric argument",
 						HELP_STR_UDPLITE);
 			}
 
@@ -1153,11 +1143,11 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 				}
 				return;
 			} else {
-				die_usage("MODE isn't permitted:\n", HELP_STR_GLOBAL);
+				die_usage("MODE isn't permitted:", HELP_STR_GLOBAL);
 			}
 		}
 	}
-	die_usage("PROTOCOL isn't permitted!\n", HELP_STR_GLOBAL);
+	die_usage("PROTOCOL isn't permitted!", HELP_STR_GLOBAL);
 }
 
 #undef FIRST_ARG_INDEX
