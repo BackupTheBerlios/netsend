@@ -139,8 +139,8 @@ main(int argc, char *argv[])
 			switch (opts.ns_proto) {
 
 				case NS_PROTO_TCP:
-					msg(LOUDISH, "branch to tcp_trans_mode()");
-					tcp_trans_mode();
+					msg(LOUDISH, "branch to IPPROTO_TCP");
+					ip_stream_trans_mode(&opts, IPPROTO_TCP);
 					break;
 
 				case NS_PROTO_UDP:
@@ -154,8 +154,8 @@ main(int argc, char *argv[])
 					break;
 
 				case NS_PROTO_SCTP:
-					msg(LOUDISH, "branch to udplite_trans_mode()");
-					sctp_trans_mode();
+					msg(LOUDISH, "branch to IPPROTO_SCCP");
+					ip_stream_trans_mode(&opts, IPPROTO_SCTP);
 					break;
 
 				case NS_PROTO_DCCP:

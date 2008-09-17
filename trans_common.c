@@ -44,7 +44,9 @@
 #include "debug.h"
 #include "global.h"
 #include "xfuncs.h"
-#include "proto_tipc.h"
+//#include "proto_tipc.h"
+#include "proto_tcp.h"
+
 
 extern struct opts opts;
 extern struct net_stat net_stat;
@@ -417,5 +419,133 @@ void trans_start(int file_fd, int connected_fd)
 	}
 }
 
+
+/* Creates our server socket and initialize
+** options
+*/
+static int init_stream_trans(int ip_protocol)
+{
+	bool use_multicast = false;
+	int fd = -1, ret;
+	struct addrinfo  hosthints, *hostres, *addrtmp;
+	struct protoent *protoent;
+
+	memset(&hosthints, 0, sizeof(struct addrinfo));
+
+	/* probe our values */
+	hosthints.ai_family   = opts.family;
+	hosthints.ai_socktype = opts.socktype;
+	hosthints.ai_protocol = ip_protocol;
+	hosthints.ai_flags    = AI_ADDRCONFIG;
+
+	xgetaddrinfo(opts.hostname, opts.port, &hosthints, &hostres);
+
+	addrtmp = hostres;
+
+	for (addrtmp = hostres; addrtmp != NULL ; addrtmp = addrtmp->ai_next) {
+
+		if (opts.family != AF_UNSPEC &&
+			addrtmp->ai_family != opts.family) { /* user fixed family! */
+			continue;
+		}
+
+		fd = socket(addrtmp->ai_family, addrtmp->ai_socktype,
+				addrtmp->ai_protocol);
+		if (fd < 0) {
+			err_sys("socket");
+			continue;
+		}
+
+		protoent = getprotobynumber(addrtmp->ai_protocol);
+		if (protoent)
+			msg(LOUDISH, "socket created - protocol %s(%d)",
+				protoent->p_name, protoent->p_proto);
+
+		assert(addrtmp->ai_protocol == ip_protocol);
+
+		if (use_multicast) {
+			int hops_ttl = 30;
+			int on = 1;
+			switch (addrtmp->ai_family) {
+			case AF_INET6:
+				xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *)&hops_ttl,
+							sizeof(hops_ttl), "IPV6_MULTICAST_HOPS");
+				xsetsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+						&on, sizeof(int), "IPV6_MULTICAST_LOOP");
+				break;
+			case AF_INET:
+				xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL,
+				         (char *)&hops_ttl, sizeof(hops_ttl), "IP_MULTICAST_TTL");
+
+				xsetsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
+						&on, sizeof(int), "IP_MULTICAST_LOOP");
+				msg(STRESSFUL, "set IP_MULTICAST_LOOP option");
+				break;
+			default:
+				err_msg_die(EXIT_FAILINT, "Programmed Failure");
+			}
+		}
+
+		if (opts.tcp_use_md5sig)
+			tcp_setsockopt_md5sig(fd, addrtmp->ai_addr);
+		set_socketopts(fd);
+
+		/* Connect to peer
+		** There are three advantages to call connect for all types
+		** of our socket protocols (especially udp)
+		**
+		** 1. We don't need to specify a destination address (only call write)
+		** 2. Performance advantages (kernel level)
+		** 3. Error detection (e.g. destination port unreachable at udp)
+		*/
+		ret = connect(fd, addrtmp->ai_addr, addrtmp->ai_addrlen);
+		if (ret == -1)
+			err_sys_die(EXIT_FAILNET, "Can't connect to %s", opts.hostname);
+
+		msg(LOUDISH, "socket connected to %s via port %s",
+			opts.hostname, opts.port);
+	}
+
+	if (fd < 0)
+		err_msg_die(EXIT_FAILNET, "No suitable socket found");
+
+	freeaddrinfo(hostres);
+	return fd;
+}
+
+
+/*
+ * initialize server socket
+ * fstat and open our sending-file
+ * block in socket and wait for client
+ * sendfile(2), write(2), ...
+ * print diagnostic info
+*/
+void ip_stream_trans_mode(struct opts *optsp, int ipproto)
+{
+	int connected_fd, file_fd;
+
+	msg(GENTLE, "transmit mode (file: %s  -  hostname: %s)",
+		opts.infile, opts.hostname);
+
+	/* check if the transmitted file is present and readable */
+	file_fd = open_input_file();
+	connected_fd = init_stream_trans(ipproto);
+
+	/* fetch sockopt before the first byte  */
+	get_sock_opts(connected_fd, &net_stat);
+
+	/* construct and send netsend header to peer */
+	meta_exchange_snd(connected_fd, file_fd);
+
+	trans_start(file_fd, connected_fd);
+
+	if (ipproto == IPPROTO_TCP && VL_LOUDISH(opts.verbose)) {
+		struct tcp_info tcp_info;
+
+		if (tcp_get_info(connected_fd, &tcp_info))
+			tcp_print_info(&tcp_info);
+	}
+}
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

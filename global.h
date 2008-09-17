@@ -409,5 +409,6 @@ int init_receive_socket_udplite(struct opts *, int);
 
 /* trans_common.c */
 void trans_start(int, int);
+void ip_stream_trans_mode(struct opts*, int proto);
 
 /* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */

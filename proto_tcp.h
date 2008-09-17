@@ -24,6 +24,7 @@ struct tcp_md5sig {
 #endif /* HAVE_TCP_MD5SIG */
 
 void tcp_trans_mode(void);
+void tcp_setsockopt_md5sig(int fd, const struct sockaddr*);
 
 bool tcp_get_info(int fd, struct tcp_info *tcp_info);
 void tcp_print_info(struct tcp_info *tcp_info);

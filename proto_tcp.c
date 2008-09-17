@@ -7,6 +7,8 @@
 #include <netinet/in.h>
 
 #include "proto_tcp.h"
+#include "global.h"
+#include "xfuncs.h"
 
 bool tcp_get_info(int fd, struct tcp_info *tcp_info)
 {
@@ -49,3 +51,18 @@ void tcp_print_info(struct tcp_info *tcp_info)
 		tcp_info->tcpi_snd_mss, tcp_info->tcpi_rcv_mss,
 		tcp_info->tcpi_unacked);
 }
+
+
+void tcp_setsockopt_md5sig(int fd, const struct sockaddr *sa)
+{
+	static const char key[] = "netsend";
+	struct tcp_md5sig sig = { .tcpm_keylen = sizeof(key) };
+
+	memcpy(sig.tcpm_key, key, sizeof(key));
+
+	memcpy(&sig.tcpm_addr, (const struct sockaddr_storage *) sa,
+			min(sizeof(sig.tcpm_addr), sizeof(*sa)));
+
+	xsetsockopt(fd, IPPROTO_TCP, TCP_MD5SIG, &sig, sizeof(sig), "TCP_MD5SIG");
+}
+
