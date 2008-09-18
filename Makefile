@@ -11,7 +11,6 @@ OBJECTS = analyze.o error.o file.o \
 	receive.o trans_common.o \
 	ns_hdr.o xfuncs.o proto_tcp.o \
 	proto_udp_trans.o \
-	proto_dccp_trans.o \
 	proto_tipc_trans.o
 
 POD = netsend.pod

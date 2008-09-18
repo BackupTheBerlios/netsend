@@ -158,8 +158,8 @@ main(int argc, char *argv[])
 					break;
 
 				case NS_PROTO_DCCP:
-					msg(LOUDISH, "branch to udplite_trans_mode()");
-					dccp_trans_mode();
+					msg(LOUDISH, "branch to IPPROTO_DCCP");
+					ip_stream_trans_mode(&opts, IPPROTO_DCCP);
 					break;
 
 				case NS_PROTO_TIPC:
