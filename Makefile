@@ -21,12 +21,6 @@ LIBS = -lm
 # use 64 bit off_t etc. even on 32 bit systems
 CFLAGS += -D_FILE_OFFSET_BITS=64 
 
-# Inline workaround:
-# max-inline-insns-single specified the maximum size
-# of a function (counted in internal gcc instructions).
-# Default: 300
-CFLAGS += --param max-inline-insns-single=400
-
 # XXX: add path configure
 DESTDIR=/usr
 BINDIR=/bin
