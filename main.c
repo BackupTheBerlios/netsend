@@ -157,7 +157,7 @@ main(int argc, char *argv[])
 				ip_stream_trans_mode(&opts);
 				break;
 			case NS_PROTO_TIPC:
-				msg(LOUDISH, "branch to udplite_trans_mode()");
+				msg(LOUDISH, "branch to tipc_trans_mode()");
 				tipc_trans_mode();
 				break;
 			default:
