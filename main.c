@@ -134,50 +134,41 @@ main(int argc, char *argv[])
 
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
-		case MODE_TRANSMIT:
-			switch (opts.ns_proto) {
-
-				case NS_PROTO_TCP:
-					msg(LOUDISH, "branch to IPPROTO_TCP");
-					ip_stream_trans_mode(&opts, IPPROTO_TCP);
-					break;
-
-				case NS_PROTO_UDP:
-					msg(LOUDISH, "branch to IPROTO_UDP");
-					udp_trans_mode(&opts, IPPROTO_UDP);
-					break;
-
-				case NS_PROTO_UDPLITE:
-					msg(LOUDISH, "branch to IPPROTO_UDPLITE");
-					udp_trans_mode(&opts, IPPROTO_UDPLITE);
-					break;
-
-				case NS_PROTO_SCTP:
-					msg(LOUDISH, "branch to IPPROTO_SCCP");
-					ip_stream_trans_mode(&opts, IPPROTO_SCTP);
-					break;
-
-				case NS_PROTO_DCCP:
-					msg(LOUDISH, "branch to IPPROTO_DCCP");
-					ip_stream_trans_mode(&opts, IPPROTO_DCCP);
-					break;
-
-				case NS_PROTO_TIPC:
-					msg(LOUDISH, "branch to udplite_trans_mode()");
-					tipc_trans_mode();
-					break;
-
-				default:
-					err_msg_die(EXIT_FAILINT, "Programmed Error");
-					break;
-			}
+	case MODE_TRANSMIT:
+		switch (opts.ns_proto) {
+			case NS_PROTO_TCP:
+				msg(LOUDISH, "branch to IPPROTO_TCP");
+				ip_stream_trans_mode(&opts);
+				break;
+			case NS_PROTO_UDP:
+				msg(LOUDISH, "branch to IPROTO_UDP");
+				udp_trans_mode(&opts);
+				break;
+			case NS_PROTO_UDPLITE:
+				msg(LOUDISH, "branch to IPPROTO_UDPLITE");
+				udp_trans_mode(&opts);
+				break;
+			case NS_PROTO_SCTP:
+				msg(LOUDISH, "branch to IPPROTO_SCCP");
+				ip_stream_trans_mode(&opts);
+				break;
+			case NS_PROTO_DCCP:
+				msg(LOUDISH, "branch to IPPROTO_DCCP");
+				ip_stream_trans_mode(&opts);
+				break;
+			case NS_PROTO_TIPC:
+				msg(LOUDISH, "branch to udplite_trans_mode()");
+				tipc_trans_mode();
+				break;
+			default:
+				err_msg_die(EXIT_FAILINT, "Programmed Error");
+				break;
+		}
 		break;
-
-		case MODE_RECEIVE:
+	case MODE_RECEIVE:
 		receive_mode();
 		break;
-
-		default:
+	default:
 		err_msg_die(EXIT_FAILMISC, "Programmed Failure");
 	}
 

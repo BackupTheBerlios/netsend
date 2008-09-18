@@ -163,15 +163,16 @@ static int init_udp_trans(int ip_proto)
 ** o print diagnostic info
 */
 void
-udp_trans_mode(struct opts *optsp, int ipproto)
+udp_trans_mode(struct opts *optsp)
 {
-	int connected_fd, file_fd;
+	int connected_fd, file_fd, ipproto;
 
 	msg(GENTLE, "transmit mode (file: %s  -  hostname: %s)",
 		optsp->infile, optsp->hostname);
 
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
+	ipproto = optsp->protocol;
 	connected_fd = init_udp_trans(ipproto);
 
 	/* fetch sockopt before the first byte  */

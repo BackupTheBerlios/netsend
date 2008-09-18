@@ -358,9 +358,7 @@ touch_use_stat(enum where_send where, struct use_stat *use_stat)
 		if (getrusage(RUSAGE_SELF, &use_stat->ru) < 0)
 			err_sys("Failure in getrusage()");
 	}
-	return;
-};
-
+}
 
 
 /* file.c */
@@ -383,16 +381,12 @@ int meta_exchange_rcv(int, struct peer_header_info **);
 /* receive.c */
 void receive_mode(void);
 
-/* transmit.c */
-void transmit_mode(void);
-
-void udp_trans_mode(struct opts* , int ipproto);
-
-void tipc_trans_mode(void);
-void dccp_trans_mode(void);
-
 /* trans_common.c */
 void trans_start(int, int);
-void ip_stream_trans_mode(struct opts*, int proto);
+void ip_stream_trans_mode(struct opts*);
+
+
+void udp_trans_mode(struct opts*);
+void tipc_trans_mode(void);
 
 /* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */
