@@ -524,9 +524,6 @@ void ip_stream_trans_mode(struct opts *optsp)
 {
 	int connected_fd, file_fd, ipproto;
 
-	msg(GENTLE, "transmit mode (file: %s  -  hostname: %s)",
-		optsp->infile, optsp->hostname);
-
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
 	ipproto = optsp->protocol;

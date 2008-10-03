@@ -135,6 +135,8 @@ main(int argc, char *argv[])
 	/* Branch to final workmode ... */
 	switch (opts.workmode) {
 	case MODE_TRANSMIT:
+		msg(GENTLE, "transmit mode (file: %s  -  hostname: %s)",
+			opts.infile, opts.hostname);
 		switch (opts.ns_proto) {
 			case NS_PROTO_TCP:
 				msg(LOUDISH, "branch to IPPROTO_TCP");

@@ -70,9 +70,6 @@ void tipc_trans_mode(void)
 {
 	int connected_fd, file_fd;
 
-	msg(GENTLE, "transmit mode (file: %s  -  hostname: %s)",
-		opts.infile, opts.hostname);
-
 	/* check if the transmitted file is present and readable */
 	file_fd = open_input_file();
 	connected_fd = init_tipc_trans();
