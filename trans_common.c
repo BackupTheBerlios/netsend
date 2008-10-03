@@ -404,19 +404,18 @@ void trans_start(int file_fd, int connected_fd)
 	switch (opts.io_call) {
 	case IO_SENDFILE:
 		trans_sendfile(file_fd, connected_fd);
-		break;
+		return;
 	case IO_SPLICE:
 		trans_splice(file_fd, connected_fd);
-		break;
+		return;
 	case IO_MMAP:
 		trans_mmap(file_fd, connected_fd);
-		break;
+		return;
 	case IO_RW:
 		trans_rw(file_fd, connected_fd);
-		break;
-	default:
-		err_msg_die(EXIT_FAILINT, "Programmed Failure");
+		return;
 	}
+	err_msg_die(EXIT_FAILINT, "Programmed Failure");
 }
 
 
