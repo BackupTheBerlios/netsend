@@ -193,19 +193,18 @@ struct use_stat {
 #endif
 };
 
-struct sock_stat {
-	/* tcp attributes */
-	uint16_t mss;
-	int keep_alive;
-	/* ip attributes */
-};
 
 struct net_stat {
 	struct rtt_probe {
 		double usec;
 		double variance;
 	} rtt_probe;
-	struct sock_stat sock_stat;
+	struct  {
+		/* tcp attributes */
+		uint16_t mss;
+		int keep_alive;
+		/* ip attributes */
+	} sock_stat;
 
 	unsigned int total_rx_calls;
 	unsigned long long total_rx_bytes;
@@ -232,7 +231,6 @@ struct peer_header_info {
 #define	STAT_PREFIX_SI 1
 #define	STAT_PREFIX_BINARY 2
 enum workmode { MODE_NONE = 0, MODE_TRANSMIT, MODE_RECEIVE };
-
 
 struct sock_callbacks {
 	ssize_t (*cb_read)(int, void *, size_t);
