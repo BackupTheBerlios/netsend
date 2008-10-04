@@ -383,8 +383,4 @@ void receive_mode(void);
 void trans_start(int, int);
 void ip_stream_trans_mode(struct opts*);
 
-
-void udp_trans_mode(struct opts*);
-void tipc_trans_mode(void);
-
 /* vim:set ts=4 sw=4 sts=4 tw=78 ff=unix noet: */

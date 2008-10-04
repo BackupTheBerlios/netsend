@@ -9,9 +9,7 @@ OBJECTS = analyze.o error.o file.o \
 	getopt.o main.o net.o \
 	proto_tipc.o proto_udp.o \
 	receive.o trans_common.o \
-	ns_hdr.o xfuncs.o proto_tcp.o \
-	proto_udp_trans.o \
-	proto_tipc_trans.o
+	ns_hdr.o xfuncs.o proto_tcp.o
 
 POD = netsend.pod
 MAN = netsend.1

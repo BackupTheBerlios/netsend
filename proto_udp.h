@@ -17,7 +17,9 @@
 
 int udp_listen(int sockfd, int);
 
-void udplite_setsockopt_send_csov(int connected_fd, uint16_t cov);
 void udplite_setsockopt_recv_csov(int connected_fd, uint16_t cov);
+
+struct opts;
+void udp_trans_mode(struct opts*);
 
 #endif /* NETSEND_UDP_PROTO_H */

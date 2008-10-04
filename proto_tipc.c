@@ -35,6 +35,7 @@
 
 
 extern struct opts opts;
+extern struct net_stat net_stat;
 extern struct sock_callbacks sock_callbacks;
 #ifdef HAVE_AF_TIPC
 
@@ -83,7 +84,7 @@ int tipc_socket_bind(void)
 }
 
 
-int tipc_socket_connect(void)
+static int tipc_socket_connect(void)
 {
 	int fd;
 	struct sockaddr_tipc sa_tipc = sa_tipc_get();
@@ -168,5 +169,41 @@ ssize_t tipc_write(int sockfd, const void *buf, size_t buflen)
 
 	return sendto(sockfd, buf, buflen, 0, (struct sockaddr*)sendto_dest_addr, (socklen_t) sizeof(*sendto_dest_addr));
 }
+
+
+static int init_tipc_trans(void)
+{
+	int fd;
+
+	assert(opts.family == AF_TIPC);
+
+	fd = tipc_socket_connect();
+	if (fd < 0)
+		err_sys_die(EXIT_FAILNET, "tipc_socket_connect");
+
+	return fd;
+}
 #endif
+
+void tipc_trans_mode(void)
+{
+#ifdef HAVE_AF_TIPC
+	int connected_fd, file_fd;
+
+	/* check if the transmitted file is present and readable */
+	file_fd = open_input_file();
+	connected_fd = init_tipc_trans();
+
+	/* fetch sockopt before the first byte  */
+	get_sock_opts(connected_fd, &net_stat);
+
+	/* construct and send netsend header to peer */
+	meta_exchange_snd(connected_fd, file_fd);
+
+	trans_start(file_fd, connected_fd);
+#else
+	err_msg_die(EXIT_FAILMISC, "TIPC support not compiled in");
+#endif
+}
+
 /* vim:set ts=4 sw=4 tw=78 noet: */
