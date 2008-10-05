@@ -1063,7 +1063,6 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 		av++;
 		ac--;
-
 	} while (1);
 
 	/* set values gathered in the parsing process */
@@ -1083,27 +1082,27 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 	/* now we branch to our final, protocol specific parse routine */
 	for (i = 0; protocol_map[i].protoname; i++) {
-		if (!strcasecmp(protocol_map[i].protoname, av[FIRST_ARG_INDEX])) {
-			if (!strncasecmp(av[FIRST_ARG_INDEX + 1], "transmit", strlen(av[2]))) {
-				optsp->workmode = MODE_TRANSMIT;
-				protocol_map[i].parse_proto(ac - 3, av + 3, optsp);
-				if (dump_defaults) {
-					dump_opts(optsp);
-					protocol_map[i].dump_proto(optsp);
-				}
-				return;
-			} else if (!strncasecmp(av[FIRST_ARG_INDEX + 1], "receive", strlen(av[FIRST_ARG_INDEX + 1]))) {
-				optsp->workmode = MODE_RECEIVE;
-				protocol_map[i].parse_proto(ac - 3, av + 3, optsp);
-				if (dump_defaults) {
-					dump_opts(optsp);
-					protocol_map[i].dump_proto(optsp);
-				}
-				return;
-			} else {
-				die_usage("MODE isn't permitted:", HELP_STR_GLOBAL);
-			}
+		const char *modestr;
+		size_t len;
+
+		if (strcasecmp(protocol_map[i].protoname, av[FIRST_ARG_INDEX]))
+			continue;
+
+		modestr = av[FIRST_ARG_INDEX + 1];
+		len = strlen(modestr); /* allows abbreviation, eg. 'netsend t' */
+		if (!strncasecmp(modestr, "transmit", len)) {
+			optsp->workmode = MODE_TRANSMIT;
+		} else if (!strncasecmp(modestr, "receive", len)) {
+			optsp->workmode = MODE_RECEIVE;
+		} else {
+			die_usage("MODE isn't permitted:", HELP_STR_GLOBAL);
 		}
+		protocol_map[i].parse_proto(ac - 3, av + 3, optsp);
+		if (dump_defaults) {
+			dump_opts(optsp);
+			protocol_map[i].dump_proto(optsp);
+		}
+		return;
 	}
 	die_usage("PROTOCOL isn't permitted!", HELP_STR_GLOBAL);
 }
