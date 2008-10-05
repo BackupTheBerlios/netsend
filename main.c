@@ -162,9 +162,8 @@ main(int argc, char *argv[])
 				msg(LOUDISH, "branch to tipc_trans_mode()");
 				tipc_trans_mode();
 				break;
-			default:
+			case NS_PROTO_UNSPEC:
 				err_msg_die(EXIT_FAILINT, "Programmed Error");
-				break;
 		}
 		break;
 	case MODE_RECEIVE:
