@@ -1,5 +1,4 @@
 /*
-** $Id$
 **
 ** netsend - a high performance filetransfer and diagnostic tool
 ** http://netsend.berlios.de
@@ -18,6 +17,9 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
+
+#ifndef NETSEND_ERR_HDR_
+#define NETSEND_ERR_HDR_
 
 /* error handling macros */
 #define err_msg(format, args...) \
@@ -58,4 +60,5 @@ void msg(const int, const char *, ...);
 void print_bt(void);
 
 
+#endif /* NETSEND_ERR_HDR_ */
 
