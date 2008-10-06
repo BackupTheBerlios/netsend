@@ -7,7 +7,7 @@ endif
 TARGET = netsend
 OBJECTS = analyze.o error.o file.o \
 	getopt.o main.o net.o \
-	proto_tipc.o proto_udp.o \
+	proto_tipc.o proto_udp.o proto_unix.o \
 	receive.o trans_common.o \
 	ns_hdr.o xfuncs.o proto_tcp.o
 

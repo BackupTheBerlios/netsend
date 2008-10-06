@@ -15,11 +15,11 @@ Protocol is one of
 
 =over 4
 
-=item B<tcp>, B<udp>, B<udplite>, B<dccp>, B<sctp> or B<tipc>.
+=item B<tcp>, B<udp>, B<udplite>, B<dccp>, B<sctp>, B<unix> or B<tipc>.
 
 =back
 
-When using tipc, you must also specify a socket type, e.g. B<netsend tipc MODE SOCK_STREAM>.
+When using the unix or tipc address family, you must also specify a socket type, e.g. B<netsend tipc MODE SOCK_STREAM>.
 
 
 =head1 MODE

@@ -37,6 +37,7 @@
 #include "proto_tcp.h"
 #include "proto_tipc.h"
 #include "proto_udp.h"
+#include "proto_unix.h"
 
 struct conf_map_t memadvice_map[] = {
 	{ MEMADV_NORMAL,	"normal" },
@@ -159,8 +160,12 @@ main(int argc, char *argv[])
 				ip_stream_trans_mode(&opts);
 				break;
 			case NS_PROTO_TIPC:
-				msg(LOUDISH, "branch to tipc_trans_mode()");
+				msg(LOUDISH, "branch to AF_TIPC");
 				tipc_trans_mode();
+				break;
+			case NS_PROTO_UNIX:
+				msg(LOUDISH, "branch to AF_UNIX");
+				unix_trans_mode(&opts);
 				break;
 			case NS_PROTO_UNSPEC:
 				err_msg_die(EXIT_FAILINT, "Programmed Error");

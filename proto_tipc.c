@@ -79,6 +79,7 @@ int tipc_socket_bind(void)
 		sendto_dest_addr = xmalloc(sizeof(*sendto_dest_addr));
 		*sendto_dest_addr = sa_tipc;
 		sock_callbacks.cb_write = tipc_write;
+		sock_callbacks.cb_accept = tipc_accept;
 	}
 	return fd;
 }
@@ -126,20 +127,7 @@ int tipc_listen(int sockfd, int log)
 }
 
 
-int tipc_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
-{
-	assert(opts.family == AF_TIPC);
-
-	switch (opts.socktype) {
-	case SOCK_RDM: case SOCK_DGRAM:
-		return sockfd;
-	case SOCK_STREAM: case SOCK_SEQPACKET:
-		return accept(sockfd, addr, addrlen);
-	}
-	return -1;
-}
-
-void tipc_log_sockaddr(int level, const struct sockaddr_tipc *s)
+static void tipc_log_sockaddr(int level, const struct sockaddr_tipc *s)
 {
 	uint32_t a;
 
@@ -162,6 +150,34 @@ void tipc_log_sockaddr(int level, const struct sockaddr_tipc *s)
 	break;
 	}
 }
+
+
+int tipc_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+	int fd;
+
+	assert(opts.family == AF_TIPC);
+
+	switch (opts.socktype) {
+	case SOCK_RDM: case SOCK_DGRAM:
+		return sockfd;
+	case SOCK_STREAM: case SOCK_SEQPACKET:
+		fd = accept(sockfd, addr, addrlen);
+		if (fd < 0)
+			return fd;
+
+		if (VL_GENTLE(opts.verbose) &&
+			(opts.socktype == SOCK_STREAM || opts.socktype == SOCK_SEQPACKET))
+		{
+			struct sockaddr_tipc *tipcpeer = (struct sockaddr_tipc*) addr;
+			tipc_log_sockaddr(GENTLE, tipcpeer);
+		}
+		return fd;
+	}
+	return -1;
+}
+
+
 
 ssize_t tipc_write(int sockfd, const void *buf, size_t buflen)
 {
@@ -205,5 +221,6 @@ void tipc_trans_mode(void)
 	err_msg_die(EXIT_FAILMISC, "TIPC support not compiled in");
 #endif
 }
+
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

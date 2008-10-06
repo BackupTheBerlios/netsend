@@ -37,6 +37,7 @@
 #include "proto_tcp.h"
 #include "proto_udp.h"
 #include "proto_tipc.h"
+#include "proto_unix.h"
 
 extern struct opts opts;
 extern struct net_stat net_stat;
@@ -149,13 +150,18 @@ static int socket_bind(struct addrinfo *a)
 static int instigate_cs_tipc(void)
 {
 	int fd = tipc_socket_bind();
-	if (fd < 0)
-		err_sys_die(EXIT_FAILNET, "tipc_socket_bind");
 	if (sock_callbacks.cb_listen(fd, BACKLOG))
 		err_sys_die(EXIT_FAILNET, "listen(fd: %d, backlog: %d) failed", fd, BACKLOG);
 	return fd;
 }
 #endif
+static int instigate_cs_unix(void)
+{
+	int fd = unix_socket_bind();
+	if (sock_callbacks.cb_listen(fd, BACKLOG))
+		err_sys_die(EXIT_FAILNET, "listen(fd: %d, backlog: %d) failed", fd, BACKLOG);
+	return fd;
+}
 
 
 /* Creates our receive socket and initialize
@@ -175,10 +181,14 @@ instigate_cs(void)
 	struct addrinfo hosthints, *hostres, *addrtmp;
 	struct ip_mreq mreq;
 	struct ipv6_mreq mreq6;
+
 #ifdef HAVE_AF_TIPC
 	if (opts.family == AF_TIPC)
 		return instigate_cs_tipc();
 #endif
+	if (opts.family == AF_UNIX)
+		return instigate_cs_unix();
+
 	memset(&hosthints, 0, sizeof(struct addrinfo));
 
 	hosthints.ai_family   = opts.family;
@@ -306,19 +316,20 @@ receive_mode(void)
 
 	connected_fd = server_fd = instigate_cs();
 
+	switch (opts.family) {
 #ifdef HAVE_AF_TIPC
-	if (opts.family == AF_TIPC) {
-		connected_fd = tipc_accept(server_fd, (struct sockaddr *) &sa, &sa_len);
+	case AF_TIPC:
+		connected_fd = sock_callbacks.cb_accept(server_fd, (struct sockaddr *) &sa, &sa_len);
 		if (connected_fd == -1)
 			err_sys_die(EXIT_FAILNET, "accept");
-		if (VL_GENTLE(opts.verbose) &&
-			(opts.socktype == SOCK_STREAM || opts.socktype == SOCK_SEQPACKET))
-		{
-			struct sockaddr_tipc *tipcpeer = (struct sockaddr_tipc*) &sa;
-			tipc_log_sockaddr(GENTLE, tipcpeer);
-		}
-	}
+	break;
 #endif
+	case AF_UNIX:
+		connected_fd = sock_callbacks.cb_accept(server_fd, (struct sockaddr *) &sa, &sa_len);
+		if (connected_fd == -1)
+			err_sys_die(EXIT_FAILNET, "accept");
+	break;
+	}
 	switch (opts.protocol) {
 	case IPPROTO_TCP:
 	case IPPROTO_DCCP:
@@ -329,10 +340,8 @@ receive_mode(void)
 			tcp_set_md5sig_option(server_fd);
 
 		connected_fd = accept(server_fd, (struct sockaddr *) &sa, &sa_len);
-		if (connected_fd == -1) {
-			err_sys("accept error");
-			exit(EXIT_FAILNET);
-		}
+		if (connected_fd == -1)
+			err_sys_die(EXIT_FAILNET, "accept");
 		ret = getnameinfo((struct sockaddr *)&sa, sa_len, peer,
 				sizeof(peer), portstr, sizeof(portstr), NI_NUMERICSERV);
 		if (ret != 0)
@@ -369,6 +378,8 @@ receive_mode(void)
 	*/
 	fsync(file_fd);
 	free(phi);
+	if (opts.family == AF_UNIX && unlink(opts.port)) /* remove unix sun_path */
+		err_sys("unlink %s", opts.port);
 }
 
 /* vim:set ts=4 sw=4 tw=78 noet: */

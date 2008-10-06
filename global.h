@@ -134,6 +134,7 @@
 
 /* Default values */
 #define	DEFAULT_PORT    "6666"
+#define	DEFAULT_AF_UNIX_PATH  "/tmp/.netsend";
 #define	BACKLOG         1
 #define	DEFAULT_BUFSIZE (8 * 1024)
 
@@ -256,8 +257,9 @@ enum ns_proto {
 	NS_PROTO_UDP,
 	NS_PROTO_UDPLITE,
 	NS_PROTO_DCCP,
+	NS_PROTO_SCTP,
 	NS_PROTO_TIPC,
-	NS_PROTO_SCTP
+	NS_PROTO_UNIX
 };
 
 struct opts {

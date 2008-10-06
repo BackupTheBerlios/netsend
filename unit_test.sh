@@ -379,6 +379,43 @@ case10()
   fi
 }
 
+
+test_af_local()
+{
+  echo -n "AF_LOCAL tests..."
+  L_ERR=0
+  R_OPT="unix receive"
+  T_OPT="unix transmit"
+
+  test -S /tmp/.netsend && rm -f /tmp/.netsend
+
+  for sockt in SOCK_STREAM SOCK_SEQPACKET SOCK_DGRAM ; do
+    echo -n "$sockt "
+    ${NETSEND_BIN} ${R_OPT} $sockt 1>/dev/null 2>&1 &
+    RPID=$!
+
+    sleep 2
+
+    ${NETSEND_BIN} ${T_OPT} $sockt ${TESTFILE} 1>/dev/null 2>&1
+    if [ $? -ne 0 ] ; then
+      L_ERR=1
+    fi
+
+    # wait for receiver and check return code
+    wait $RPID
+    if [ $? -ne 0 ] ; then
+      L_ERR=1
+    fi
+  done
+
+  if [ $L_ERR -ne 0 ] ; then
+    echo failed
+    TEST_FAILED=1
+  else
+    echo passed
+  fi
+}
+
 echo -e "\nnetsend unit test script - (C) 2007\n"
 
 pre
@@ -395,6 +432,7 @@ case7
 case8
 case9
 case10
+test_af_local
 
 post
 

@@ -80,7 +80,7 @@ static const char const help_str[][4096] = {
 #if 0
 	"                   -P <processing-threads>\n" /* not implemented */
 #endif
-	" PROTOCOL     := { tcp | udp | dccp | tipc | sctp | udplite }\n"
+	" PROTOCOL     := { tcp | udp | udplite | dccp | sctp | tipc | unix }\n"
 	" COMMAND      := { UDP-OPTIONS | UDPL-OPTIONS | SCTP-OPTIONS | DCCP-OPTIONS | TIPC-OPTIONS | TCP-OPTIONS }\n"
 	" MODE         := { receive | transmit }\n"
 	" FORMAT       := { human | machine }\n"
@@ -100,9 +100,12 @@ static const char const help_str[][4096] = {
 	" SCTP_DISABLE_FRAGMENTS ",
 #define	HELP_STR_DCCP 5
 	" DCCP-OPTIONS := { }",
-#define	HELP_STR_TIPC 6
-	" TIPC-OPTIONS := { TIPCSOCKTYPE }\n"
-	" TIPCSOCKTYPE := { sock_rdm | sock_dgram | sock_stream | sock_seqpacket }",
+#define HELP_STR_UNIX 6
+	" AF_UNIX-OPTIONS := { SOCKTYPE }\n"
+	" SOCKTYPE := { sock_dgram | sock_stream | sock_seqpacket }",
+#define	HELP_STR_TIPC 7
+	" TIPC-OPTIONS := { SOCKTYPE }\n"
+	" SOCKTYPE := { sock_rdm | sock_dgram | sock_stream | sock_seqpacket }",
 
 #define	HELP_STR_MAX HELP_STR_TIPC
 
@@ -400,43 +403,28 @@ static void dump_tcp_opt(struct opts *optsp)
 	} else {
 		fprintf(stdout, "# perform rtt probe: false\n");
 	}
-
-
 }
 
 
-#ifdef HAVE_AF_TIPC
-#include <linux/tipc.h>
-
-static const struct {
-	int  socktype;
-	const char *sockname;
-} socktype_map[] =
+static void parse_unix_and_tipc_opts(int ac, char *av[], struct opts *optsp, int helpidx)
 {
-	{ SOCK_RDM, "SOCK_RDM" },
-	{ SOCK_DGRAM, "SOCK_DGRAM" },
-	{ SOCK_STREAM, "SOCK_STREAM" },
-	{ SOCK_SEQPACKET, "SOCK_SEQPACKET" }
-};
-#endif /* HAVE_AF_TIPC */
+	static const struct {
+		int  socktype;
+		const char *sockname;
+	} socktype_map[] =
+	{
+		{ SOCK_RDM, "SOCK_RDM" },
+		{ SOCK_DGRAM, "SOCK_DGRAM" },
+		{ SOCK_STREAM, "SOCK_STREAM" },
+		{ SOCK_SEQPACKET, "SOCK_SEQPACKET" }
+	};
 
-
-static void parse_tipc_opt(int ac, char *av[], struct opts *optsp)
-{
-#ifdef HAVE_AF_TIPC
-	unsigned i;
-
-	/* memorize protocol */
-	optsp->ns_proto = NS_PROTO_TIPC;
-
-	optsp->family = AF_TIPC;
 	optsp->socktype = 0;
 
 	switch (optsp->workmode) {
 	case MODE_TRANSMIT:
 		if (ac <= 1)
-			die_usage("TIPC transmit mode requires socket type and input file name",
-					HELP_STR_TIPC);
+			die_usage("transmit mode requires socket type and input file name", helpidx);
 		--ac;
 		optsp->infile = av[ac];
 		break;
@@ -456,6 +444,8 @@ static void parse_tipc_opt(int ac, char *av[], struct opts *optsp)
 	}
 
 	while (ac--) {
+		unsigned int i;
+
 		for (i=0; i < ARRAY_SIZE(socktype_map); i++) {
 			if (strcasecmp(socktype_map[i].sockname, av[ac]) == 0) {
 				optsp->socktype = socktype_map[i].socktype;
@@ -466,14 +456,38 @@ static void parse_tipc_opt(int ac, char *av[], struct opts *optsp)
 			return;
 	}
  out:
-	die_usage("You must specify a TIPC socket type", HELP_STR_TIPC);
+	die_usage("You must specify a socket type", helpidx);
+}
+
+
+#ifdef HAVE_AF_TIPC
+#include <linux/tipc.h>
 #endif
-	exit(EXIT_FAILOPT);
+
+static void parse_tipc_opt(int ac, char *av[], struct opts *optsp)
+{
+#ifdef HAVE_AF_TIPC
+	optsp->ns_proto = NS_PROTO_TIPC;
+	optsp->family = AF_TIPC;
+	parse_unix_and_tipc_opts(ac, av, optsp, HELP_STR_TIPC);
+#else
+	die_usage("TIPC support not compiled in", HELP_STR_GLOBAL);
+#endif
 }
 
 static void dump_tipc_opt(struct opts *optsp __attribute__((unused)))
 {
 }
+
+static void parse_unix_opt(int ac, char *av[], struct opts *optsp)
+{
+	optsp->ns_proto = NS_PROTO_UNIX;
+	optsp->family = AF_UNIX;
+	if (strcmp(optsp->port, DEFAULT_PORT) == 0) /* this allows to use -p /path/to/socket */
+		optsp->port = DEFAULT_AF_UNIX_PATH;
+	parse_unix_and_tipc_opts(ac, av, optsp, HELP_STR_UNIX);
+}
+
 
 static void parse_sctp_opt(int ac, char *av[],struct opts *optsp)
 {
@@ -613,12 +627,13 @@ struct __protocol_map_t {
 	void (*parse_proto)(int, char *[], struct opts *);
 	void (*dump_proto)(struct opts *);
 } protocol_map[] = {
-	{ 0, "tipc", help_str[HELP_STR_TIPC] , parse_tipc_opt, dump_tipc_opt },
+	{ 0, "tcp", help_str[HELP_STR_TCP] , parse_tcp_opt, dump_tcp_opt },
+	{ 0, "udp", help_str[HELP_STR_UDP] , parse_udp_opt, dump_udp_opt },
 	{ 0, "sctp", help_str[HELP_STR_SCTP] , parse_sctp_opt, dump_sctp_opt },
 	{ 0, "dccp", help_str[HELP_STR_DCCP] , parse_dccp_opt, dump_dccp_opt },
 	{ 0, "udplite", help_str[HELP_STR_UDPLITE], parse_udplite_opt, dump_udplite_opt },
-	{ 0, "udp", help_str[HELP_STR_UDP] , parse_udp_opt, dump_udp_opt },
-	{ 0, "tcp", help_str[HELP_STR_TCP] , parse_tcp_opt, dump_tcp_opt },
+	{ 0, "tipc", help_str[HELP_STR_TIPC] , parse_tipc_opt, dump_tipc_opt },
+	{ 0, "unix", help_str[HELP_STR_UNIX] , parse_unix_opt, dump_tipc_opt },
 	{ 0, NULL, NULL, NULL, NULL },
 };
 
@@ -988,7 +1003,7 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 			if (!av[2])
 				die_usage(NULL, HELP_STR_GLOBAL);
 
-			optsp->port = strdup(av[2]);
+			optsp->port = av[2];
 
 			av += 2; ac -= 2;
 			continue;

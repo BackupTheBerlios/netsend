@@ -102,10 +102,10 @@ int
 get_sock_opts(int fd, struct net_stat *ns)
 {
 	int ret;
-#ifdef HAVE_AF_TIPC
-	if (opts.family == AF_TIPC)
+
+	if (opts.family != AF_INET && opts.family != AF_INET6)
 		return 0;
-#endif
+
 	ret = get_ip_sock_opts(fd, ns);
 	if (ret != 0) {
 		return ret;
