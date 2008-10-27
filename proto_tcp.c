@@ -56,7 +56,7 @@ void tcp_print_info(struct tcp_info *tcp_info)
 void tcp_setsockopt_md5sig(int fd, const struct sockaddr *sa)
 {
 	static const char key[] = "netsend";
-	struct tcp_md5sig sig = { .tcpm_keylen = sizeof(key) };
+	struct tcp_md5sig sig = { .tcpm_keylen = sizeof(key) -1};
 
 	memcpy(sig.tcpm_key, key, sizeof(key));
 

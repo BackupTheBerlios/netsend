@@ -277,21 +277,14 @@ instigate_cs(void)
 static void
 tcp_set_md5sig_option(int fd)
 {
-	static const char key[] = "netsend";
-	struct tcp_md5sig sig = { .tcpm_keylen = sizeof(key) };
 	struct addrinfo hints = { .ai_flags = AI_ADDRCONFIG };
 	struct addrinfo *res0;
 
 	assert(opts.protocol == IPPROTO_TCP);
 
-	memcpy(sig.tcpm_key, key, sizeof(key));
-
 	xgetaddrinfo(opts.tcp_md5sig_peeraddr, NULL, &hints, &res0);
-
-	memcpy(&sig.tcpm_addr, res0->ai_addr, min(sizeof(sig.tcpm_addr), res0->ai_addrlen));
-
+	tcp_setsockopt_md5sig(fd, res0->ai_addr);
 	freeaddrinfo(res0);
-	xsetsockopt(fd, IPPROTO_TCP, TCP_MD5SIG, &sig, sizeof(sig), "TCP_MD5SIG");
 }
 
 
