@@ -149,6 +149,8 @@ void set_socketopts(int fd)
 		switch (socket_options[i].level) {
 		case SOL_SOCKET: break; /* works on every socket */
 		/* fall-through begins here ... */
+		case IPPROTO_IP:
+		case IPPROTO_IPV6:
 		case IPPROTO_TCP:
 			if (opts.protocol == IPPROTO_TCP)
 				break;

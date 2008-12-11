@@ -62,6 +62,7 @@ struct socket_options socket_options[] = {
   {"SO_REUSEADDR", SOL_SOCKET,  SO_REUSEADDR, SVT_BOOL, false, {0}},
   {"SO_BROADCAST", SOL_SOCKET,  SO_BROADCAST, SVT_BOOL, false, {0}},
   {"SO_BROADCAST", SOL_SOCKET,  SO_BROADCAST, SVT_BOOL, false, {0}},
+  {"SO_BROADCAST", SOL_SOCKET,  SO_BROADCAST, SVT_BOOL, false, {0}},
   {"TCP_NODELAY",  SOL_TCP, TCP_NODELAY,  SVT_BOOL, false, {0}},
   {"TCP_CONGESTION", SOL_TCP, TCP_CONGESTION, SVT_STR, false, {0}},
   {"TCP_CORK",     SOL_TCP, TCP_CORK,  SVT_BOOL, false, {0}},
@@ -71,7 +72,8 @@ struct socket_options socket_options[] = {
   {"TCP_SYNCNT",  SOL_TCP, TCP_SYNCNT,  SVT_INT, false, {0}},
   {"TCP_WINDOW_CLAMP",  SOL_TCP, TCP_WINDOW_CLAMP,  SVT_INT, false, {0}},
   {"SCTP_DISABLE_FRAGMENTS", IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, SVT_BOOL, 0, {0}},
-  {"SO_SNDBUF",    SOL_SOCKET,  SO_SNDBUF,    SVT_INT,  false, {0}},
+/* DONT, _WANT,  0,1.. ,although an extra convert hook would be nice to have */
+  {"IP_MTU_DISCOVER", IPPROTO_IP, IP_MTU_DISCOVER, SVT_INT, 0, {0}}, 
   {"SO_RCVBUF",    SOL_SOCKET,  SO_RCVBUF,    SVT_INT,  false, {0}},
   {"SO_SNDLOWAT",  SOL_SOCKET,  SO_SNDLOWAT,  SVT_INT,  false, {0}},
   {"SO_RCVLOWAT",  SOL_SOCKET,  SO_RCVLOWAT,  SVT_INT,  false, {0}},
