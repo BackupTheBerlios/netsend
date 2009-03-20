@@ -197,6 +197,7 @@ static const char *setsockopt_optvaltype_tostr(enum sockopt_val_types x)
 	switch (x) {
 	case SVT_BOOL: return "[ 0 | 1 ]";
 	case SVT_INT: return "number";
+	case SVT_TOINT: return "symname";
 	case SVT_TIMEVAL: return "seconds:microseconds";
 	case SVT_STR: return "string";
 	}
@@ -208,6 +209,7 @@ static const char *setsockopt_level_tostr(int level)
 {
 	switch (level) {
 	case SOL_SOCKET: return "SOL_SOCKET";
+	case IPPROTO_IP: return "IPPROTO_IP";
 	case IPPROTO_TCP: return "IPPROTO_TCP";
 	case IPPROTO_SCTP: return "IPROTO_SCTP";
 	case IPPROTO_UDPLITE: return "IPPROTO_UDPLITE";
@@ -263,15 +265,13 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 		switch (socket_options[i].sockopt_type) {
 		case SVT_BOOL:
 			socket_options[i].value = parse_yesno(optname, optval);
-			socket_options[i].user_issue = true;
-		return;
+			goto found;
 		case SVT_INT:
-			if (scan_int(optval, &socket_options[i].value))
-				socket_options[i].user_issue = true;
-			else
+			if (!scan_int(optval, &socket_options[i].value))
 				err_msg("%s: unrecognized optval \"%s\" "
 					"(integer argument required);skipped",
 							optval, optname);
+			goto found;
 		case SVT_TIMEVAL: {
 			int seconds, usecs = 0;
 			int parsed = scan_int(optval, &seconds);
@@ -291,15 +291,18 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 					return;
 				}
 			}
-			socket_options[i].user_issue = true;
 			socket_options[i].tv.tv_sec = seconds;
 			socket_options[i].tv.tv_usec = usecs;
+			goto found;
 		}
-		return;
 		case SVT_STR:
 			socket_options[i].value_ptr = optval;
-			socket_options[i].user_issue = true;
-		return;
+			goto found;
+		case SVT_TOINT:
+			assert(socket_options[i].convert_to_int);
+			socket_options[i].value =
+				socket_options[i].convert_to_int(optval);
+			goto found;
 		default:
 			err_msg("WARNING: Internal error: unrecognized "
 				"sockopt_type (%s %s) (%s:%u)",
@@ -308,6 +311,8 @@ static void parse_setsockopt_name(const char *optname, const char *optval)
 		}
 	}
 	err_msg("Unrecognized sockopt \"%s\" ignored", optname );
+ found:
+	socket_options[i].user_issue = true;
 }
 
 

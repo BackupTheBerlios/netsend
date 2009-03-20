@@ -176,6 +176,7 @@ void set_socketopts(int fd)
 		switch (socket_options[i].sockopt_type) {
 		case SVT_BOOL:
 		case SVT_INT:
+		case SVT_TOINT:
 			optlen = sizeof(socket_options[i].value);
 			optval = &socket_options[i].value;
 		break;

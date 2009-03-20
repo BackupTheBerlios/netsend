@@ -68,6 +68,10 @@
 # define TCP_CONGESTION  13
 #endif
 
+#ifndef IP_PMTUDISC_PROBE
+# define IP_PMTUDISC_PROBE 3
+#endif
+
 #ifndef SOL_SCTP
 # define SOL_SCTP 132
 #endif
@@ -141,6 +145,7 @@
 enum sockopt_val_types {
 	SVT_BOOL = 0,
 	SVT_INT,
+	SVT_TOINT,
 	SVT_TIMEVAL,
 	SVT_STR
 };
@@ -150,6 +155,7 @@ struct socket_options {
 	int   level;
 	int   option;
 	int   sockopt_type;
+	int (*convert_to_int)(const char *);
 	bool  user_issue;
 	union {
 		int value;

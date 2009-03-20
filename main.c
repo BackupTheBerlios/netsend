@@ -25,6 +25,7 @@
 #include <sched.h>
 #include <limits.h>
 #include <unistd.h>
+#include <string.h>
 #include <signal.h>
 
 #include <netinet/in.h>
@@ -56,31 +57,53 @@ struct conf_map_t io_call_map[] = {
 	{ IO_RW,		"rw"		},
 };
 
+static int conv_ip_mtu_discover(const char *s)
+{
+	static const struct {
+		const char *symname;
+		int sym;
+	} symtab[] = {
+		{"IP_PMTUDISC_WANT", IP_PMTUDISC_WANT},
+		{"IP_PMTUDISC_DO", IP_PMTUDISC_DO},
+		{"IP_PMTUDISC_DONT", IP_PMTUDISC_DONT},
+		{"IP_PMTUDISC_PROBE", IP_PMTUDISC_PROBE}
+	};
+	size_t i;
+
+	for (i=0 ; i < ARRAY_SIZE(symtab); i++)
+		if (strcasecmp(s, symtab[i].symname) == 0)
+			return symtab[i].sym;
+
+	fputs("MTU_DISCOVER: Known arguments:\n", stderr);
+	for (i=0 ; i < ARRAY_SIZE(symtab); i++)
+		fprintf(stderr, "%s\n", symtab[i].symname);
+	exit(1);
+}
 
 struct socket_options socket_options[] = {
-  {"SO_KEEPALIVE", SOL_SOCKET,  SO_KEEPALIVE, SVT_BOOL, false, {0}},
-  {"SO_REUSEADDR", SOL_SOCKET,  SO_REUSEADDR, SVT_BOOL, false, {0}},
-  {"SO_BROADCAST", SOL_SOCKET,  SO_BROADCAST, SVT_BOOL, false, {0}},
-  {"SO_BROADCAST", SOL_SOCKET,  SO_BROADCAST, SVT_BOOL, false, {0}},
-  {"SO_BROADCAST", SOL_SOCKET,  SO_BROADCAST, SVT_BOOL, false, {0}},
-  {"TCP_NODELAY",  SOL_TCP, TCP_NODELAY,  SVT_BOOL, false, {0}},
-  {"TCP_CONGESTION", SOL_TCP, TCP_CONGESTION, SVT_STR, false, {0}},
-  {"TCP_CORK",     SOL_TCP, TCP_CORK,  SVT_BOOL, false, {0}},
-  {"TCP_KEEPCNT",  SOL_TCP, TCP_KEEPCNT,  SVT_INT, false, {0}},
-  {"TCP_KEEPIDLE",  SOL_TCP, TCP_KEEPIDLE,  SVT_INT, false, {0}},
-  {"TCP_KEEPINTVL",  SOL_TCP, TCP_KEEPINTVL,  SVT_INT, false, {0}},
-  {"TCP_SYNCNT",  SOL_TCP, TCP_SYNCNT,  SVT_INT, false, {0}},
-  {"TCP_WINDOW_CLAMP",  SOL_TCP, TCP_WINDOW_CLAMP,  SVT_INT, false, {0}},
-  {"SCTP_DISABLE_FRAGMENTS", IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, SVT_BOOL, 0, {0}},
+  {"SO_KEEPALIVE", SOL_SOCKET,  SO_KEEPALIVE, SVT_BOOL, NULL, false, {0}},
+  {"SO_REUSEADDR", SOL_SOCKET,  SO_REUSEADDR, SVT_BOOL, NULL, false, {0}},
+  {"SO_BROADCAST", SOL_SOCKET,  SO_BROADCAST, SVT_BOOL, NULL, false, {0}},
+  {"SO_BROADCAST", SOL_SOCKET,  SO_BROADCAST, SVT_BOOL, NULL, false, {0}},
+  {"SO_BROADCAST", SOL_SOCKET,  SO_BROADCAST, SVT_BOOL,NULL,  false, {0}},
+  {"TCP_NODELAY",  SOL_TCP, TCP_NODELAY,  SVT_BOOL, NULL, false, {0}},
+  {"TCP_CONGESTION", SOL_TCP, TCP_CONGESTION, SVT_STR, NULL, false, {0}},
+  {"TCP_CORK",     SOL_TCP, TCP_CORK,  SVT_BOOL, NULL, false, {0}},
+  {"TCP_KEEPCNT",  SOL_TCP, TCP_KEEPCNT,  SVT_INT, NULL, false, {0}},
+  {"TCP_KEEPIDLE",  SOL_TCP, TCP_KEEPIDLE,  SVT_INT, NULL, false, {0}},
+  {"TCP_KEEPINTVL",  SOL_TCP, TCP_KEEPINTVL,  SVT_INT, NULL, false, {0}},
+  {"TCP_SYNCNT",  SOL_TCP, TCP_SYNCNT,  SVT_INT, NULL, false, {0}},
+  {"TCP_WINDOW_CLAMP",  SOL_TCP, TCP_WINDOW_CLAMP,  SVT_INT, NULL, false, {0}},
+  {"SCTP_DISABLE_FRAGMENTS", IPPROTO_SCTP, SCTP_DISABLE_FRAGMENTS, SVT_BOOL, NULL, 0, {0}},
 /* DONT, _WANT,  0,1.. ,although an extra convert hook would be nice to have */
-  {"IP_MTU_DISCOVER", IPPROTO_IP, IP_MTU_DISCOVER, SVT_INT, 0, {0}}, 
-  {"SO_RCVBUF",    SOL_SOCKET,  SO_RCVBUF,    SVT_INT,  false, {0}},
-  {"SO_SNDLOWAT",  SOL_SOCKET,  SO_SNDLOWAT,  SVT_INT,  false, {0}},
-  {"SO_RCVLOWAT",  SOL_SOCKET,  SO_RCVLOWAT,  SVT_INT,  false, {0}},
-  {"SO_SNDTIMEO",  SOL_SOCKET,  SO_SNDTIMEO,  SVT_TIMEVAL,  false, {0}},
-  {"SO_RCVTIMEO",  SOL_SOCKET,  SO_RCVTIMEO,  SVT_TIMEVAL,  false, {0}},
-  {"UDPLITE_SEND_CSCOV", IPPROTO_UDPLITE, UDPLITE_SEND_CSCOV, SVT_INT, false, {8}},
-  {NULL, 0, 0, 0, 0, {0}}
+  {"IP_MTU_DISCOVER", IPPROTO_IP, IP_MTU_DISCOVER, SVT_TOINT, conv_ip_mtu_discover, 0, {0}},
+  {"SO_RCVBUF",    SOL_SOCKET,  SO_RCVBUF,    SVT_INT,  NULL, false, {0}},
+  {"SO_SNDLOWAT",  SOL_SOCKET,  SO_SNDLOWAT,  SVT_INT,  NULL, false, {0}},
+  {"SO_RCVLOWAT",  SOL_SOCKET,  SO_RCVLOWAT,  SVT_INT,  NULL, false, {0}},
+  {"SO_SNDTIMEO",  SOL_SOCKET,  SO_SNDTIMEO,  SVT_TIMEVAL, NULL, false, {0}},
+  {"SO_RCVTIMEO",  SOL_SOCKET,  SO_RCVTIMEO,  SVT_TIMEVAL, NULL, false, {0}},
+  {"UDPLITE_SEND_CSCOV", IPPROTO_UDPLITE, UDPLITE_SEND_CSCOV, SVT_INT, NULL, false, {8}},
+  {NULL, 0, 0, 0, NULL, false, {0}}
 };
 
 struct opts opts;
