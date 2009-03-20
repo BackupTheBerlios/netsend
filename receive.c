@@ -337,9 +337,9 @@ receive_mode(void)
 		if (connected_fd == -1)
 			err_sys_die(EXIT_FAILNET, "accept");
 		ret = getnameinfo((struct sockaddr *)&sa, sa_len, peer,
-				sizeof(peer), portstr, sizeof(portstr), NI_NUMERICSERV);
+				sizeof(peer), portstr, sizeof(portstr), NI_NUMERICSERV|NI_NUMERICHOST);
 		if (ret != 0)
-			err_msg_die(EXIT_FAILNET, "getnameinfo error: %s",  gai_strerror(ret));
+			err_msg("getnameinfo error: %s",  gai_strerror(ret));
 		msg(GENTLE, "accept from %s:%s", peer, portstr);
 		}
 		break;
