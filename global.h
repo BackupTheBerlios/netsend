@@ -327,6 +327,10 @@ struct opts {
 		int force_ms;
 	} rtt_probe_opt;
 	int perform_rtt_probe;
+
+	/* server read() delay parameters in seconds */
+	int delay_read_initial;
+	int delay_read;
 };
 
 /*** Interface ***/

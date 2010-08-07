@@ -89,6 +89,11 @@ cs_read(int file_fd, int connected_fd, struct peer_header_info *phi)
 			break;
 		}
 
+		if (opts.delay_read) {
+			msg(LOUDISH, "delay read() operation for %d seconds", opts.delay_read);
+			sleep(opts.delay_read);
+		}
+
 	}
 
 	touch_use_stat(TOUCH_AFTER_OP, &net_stat.use_stat_end);
@@ -354,13 +359,18 @@ receive_mode(void)
 	/* read netsend header */
 	meta_exchange_rcv(connected_fd, &phi);
 
+	if (opts.delay_read_initial > 0) {
+		msg(LOUDISH, "delay the initial read() for %d seconds", opts.delay_read_initial);
+		sleep(opts.delay_read_initial);
+	}
+
 	msg(LOUDISH, "block in read");
 
 	cs_read(file_fd, connected_fd, phi);
 
 	msg(LOUDISH, "done");
 
-	if (opts.protocol == IPPROTO_TCP && VL_LOUDISH(opts.verbose)) {
+	if (opts.protocol == IPPROTO_TCP && VL_STRESSFUL(opts.verbose)) {
 		struct tcp_info tcp_info;
 
 		if (tcp_get_info(connected_fd, &tcp_info))

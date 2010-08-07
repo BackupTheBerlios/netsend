@@ -537,7 +537,7 @@ void ip_stream_trans_mode(struct opts *optsp)
 
 	trans_start(file_fd, connected_fd);
 
-	if (ipproto == IPPROTO_TCP && VL_LOUDISH(optsp->verbose)) {
+	if (ipproto == IPPROTO_TCP && VL_STRESSFUL(optsp->verbose)) {
 		struct tcp_info tcp_info;
 
 		if (tcp_get_info(connected_fd, &tcp_info))

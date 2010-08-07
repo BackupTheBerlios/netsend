@@ -17,6 +17,16 @@ WARNINGS="-Wall -W -Wwrite-strings -Wsign-compare \
 -Wpointer-arith -Wcast-qual -Wcast-align \
 -Wstrict-prototypes -Wmissing-prototypes \
 -Wnested-externs -Winline -Wshadow -Wformat=2"
+
+WARNINGS="-Wall -Wextra -pipe -Wwrite-strings -Wsign-compare \
+-Wshadow -Wformat=2 -Wundef -Wstrict-prototypes   \
+-fno-strict-aliasing -fno-common -Wformat-security \
+-Wformat-y2k -Winit-self -Wredundant-decls \
+-Wstrict-aliasing=3 -Wswitch-default -Wswitch-enum \
+-Wno-system-headers -Wundef -Wvolatile-register-var \
+-Wcast-align -Wbad-function-cast -Wwrite-strings \
+-Wold-style-definition  -Wdeclaration-after-statement \
+-fstack-protector"
  
 
 

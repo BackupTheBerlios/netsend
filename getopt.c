@@ -114,14 +114,16 @@ static const char const help_str[][4096] = {
 	 * for the user.
 	 */
 
-#define	HELP_STR_VERBOSE_LEVEL 7
+#define	HELP_STR_VERBOSE_LEVEL 8
 	" LEVEL := { quitscent | gentle | loudish | stressful }",
-#define	HELP_STR_SCHED_POLICY 8
+#define	HELP_STR_SCHED_POLICY 9
 	" SCHED-POLICY := { fifo | rr | batch | other }",
-#define	HELP_STR_MEM_ADVICE 9
+#define	HELP_STR_MEM_ADVICE 10
 	" MEM-ADVISORY := { normal | sequential | random | willneed | dontneed | noreuse }",
-#define	HELP_STR_IO_ADVICE 10
+#define	HELP_STR_IO_ADVICE 11
 	" IO-CALL := { mmap | sendfile | splice | rw }"
+#define	HELP_STR_READ_DELAY 11
+	" READ_DELAY := { delay_time | initial_delay_time:delay_time }"
 };
 
 
@@ -189,6 +191,47 @@ static int scan_int(const char *str, int *val)
 		*val = (int) num;
 	}
 	return parsed;
+}
+
+
+/* return number for parsed colon seperated list - 0 for no
+ * found element and -1 for error, > 0 for success */
+static int scan_colom_int(const char *str, int *val, int val_len)
+{
+	int ret = 0, i = 0;
+	const char delimiter[] = ":,";
+	char *token, *cp;
+
+	cp = strdup(str);
+	if (!cp)
+		return -1;
+
+
+	while (1) {
+
+		/* exceed buffer limit? */
+		if (val_len <= i) {
+			ret = -1;
+			goto out;
+		}
+
+		if (i == 0)
+			token = strtok(cp, delimiter);
+		else
+			token = strtok(NULL, delimiter);
+		if (!token)
+			goto out;
+
+		val[i] = atoi(token);
+		ret++;
+
+		i++;
+	}
+
+out:
+	free(cp);
+
+	return ret;
 }
 
 
@@ -1012,6 +1055,33 @@ parse_opts(int ac, char *av[], struct opts *optsp)
 
 			av += 2; ac -= 2;
 			continue;
+		}
+
+		/* -B { delay_time | initial_delay_time:delay_time } */
+		if ((!strcmp(&av[FIRST_ARG_INDEX][1], "B")) ) {
+			int block_time[2], ret;
+
+			if (!av[FIRST_ARG_INDEX + 1]) {
+				die_usage(NULL, HELP_STR_GLOBAL);
+			}
+
+			ret = scan_colom_int(&av[FIRST_ARG_INDEX + 1][0], block_time, sizeof(block_time));
+			switch (ret) {
+				case 2:
+					optsp->delay_read_initial = block_time[0];
+					optsp->delay_read = block_time[1];
+					break;
+				case 1:
+					optsp->delay_read = block_time[1];
+					break;
+				default:
+					print_usage("ERROR" , HELP_STR_READ_DELAY);
+					die_usage(NULL, HELP_STR_GLOBAL);
+					break;
+			}
+			av += 2; ac -= 2;
+			continue;
+
 		}
 
 		/* -v { quitscent | gentle | loudish | stressful } */
