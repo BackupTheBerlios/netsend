@@ -192,9 +192,10 @@ void set_socketopts(int fd)
 			err_msg_die(EXIT_FAILNET, "Unknown sockopt_type %d\n",
 					socket_options[i].sockopt_type);
 		}
+
 		ret = setsockopt(fd, socket_options[i].level, socket_options[i].option, optval, optlen);
 		if (ret)
-			err_sys("setsockopt option %d (name %s) failed", socket_options[i].sockopt_type,
+			err_sys_die(EXIT_FAILMISC, "setsockopt option %d (name %s) failed", socket_options[i].sockopt_type,
 										socket_options[i].sockopt_name);
 	}
 }

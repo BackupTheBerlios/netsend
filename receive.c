@@ -315,6 +315,8 @@ receive_mode(void)
 
 	connected_fd = server_fd = instigate_cs();
 
+	set_socketopts(connected_fd);
+
 	switch (opts.family) {
 #ifdef HAVE_AF_TIPC
 	case AF_TIPC:
