@@ -137,7 +137,7 @@
 #define	VERSIONSTRING "002"
 
 /* Default values */
-#define	DEFAULT_PORT    "6666"
+#define	DEFAULT_PORT    "5001"
 #define	DEFAULT_AF_UNIX_PATH  "/tmp/.netsend";
 #define	BACKLOG         1
 #define	DEFAULT_BUFSIZE (8 * 1024)
